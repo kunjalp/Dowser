@@ -86,6 +86,15 @@ Do not claim the text-confusion problem is solved or broad per-era accuracy.
 
 ## Next action
 
+User's latest plan: run an independent Cursor improvement attempt, then return
+for review. Dedicated worktree `/Users/emirtg/Desktop/dowser-cursor`, branch
+`ml/cursor-improvements`, task/rules/reference identities in
+[CURSOR_EXPERIMENT.md](CURSOR_EXPERIMENT.md). Code derives from the current ML
+branch because main does not yet contain this pipeline. Local data/environments
+are independent copied files, not writable symlinks. This original branch/model
+remains the review reference. Cursor must return `docs/ml/CURSOR_RESULTS.md`
+and preserve its checkpoints/predictions for inspection; no results exist yet.
+
 No additional annotation work is required from Emir for the completed data
 experiments. The paired report is ready to inspect. Current model improves
 aggregate Val, but remaining high-score numbers/rectangles need further work.

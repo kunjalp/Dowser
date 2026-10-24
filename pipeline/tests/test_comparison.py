@@ -2,6 +2,8 @@
 
 import copy
 import unittest
+import tempfile
+from pathlib import Path
 
 from pipeline.compare_previews import validation_pairs
 
@@ -26,6 +28,17 @@ class ComparisonTest(unittest.TestCase):
         for b in [self.records()*2,[],[dict(self.records()[0],split='test')]]:
             with self.assertRaises(ValueError):
                 validation_pairs(self.records(),b)
+
+    def test_identical_copies_across_worktrees_pass_but_changed_pixels_fail(self):
+        with tempfile.TemporaryDirectory() as folder:
+            first=Path(folder)/'original.png';second=Path(folder)/'copy.png'
+            first.write_bytes(b'fixed native pixels');second.write_bytes(first.read_bytes())
+            a=self.records();b=self.records()
+            a[0]['image_path']=str(first);b[0]['image_path']=str(second)
+            self.assertEqual(len(validation_pairs(a,b)),1)
+            second.write_bytes(b'changed image')
+            with self.assertRaisesRegex(ValueError,'image sources differ'):
+                validation_pairs(a,b)
 
 
 if __name__=='__main__':

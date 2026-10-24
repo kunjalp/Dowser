@@ -18,6 +18,7 @@ For a quick progress check, read [ML status](ml/STATUS.md).
 | [First training plan](ml/TRAINING_PLAN.md) | Selected model, local GPU, run settings, remaining data prerequisites | Training decision or measured result |
 | [Team update and PR review](ml/INTEGRATION_REVIEW.md) | GeoTIFF/inference coordination, verified gaps, bounded merge recommendation | New integration evidence |
 | [Detector improvement plan](ml/IMPROVEMENT_PLAN.md) | Text/lookalike errors, Train-only review batch and controlled comparison | Error analysis or new experiment |
+| [Independent Cursor experiment](ml/CURSOR_EXPERIMENT.md) | Separate workspace, frozen reference, comparison protocol and return report | Cursor handoff/review |
 | [Annotation handoff](ml/ANNOTATION.md) | Local dataset commands, frozen partitions, labeling policy | Preparation/annotation change |
 | [Contribution guide](../CONTRIBUTING.md) | Branches, review, ownership, integration | Team workflow change |
 | [Agent instructions](../AGENTS.md) | Persistent instructions for AI sessions | Engineering policy change |

@@ -33,7 +33,12 @@ def validation_pairs(before, after):
         if a[key]['mapYear']!=b[key]['mapYear'] or a[key]['ground_truth']!=b[key]['ground_truth']:
             raise ValueError('Validation labels or years differ')
         if Path(a[key]['image_path']).resolve()!=Path(b[key]['image_path']).resolve():
-            raise ValueError('Validation image sources differ')
+            # Separate worktrees may hold byte-identical copies of frozen Val.
+            # Compare pixels by file identity instead of forcing one checkout path.
+            first,second=Path(a[key]['image_path']),Path(b[key]['image_path'])
+            if (not first.is_file() or not second.is_file()
+                    or hashlib.sha256(first.read_bytes()).digest()!=hashlib.sha256(second.read_bytes()).digest()):
+                raise ValueError('Validation image sources differ')
     return [(a[key],b[key]) for key in sorted(a)]
 
 

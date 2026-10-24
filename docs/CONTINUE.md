@@ -22,6 +22,12 @@ docs and implementation are not yet merged into main. A fresh clone must check
 out the ML branch to see them. If there are uncommitted changes, inspect and
 preserve them before switching branches or integrating upstream changes.
 
+For Emir's independent Cursor improvement experiment, open the separate
+`/Users/emirtg/Desktop/dowser-cursor` worktree on `ml/cursor-improvements` and
+follow [CURSOR_EXPERIMENT.md](ml/CURSOR_EXPERIMENT.md). It has copied local data
+and environments; leave the original checkout/reference artifacts intact.
+Cursor should produce `docs/ml/CURSOR_RESULTS.md` for the later review.
+
 Raw maps, prepared images/ZIPs, and `.venv` are deliberately outside Git. They
 remain available in this local checkout, but do not appear in a fresh clone.
 For another machine, follow [annotation setup](ml/ANNOTATION.md). Preserve any
