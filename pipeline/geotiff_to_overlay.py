@@ -7,7 +7,8 @@ The map's "Historical map overlay" toggle picks the manifest up automatically.
 
     python pipeline/geotiff_to_overlay.py path/to/sheet.tif --year 1962 --name "Taft"
 
-Options: --max-px 3000 (longest side; smaller = faster page loads), --out app/public/historical
+Options: --max-px 3000 (longest side; smaller = faster page loads), --quality 82 (WebP, lower = smaller file),
+        --out app/public/historical
 Needs: pip install rasterio numpy pillow
 """
 from __future__ import annotations
@@ -45,7 +46,7 @@ def to_rgb(src: rasterio.DatasetReader) -> np.ndarray:
     return data
 
 
-def convert(tif: Path, year: int, name: str, out_dir: Path, max_px: int) -> dict:
+def convert(tif: Path, year: int, name: str, out_dir: Path, max_px: int, quality: int = 82) -> dict:
     with rasterio.open(tif) as src:
         if src.crs is None:
             raise SystemExit(f"{tif} has no coordinate system; it is not a georeferenced GeoTIFF.")
@@ -76,7 +77,7 @@ def convert(tif: Path, year: int, name: str, out_dir: Path, max_px: int) -> dict
     slug = re.sub(r"[^a-z0-9]+", "-", f"{name}-{year}".lower()).strip("-")
     out_dir.mkdir(parents=True, exist_ok=True)
     img_path = out_dir / f"{slug}.webp"
-    Image.fromarray(np.moveaxis(out, 0, -1), "RGBA").save(img_path, "WEBP", quality=82)
+    Image.fromarray(np.moveaxis(out, 0, -1), "RGBA").save(img_path, "WEBP", quality=quality)
 
     entry = {
         "id": slug,
@@ -102,6 +103,7 @@ if __name__ == "__main__":
     ap.add_argument("--year", type=int, required=True, help="edition year printed on the sheet")
     ap.add_argument("--name", required=True, help="quad name, e.g. Taft")
     ap.add_argument("--max-px", type=int, default=3000)
+    ap.add_argument("--quality", type=int, default=82, help="WebP quality 1-100; lower = smaller file")
     ap.add_argument("--out", type=Path, default=Path("app/public/historical"))
     a = ap.parse_args()
-    convert(a.tif, a.year, a.name, a.out, a.max_px)
+    convert(a.tif, a.year, a.name, a.out, a.max_px, a.quality)
