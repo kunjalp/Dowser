@@ -606,7 +606,7 @@ function Paired({
       const t0 = e.touches[0];
       const inSheet = (e.target as HTMLElement).closest(".sheet-backdrop");
       swipeSt.current =
-        t0.clientX <= 28 && !inSheet ? { x: t0.clientX, y: t0.clientY, t: performance.now(), on: false, dx: 0, armed: false } : null;
+        t0.clientX <= 48 && !inSheet ? { x: t0.clientX, y: t0.clientY, t: performance.now(), on: false, dx: 0, armed: false } : null;
     },
     move: (e: React.TouchEvent) => {
       const st = swipeSt.current;
@@ -622,7 +622,7 @@ function Paired({
       if (st.on && swipeRef.current) {
         st.dx = Math.max(0, dx);
         // Haptic tick the moment the swipe passes the commit point (and again if you pull back under it), like iOS.
-        const past = st.dx > 80;
+        const past = st.dx > 56;
         if (past !== st.armed) {
           st.armed = past;
           haptics.tick();
@@ -638,15 +638,15 @@ function Paired({
       const el = swipeRef.current;
       if (!st?.on || !el) return swipeReset();
       const velocity = st.dx / Math.max(1, performance.now() - st.t); // px per ms
-      if (st.dx > 80 || velocity > 0.5) {
+      if (st.dx > 56 || velocity > 0.25) {
         if (reduceMotion()) {
           onBack();
           return;
         }
-        el.style.transition = "transform 170ms cubic-bezier(0.3, 0.7, 0.2, 1), opacity 170ms ease-out";
+        el.style.transition = "transform 110ms cubic-bezier(0.3, 0.7, 0.2, 1), opacity 110ms ease-out";
         el.style.transform = "translateX(100%)";
         el.style.opacity = "0.6";
-        window.setTimeout(onBack, 150);
+        window.setTimeout(onBack, 90);
       } else {
         swipeReset();
       }
