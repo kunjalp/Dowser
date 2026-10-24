@@ -1,2 +1,3 @@
 # Preserve the imported PRD verbatim, including whitespace in the supplied text.
 docs/prd/source.txt -whitespace
+docs/master-plan/source.txt -whitespace

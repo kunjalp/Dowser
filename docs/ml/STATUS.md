@@ -1,83 +1,67 @@
 # ML status and handoff
 
-Last verified: 2026-10-23 (America/Los_Angeles).
+Last verified: 2026-10-23, America/Los_Angeles.
+Task branch: `ml/tile-georeferencing`; includes current main `88c6522`.
 
-## Verified state
+## Source of truth and scope
 
-- Repository: `https://github.com/kunjalp/Dowser`, remote `origin`, default `main`.
-- Task branch: `ml/region-selection`, based on `docs/ml-workflow` at `43e437c`;
-  main baseline is `15f7c8f` (initial backend commit).
-- Existing backend: Convex schema, sensor ingest/readings, CalGEM loader and its
-  test script. Existing Convex instructions were preserved.
-- Research scripts exist under `ml/research/`; nine source raster samples and
-  source-response caches are local under ignored `data/research/`.
-- No Dowser detector, human-labeled dataset, trained weights, or ML accuracy
-  metrics have been produced. Published model outputs are attributed reference data.
-- Full PRD was read; its unchanged pasted text is retained under `docs/prd/`.
-- Contract matches current detection field names and documents unresolved gaps.
-- [Full main review](../MAIN_REVIEW.md) covers all 97 tracked files at
-  `15f7c8f13896093935c7e3811e8b28ee10c97ccd` (55 unique content blobs).
-- Main has no tile/detection ingestion API, spatial triage, automatic sensor
-  confirmation/ranking, or frontend yet. Table definitions are not those features.
-- Region selected for ML MVP: Oil Center + Oildale, Kern; WGS84 bbox
-  `[-119.125, 35.375, -118.875, 35.5]`. See the
-  [canonical config](../../ml/config/region.json) and
-  [research report](../research/REGION_SELECTION.md).
-- Three selected TIFFs/XML were inspected: Oil Center 293661 (1954/1968 revision),
-  Oildale 293664 (1954), Oil Center 102321 (1992). Oil Center 1978 is excluded
-  because it is an orthophotomap. Do not select files solely by title/year.
-- The default branch was unprotected when inspected. No branch settings changed.
-- Documentation is prepared on a task branch for review; team workflow proposals
-  remain subject to agreement. Use Git/PR state for current publication status.
+[Master Plan](../master-plan/source.txt) supersedes the old PRD. Emir owns ML;
+Ryann owns matching/dedup/scoring and historical overlay conversion; Kunjal owns
+the UI map. Python code/config/research now live under `pipeline/`.
+The user's zero-cost constraint is recorded in root agent instructions.
 
-## Current task
+## Verified behavior
 
-Begin one native-resolution tile from Oil Center 293661 with collar masking and
-coordinate/control-point checks. Backend still needs annotation-confidence,
-evidence/provenance, and ingestion decisions before persistent ML integration.
-The region research branch depends on the documentation PR; review its separate
-PR against `docs/ml-workflow` until that parent is merged.
+- Three pinned Kern rasters: Oil Center 293661 (base 1954, revised 1968,
+  imprint 1970), Oildale 293664 (1954, imprint 1956), Oil Center 102321 (1992,
+  edit/imprint 1995). The 1978 orthophotomap is excluded.
+- `pipeline.download_sources` verifies hashes and acquires a pinned public
+  NADCON grid; processing then runs offline.
+- `pipeline.prepare_dataset` creates native 1024 px PNGs, 819 px stride,
+  collar masks, transforms, source/date provenance, and backend-compatible tile
+  rows. Geographic boundaries are shared across years.
+- Crossing tiles are excluded as buffer; cross-split envelope overlap is checked
+  explicitly. Every retained tile starts `unlabeled`.
+- A validation set exists; at least 30 tiles are protected for test.
+- Import ZIPs contain images only; no fabricated negative/ground-truth labels.
+- `pipeline.geo` converts xywh centers to WGS84 and preserves rotation/shear.
+  Numerical checks are not field-accuracy measurements.
+- Backend changes were merged from main. Current schema includes `mapYear`,
+  optional `cropUrl`, candidate loading, field status changes, and pairing.
+  See [current contract](CONTRACT.md).
 
-## Verification of the documentation change
+## Data preparation run
 
-- `python3 scripts/test_load_calgem.py`: all 5 existing tests passed.
-- `bash -n scripts/post_reading.sh`: passed; the script was not run against a server.
-- Local Markdown links resolved across the documentation files.
-- `cmp` confirmed `docs/prd/source.txt` matches the supplied attachment exactly.
-- Source SHA-256: `1b373501053c0437f2636a9dedb73f3e1c732a2dff2fc0062c96421e1f4e99d4`.
-- `git diff --check`: no whitespace errors in the tracked diff.
-- No ML training/evaluation or Convex deployment was run for this docs change.
+Active output: `data/ml/kern_1024_v1/` (ignored, reproducible locally).
+Its summary/manifest contain exact artifact identities and code hashes.
+Geometry pass: **189 windows; 84 train / 13 validation / 30 test / 62 buffer**.
+Test is 23.6% of 127 retained images because at least 30 are required. Both
+1954 and 1992 appear in each retained partition.
 
-## Region-research evidence
+**0 human-reviewed tiles, 0 human boxes.** No Dowser model trained or ran.
+No precision/recall or known-well accuracy is claimed. Published outputs remain
+attributed research, not labels. An earlier local `data/ml/labeling_v1/` run is
+preliminary; use the active path above.
 
-- USGS catalog and live CalGEM counts queried for five bounded subregions.
-- Nine sampled TIFFs/XML opened; three selected raster hashes recorded in config.
-- Published baseline contains 1,907 predictions, not human labels. Its five
-  candidates were checked against current mapped CalGEM geometry; none has a
-  record within 100 m, but visual inspection exposed uncertain/false detections.
-- OSM/Overpass probes failed; current school/building proximity is not verified.
-- The published U-Net weights were not downloaded/run. Switching from the PRD's
-  YOLO requires an explicit requirement decision; it has not been made.
+## Verification
 
-## Next executable milestone
+- 11 offline unit tests cover independent synthetic projection references,
+  pixel-edge convention, rotation/shear, invalid boxes, deterministic splits,
+  cross-year leakage rejection, minimum test size, and overwrite refusal.
+- All 127 PNG dimensions/modes and all three ZIP contents verified. Frozen
+  counts, manifest hash, environment, and transform limitations are in the
+  [preparation record](EXPERIMENTS.md#preparation-kern_1024_v1--2026-10-23).
+- Actual source-corner residual is in summary; initial maximum approximately
+  `2.33e-10` pixels. Cross-split overlap pairs: zero.
+- Five existing loader checks pass: `python3 pipeline/test_load_calgem.py`.
+- Backend behavior was not deployed or exercised by this ML task.
 
-One actual georeferenced map tile produces explicit ground-truth detections with
-WGS84 coordinates and evidence crops, consumable by backend. Then train a model
-against the same interface. Relevant IDs: FR-1.3, FR-2.4, FR-2.7, FR-3.1, FR-3.2.
+## Next action
 
-## Decisions still needed
+Follow [ANNOTATION.md](ANNOTATION.md): label the packaged images, preserving
+their frozen split. Reach 300+ human-reviewed symbols with hard negatives;
+annotate reserved test images independently. Then implement YOLO training,
+evaluation, and reviewed inference export for Ryann.
 
-- Team agreement on one-review PR workflow and protection of `main`.
-- Backend approval of field names, bbox convention, ground-truth confidence,
-  manifest format, artifact delivery, and the tile/detection ingestion interface.
-- Dataset and weight storage location; compute for training.
-- Current school/building source ingestion and independent georeferencing checks.
-
-## Handoff update template
-
-Date / branch / commit:
-Completed behavior:
-Requirement IDs:
-Checks actually run and evidence paths:
-Known failures / blockers:
-Exact next action:
+Remaining: actual-map control points, 10+ known-well offsets, fallback confidence
+semantics, crop publication. Ryann's OSM ingestion is not an ML blocker.

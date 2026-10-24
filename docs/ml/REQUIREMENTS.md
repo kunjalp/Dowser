@@ -1,56 +1,39 @@
-# ML requirements and acceptance evidence
+# ML requirements and evidence
 
-Baseline: [full PRD](../prd/source.txt), 2026-10-23. FR-1.1 is documented in the
-README/config; FR-1.2 source acquisition is verified locally by region research.
-All other implementation items below remain `not started`. Downloaded rasters
-are research inputs, not labeled examples or model-quality evidence.
+Authoritative baseline: [Master Plan](../master-plan/source.txt), sections 3–6.
+It supersedes the original PRD. Legacy FR identifiers are cross-references only.
 
-| PRD ID | Acceptance to preserve | Expected evidence |
+| Requirement | Owner / state | Evidence or remaining acceptance |
 | --- | --- | --- |
-| FR-1.1 | One region and bounding box | Complete for ML MVP: README and [region config](../../ml/config/region.json) |
-| FR-1.2 | At least 3 georeferenced sheets across at least 2 eras | Verified locally: three sheet editions, two quadrangles, 1954/1992 date-on-map eras; hashes/URLs in config and [research](../research/REGION_SELECTION.md) |
-| FR-1.3 | Fixed-size overlapping tiles; per-tile transform; corner reconstruction within 1 pixel | Manifest and transform checks |
-| FR-1.4 | Upload/CLI to stored detections under 30 s on demo hardware | Timed integration run with backend |
-| FR-1.5 | Raw sheets outside Git; repo under 100 MB | Ignore rules and repo size evidence |
-| FR-2.1 | Labels from at least 2 eras, target at least 300 boxes, YOLO export | Dataset version, counts, labeling guide |
-| FR-2.2 | About 20% labeled tiles held out, never trained on | Versioned split manifest, group assignment, overlap check |
-| FR-2.3 | Fine-tune pretrained YOLO; save weights and commit config | Run record, config, weights URI/checksum |
-| FR-2.4 | Box, confidence, class, source tile ID per detection | Agreed contract and serialized fixture |
-| FR-2.5 | Actual precision/recall and confusion examples on validation | Evaluation report with maps/eras and metric protocol |
-| FR-2.6 | Document threshold selected on validation PR curve | Curve/report and inference config |
-| FR-2.7 | Config switch from inference to labeled ground truth | Both paths produce agreed records with explicit provenance |
-| FR-3.1 | Tile ID and box center to WGS84 lat/lon | Coordinate function and checks |
-| FR-3.2 | Correct CRS handling; at least 3 known control points | Independent reference coordinates and error report |
-| FR-3.3 | At least 10 detections checked against CalGEM; median offset reported, target under 50 m | Match table with sample selection and offsets |
-| FR-3.4 | Merge adjacent-tile duplicates within about 15 m | Dedup check; configurable distance; retained evidence |
+| Kern, 1947–1992 editions; >=3 sheets and >=2 eras | Emir: acquired | Three editions in [region config](../../pipeline/config/region.json), native 1954/1992 eras |
+| 1024 px tiles, about 20% overlap, own ID/year/transform | Emir: implemented | `pipeline.prepare_dataset`; 819 px stride, source hash, WKT, native offset |
+| Corner reconstruction <=1 source pixel | Emir: numerically verified | Tests/summary; not absolute map-accuracy evidence |
+| Test about 20%, >=30 tiles before training | Emir: partition implemented | Shared geography across years; crossing tiles quarantined; annotate protected tiles before evaluation |
+| >=300 human-labeled symbols, lookalike negatives, multiple eras | Emir + team: pending | Package is unlabeled; human counts remain zero |
+| Fine-tune pretrained YOLO, imgsz 1024 | Emir: pending | No training/weights; no replacement with published U-Net |
+| Box, confidence, class, tile ID, year, crop | Emir: pending inference | Current contract documented; no fabricated detections |
+| Pixel-to-WGS84 with native tile transform | Emir: unit checked | `pipeline.geo`, edge convention and rotated-affine checks |
+| >=3 control points on actual maps | Emir: pending | Synthetic projection tests do not satisfy independent map-control acceptance |
+| >=10 known CalGEM wells, median offset <50 m target | Emir + Ryann: pending | Needs reviewed symbols and reference matches |
+| Precision/recall on untouched test; target >=0.60 | Emir: pending | Tune on separate validation; no quality claim |
+| Model/manual-ground-truth fallback | Emir: pending | Human labels first; numeric confidence semantics need agreement |
+| Dedup 20 m across tiles and editions | Ryann | Master Plan supersedes original 15 m |
+| Match 100 m, OSM homes/schools/water, scoring, load | Ryann | Existing backend loading API is not ML's task |
+| Command Map and Field View | Kunjal | Ryann prepares overlay; ML supplies source/crops |
+| Live upload, Droid, Claude vision | Could-have | Only after the core loop works |
+| Zero paid project resources | User constraint: enforced | Local processing/public downloads; no paid training/API calls |
 
-PRD metrics are targets: precision and recall aim at 0.60+; report actual values,
-map coverage, and sample counts even when targets are missed. CalGEM offsets
-combine map, detection, and record-location error; do not claim they independently
-prove absolute georeferencing accuracy.
+## Evaluation discipline
 
-## Evaluation policy (engineering proposal)
+Freeze sources and geography before training. The same territory across years
+and overlapping neighbors must not cross train/val/test. Buffer tiles are not
+negatives or training samples. Splitting uses full tile envelopes conservatively.
 
-Assign splits by geographic/source groups before augmentation; overlapping tiles
-and overlapping multi-year coverage must not cross splits. Approximately 20% of
-tiles is a target, not a reason to violate grouping. Record deviations caused by
-a small number of sheets. Three sheets may give unstable estimates; state that.
+At least 30 test tiles takes precedence when the fraction slightly exceeds 20%.
+Report actual counts and per-era symbol counts after labeling. Preserve an
+independent test by tuning on the additional validation partition instead of
+the Master Plan's ambiguous reference to held-out threshold tuning.
 
-Record IoU/matching rule, confidence threshold, one-to-one matching, duplicate
-handling, sample counts, and metrics per era. A validation set used for threshold
-selection is a tuning set. Use a separate untouched test set if possible; otherwise
-explicitly report validation results and their limitation.
-
-## Open PRD issues / deviations
-
-- No approved ML deviations yet. Restricting to one era requires an explicit
-  scope decision: FR-1.2 and FR-2.1 currently call for at least two.
-- Ranking formula is missing from the pasted PRD following its introduction.
-  Backend must resolve this; ML confidence must retain its original meaning.
-- Sensor confirmation wording and MQ-4 measurement limits need alignment by the
-  hardware/backend owners. Model detections alone confirm neither wells nor leaks.
-- Factory Droid/Apify track requirements are conditional on pursuing those tracks;
-  do not silently mark their P0 requirements complete if a track is dropped.
-
-For each future deviation record: date, affected IDs, reason, decision owner,
-replacement acceptance criteria, and evidence. Do not rewrite the PRD silently.
+Published/assistant predictions are not human labels. Never create an empty label
+for an unreviewed tile. Human review covers the full tile, including negatives
+and clipped symbols. See [annotation instructions](ANNOTATION.md).

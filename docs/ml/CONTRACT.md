@@ -1,88 +1,76 @@
-# ML to backend contract: schema baseline and open decisions
+# ML/backend contract
 
-Baseline inspected: `convex/schema.ts` at `15f7c8f`. The stored fields below
-already exist. Pixel conventions and extensions are proposals requiring backend
-agreement. This document does not change the schema or add an ingest endpoint.
+Source of truth: [Master Plan sections 4–6](../master-plan/source.txt).
+Backend inspected at `88c6522`, incorporated into the ML preparation branch.
+The original PRD and the old `15f7c8f` schema are superseded.
 
-## Boundary
+## Ownership and delivery
 
-ML delivers tile metadata and detections with geographic coordinates and evidence.
-Backend performs CalGEM matching, proximity calculations, ranking, and persistence.
-Upload orchestration and storage IDs must be agreed jointly. Keep model score
-separate from backend map confidence, risk score, and record-match distance.
+Emir owns tiling, symbol labels, YOLO, inference, pixel-to-geo conversion, crops,
+and detector metrics. Ryann owns 20 m dedup across tiles/editions, CalGEM matching,
+OSM enrichment, scoring, loading candidates, and publishing evidence crops.
+Kunjal owns Command Map and Field View; Ryann prepares historical overlays.
 
-## Transport and persistence: not implemented yet
+MVP uses preprocessed tiles. A live upload/detection service is could-have and
+must not block the offline handoff. ML delivers local detection JSONL, tile
+manifests, crop files, source provenance, and metrics. A local crop path becomes
+`cropUrl` only after Ryann publishes it; never invent an accessible URL.
 
-The current backend exposes reading ingest and a recent-readings query only.
-There is no upload/ingest function for tiles or detections. ML should first
-produce local manifest/JSON fixtures matching the stored shape; backend must
-implement and agree their ingestion path before claiming an integrated pipeline.
-The full [main review](../MAIN_REVIEW.md) describes the available source surface.
+## Existing backend tiles and detections
 
-Application IDs are strings rather than Convex document IDs. Their indexes do
-not enforce uniqueness or referenced-row existence. Agree idempotent writes,
-tile-before-detection behavior, and duplicate IDs at the ingestion boundary.
+Tile fields in [schema](../../convex/schema.ts): `tileId`, `sheetName`, `mapYear`,
+`transform`, `crs`, `widthPx`, `heightPx`, and `bounds`
+(`minLon`, `minLat`, `maxLon`, `maxLat`). `transform` is rasterio order
+`[a,b,c,d,e,f]`: `X=a*x+b*y+c`, `Y=d*x+e*y+f`. Preserve custom source CRS WKT.
 
-## Tile manifest
-
-The current table requires `tileId`, `sheetName`, `mapYear`, `transform`, `crs`,
-`widthPx`, `heightPx`, and `bounds` (`minLon`, `minLat`, `maxLon`, `maxLat`).
-`transform` uses rasterio order `[a, b, c, d, e, f]` in the sheet's CRS:
-`worldX = a * col + b * row + c`; `worldY = d * col + e * row + f`.
-The array validator does not enforce length; ML must validate six finite values.
-
-ML's versioned manifest should additionally preserve source URI/checksum, tile
-offset, and split/source group outside the current Convex row. Do not send extra
-fields to the table without an agreed schema change. Agree pixel-center and
-edge conventions before implementation. Do not discard rotation/shear or infer
-georeferencing from a filename.
-
-Region research selected the maps in `ml/config/region.json`. Keep `mapYear`
-consistent with their date-on-map while preserving photo revision and imprint
-dates separately in the external manifest. Oil Center 293661 is labeled 1954 but
-photorevised 1968; treating it as an unchanged 1954 snapshot would be misleading.
-
-## Detection record
-
-| Existing field | Stored form and intended interpretation |
+| Detection field | Meaning |
 | --- | --- |
-| detectionId | Stable identity for an inference/annotation record; agree retry/dedup policy |
-| tileId | Reference to the manifest |
-| box | Object `{x, y, w, h}`; proposed convention: top-left origin, original tile pixel units, edge coordinates |
-| className | String; proposed single class value `well_symbol` |
-| confidence | Required number; model score in [0, 1]; ground-truth semantics unresolved |
-| lat, lon | WGS84 box-center coordinates; explicitly named fields avoid axis ambiguity |
+| detectionId | Stable application string ID |
+| tileId | Source tile ID |
+| mapYear | Date-on-map, required in current backend |
+| box | `{x,y,w,h}` in original tile pixels; top-left origin, edge convention |
+| className | Proposed single class `well_symbol` |
+| confidence | Numeric model score; not a calibrated probability |
+| lat, lon | WGS84 center coordinates |
+| cropUrl | Optional published crop URL/path |
 | source | `model` or `ground_truth` |
 
-For the proposed edge convention, the center is `(x + w/2, y + h/2)`.
-Convert internal YOLO labels/xyxy arrays into this object at the export boundary.
-`cropUri` and `runId` are useful proposed extensions but are absent from the
-current schema. Keep evidence/provenance in an external manifest until backend
-agrees where it will be stored and how the UI will retrieve it.
+For an xywh box the center is `(x+w/2, y+h/2)`; do not add another half pixel.
+Undo inference resize/letterboxing before conversion. `pipeline.geo` implements
+the native pixel-edge convention, finite-value checks, and per-tile transforms.
 
-Coordinate conversion must undo inference resize/letterboxing before using the
-tile transform. Validate finite values, image bounds, coordinate range, and the
-region footprint. A successful run with no detections returns an empty list; a
-failed run returns an explicit failure, never a fabricated empty success.
+Ground-truth annotation files naturally have no model confidence. Backend still
+requires a number: fallback confidence/ranking semantics remain an explicit
+coordination item. Current preparation creates no fake confidence, detections,
+or unreviewed ground truth.
 
-Ground-truth fallback must not masquerade as model output or assign confidence
-1.0 as if it were a model probability. The current schema rejects `null`, so the
-earlier null-confidence proposal is not compatible. Backend/UI must agree either
-an explicit nullable/type extension or documented annotation-score semantics
-that keep ranking and display honest. This remains an open interface decision.
+## Candidate and reading contracts
 
-Deduplication should preserve contributing tile/crop references. Repeated runs,
-overlap deduplication, and cross-era agreement have different meanings; define
-their IDs and aggregation rules before writing persistent data.
+Ryann's final candidate uses `id`, `score`,
+`scoreParts {confidence, undocumented, people, water, field}`, `editionsSeen`,
+`status`, `evidenceImages [{year,url}]`, `quadName`, coordinates, and optional
+matching/enrichment/provenance fields. See the current schema for full fields.
+`candidates:upsertBatch` and bulk import are implemented; the old statement that
+no candidate loading path exists is obsolete.
 
-## Approval checklist
+Exact statuses: `candidate`, `queued`, `confirmed_leaking`,
+`confirmed_not_leaking`, `no_well`, `mislocated`. Manual field logging is P0;
+three-reading auto-confirmation is P1. Readings use `value`, `timestamp`, and
+`candidateId`, replacing `corrected`, `ts`, and `wellId`.
 
-- Field names/types and bbox/coordinate conventions agreed with backend.
-- Ground-truth representation and rank/UI behavior agreed.
-- Tile manifests, crop storage, delivery, retry behavior, and errors agreed.
-- Backend provides an agreed ingestion function; its existence is verified in code.
-- One small versioned fixture consumed by the backend before model training.
-- Breaking changes include a consumer update or explicit migration plan.
+Application IDs are strings. Indexes alone enforce neither uniqueness nor
+referential integrity; consumers must preserve idempotent loading behavior.
 
-Reference: [current schema](../../convex/schema.ts). Recheck against the current
-branch before implementation; this baseline can evolve while teammates work.
+## Dates, artifacts, and checks
+
+The [region config](../../pipeline/config/region.json) records base, revision,
+and imprint dates separately. Oil Center 293661 is base 1954 with 1968 revision,
+not an unchanged 1954 snapshot. Overlapping years share geographic partitions.
+Full source hashes live in the tile manifest.
+
+Deduplication (20 m), matching (100 m), and proximity (250 m) remain backend
+configuration. Distances use EPSG:3310. Coordinate-operation accuracy and
+map/survey accuracy are separate; report known-well offsets after those checks.
+
+No deployment, schema change, paid API, or paid resource was invoked for ML
+preparation. Backend code remains exactly as received from main.

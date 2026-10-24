@@ -1,0 +1,6 @@
+# Offline map preparation, pinned to the locally verified versions.
+rasterio==1.4.3
+Pillow==11.3.0
+pyproj==3.6.1
+numpy==2.0.2
+affine==3.0.1

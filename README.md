@@ -11,7 +11,7 @@ Layout: `/app` (Next.js) · `/convex` (backend) · `/pipeline` (Python) · `/fir
 Start with the [documentation index](docs/README.md) and
 [ML status and next action](docs/ml/STATUS.md). The
 [contribution guide](CONTRIBUTING.md) describes task branches and PR review;
-[ML requirements](docs/ml/REQUIREMENTS.md) track PRD acceptance evidence.
+[ML requirements](docs/ml/REQUIREMENTS.md) track Master Plan acceptance evidence.
 The [ML/backend contract](docs/ml/CONTRACT.md) distinguishes the existing schema
 from interface decisions that still need backend agreement. The full
 [Master Plan](docs/master-plan/source.txt) is the current source of truth;
@@ -35,6 +35,24 @@ approximate boxes; the config is not yet wired into that loader. Use the explici
 buffered bbox below so reference wells outside the study edge remain matchable.
 
 Kern County, oil-producing quadrangles, 1947 to 1992 editions. Distances are computed in California Albers (EPSG:3310); lat/lon stored in WGS84.
+
+## Offline ML preparation (Emir)
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r pipeline/requirements.txt
+.venv/bin/python -m pipeline.download_sources
+.venv/bin/python -m pipeline.prepare_dataset
+.venv/bin/python -m unittest discover -s pipeline/tests -v
+```
+
+Local output: `data/ml/kern_1024_v1/`. Native 1024 px tiles use 819 px stride
+(about 20% overlap), per-tile CRS/affine and masked collars. The fixed geographic
+split has 84 train / 13 val / 30 test images; 62 crossing windows are quarantined.
+All images are **unlabeled**, not negative examples. See the
+[labeling handoff](docs/ml/ANNOTATION.md) before importing or training.
+No paid services or cloud training are invoked. Preparation refuses to overwrite
+an existing dataset; use `--output` with a new version for a deliberate rerun.
 
 ## Data contracts (Master Plan section 5)
 

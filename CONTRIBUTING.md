@@ -10,6 +10,8 @@ small PRs frequently. Proposed names: `ml/<task>`, `backend/<task>`, `web/<task>
 ML owns map preparation, labels/splits, detection, pixel-to-geo conversion, and
 evaluation. Backend owns record matching, proximity/ranking, and persistence.
 Frontend owns map presentation; hardware owns firmware and reading delivery.
+The Master Plan fixes names: Emir (ML), Ryann (backend/data and dedup), Kunjal
+(Command Map/Field View), Murad (hardware). Python belongs under `pipeline/`.
 Coordinate changes to root dependencies, shared schemas, CI, and repository-wide
 instructions with their owners. Backend should review the detection interface.
 
@@ -100,9 +102,11 @@ docstrings and comments for units, assumptions, and reasoning. Before PR: run
 relevant checks and update status/requirements/contract/experiments as applicable.
 No separate documentation sprint is needed.
 
-The existing backend check is `python3 scripts/test_load_calgem.py` (also exposed
-as `npm run test:calgem`). This documentation change adds no ML implementation
-or CI workflow. Preserve existing Convex instructions when touching backend code.
+Existing loader checks: `python3 pipeline/test_load_calgem.py` or
+`npm run test:calgem`. Offline ML checks:
+`.venv/bin/python -m unittest discover -s pipeline/tests -v`.
+Backend `npm test` needs its generated files; do not provision/deploy a service
+just to run ML checks. Preserve Convex instructions for backend work.
 
 Useful ML checks include synthetic/control-point coordinate checks, overlapping
 tile deduplication, split leakage checks, detection serialization, explicit

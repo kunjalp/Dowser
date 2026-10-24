@@ -5,10 +5,18 @@ Read the root `AGENTS.md` and `CONTRIBUTING.md`, then `docs/ml/STATUS.md`,
 
 ## Scope
 
-Keep new ML implementation under `ml/` unless the repository later establishes a
-different convention. ML owns map tiling, labels/splits, symbol detection,
+Keep Python implementation under `pipeline/`, as required by the Master Plan.
+ML owns map tiling, labels/splits, symbol detection,
 pixel-to-geo conversion, and evaluation. Backend owns matching and ranking.
 Use the existing backend interface documented in the contract; coordinate changes.
+Ryann owns deduplication (20 m), matching, enrichment, and ranking. Kunjal owns
+the interactive map; Ryann prepares historical overlays. ML supplies detections,
+georeferencing, evidence crops, and metrics. Live tile upload is could-have.
+
+Use 1024 px tiles, approximately 20% overlap, and train at imgsz 1024. Freeze
+approximately 20% and at least 30 test tiles before training. Use a separate
+validation partition for tuning. Never call assistant/published predictions
+human-reviewed ground truth or label unknown tiles as negative examples.
 
 ## Implementation and documentation
 

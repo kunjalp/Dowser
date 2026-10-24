@@ -18,8 +18,14 @@ Read `CONTRIBUTING.md` before editing. Use a task branch and preserve other
 contributors' changes. For concurrent editing sessions use separate worktrees.
 
 For ML tasks read `docs/ml/STATUS.md`, `docs/ml/REQUIREMENTS.md`,
-`docs/ml/CONTRACT.md`, and `ml/AGENTS.md`. The documentation index is
-`docs/README.md`; the unmodified PRD is `docs/prd/source.txt`.
+`docs/ml/CONTRACT.md`, and `pipeline/AGENTS.md`. The current source of truth is
+`docs/master-plan/source.txt`, which supersedes `docs/prd/source.txt`.
+The documentation index is `docs/README.md`.
+
+The user requires zero paid project resources: no paid APIs, GPU rentals,
+paid labeling jobs, purchases, deployment provisioning, or plan upgrades.
+Use local/offline tools and public source downloads. Existing sponsor credits
+do not authorize spending; report limitations instead of activating a paid path.
 
 Identify affected PRD requirement IDs before implementation. Verify changed
 behavior and update relevant docs in the same PR. Record actual checks and

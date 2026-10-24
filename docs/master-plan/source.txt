@@ -1,0 +1,286 @@
+Dowser: Master Plan
+Cal Hacks 13.0 · Climate track · Oct 23–25, 2026 · Palace of Fine Arts, SF
+This is the single source of truth. It replaces the separate Build Plan and PRD. If something elsewhere disagrees with this doc, this doc wins.
+Read this first: conflicts resolved
+The two original docs disagreed in several places. These are the calls made so nobody has to guess. Anyone who strongly disagrees should say so at the Friday 6 PM kickoff, then it is locked.
+Topic
+Original docs said
+Locked decision
+Region
+Build Plan: Kern County. PRD: LA Basin or Kern, decide at check-in
+Kern County, oil-producing quadrangles, 1947–1992 editions
+Tile size
+640 px vs 1024 px
+1024 px tiles, ~20% overlap, train at imgsz 1024 (no downscaling of tiny symbols)
+Held-out test set
+~30 tiles vs ~20% split
+~20% of labeled tiles, and at least 30 tiles, set aside before any training
+Dedup distance
+20 m vs 15 m
+20 m (config value)
+Labeling target
+300+ by Fri 11 PM vs 150 by Sat 2 AM
+300+ by Fri 11 PM
+Detector targets
+"reasonable" vs 0.60+
+Aim for precision and recall of 0.60+ on held-out tiles; report whatever we actually get
+How a leak gets confirmed
+Build Plan: person logs "Confirmed leaking" in the phone app. PRD: auto-confirm from readings
+P0: verifier logs the finding on the phone (one tap, updates map live). P1 upgrade: auto-confirm after 3+ readings above threshold within 30 s
+Live tile upload
+PRD: required. Build Plan: not planned
+Could-have. Demo uses pre-processed tiles and the historical overlay toggle. Only built after the full loop works
+Factory Droid and Apify
+PRD: build early, time-boxed. Build Plan: not scheduled, and nothing extra starts before the loop works
+Could-haves, start only after the Sat 2 PM loop works. Must work by Sat 9 PM or they are cut and we do not claim the track
+Status names
+"candidate / queued / confirmed_leaking..." vs "field-confirmed leak"
+Use the Build Plan values exactly (see section 5)
+Reading field names
+value / timestamp vs corrected / ts
+value (baseline-corrected) and timestamp
+OLED states
+clean/elevated/high vs OK/ELEVATED
+CLEAN / ELEVATED / HIGH
+Claude briefs
+Top ~50 vs top 20; fixed format vs 80–120 words
+Top ~50, 80–120 words, fixed four-part format (section 6)
+Submit time
+By 8:45 vs 30 min margin before 9:00
+Submit by 8:30 AM Sunday. Edits are allowed until 10 AM
+Table claim
+PRD: Friday check-in. Build Plan: Sunday 8 AM
+Claim a table at Friday check-in if allowed, otherwise by 8:00 AM Sunday. Record the number. It cannot change after 9 AM
+Backup video owner
+Open question
+Murad and Emir, Saturday night
+
+1. What we are building
+One-liner: A computer vision model finds oil and gas well symbols on historical USGS topographic maps, flags the ones missing from state records, and ranks them for plugging crews, who confirm leaks with a cheap handheld methane sensor that logs readings back to a live map.
+Problem
+Orphaned oil and gas wells leak methane, and some sit near homes and schools. Crews cannot plug wells nobody knows about.
+Old topographic maps marked wells decades before modern record-keeping, but nobody can scan them by hand.
+Do not quote a national count of undocumented wells without a cited source. Verify funding program status (2021 Infrastructure Act) before pitching.
+Why now: Berkeley Lab and partners have shown deep learning can find undocumented wells on historical maps. Our differentiator is the end-to-end workflow: detect, cross-check against records, rank, verify in the field. USGS TopoView maps are free and georeferenced.
+Goals
+G1: Show the full loop live (detect, cross-check, rank, verify in the field).
+G2: Ranked candidate list for one region with a plain-English brief per well.
+G3: A sensor reading changes a well's status on the live map in under 5 seconds.
+G4: Report detector accuracy honestly, on maps we actually checked.
+G5: Use sponsor tools only where they do real work (Convex, Anthropic; Droid and Apify only if they ship).
+Non-goals: not a production system, not certified emissions measurement, no claim of verified undocumented wells, one region only, the MQ-4 is a demo-grade indicator with a simple threshold.
+Weekend success metrics
+3 of 3 rehearsal runs succeed without manual intervention.
+Detector precision and recall on held-out tiles: report actuals, aim for 0.60+.
+Pixel-to-lat/lon error under 50 m median on at least 10 detections matched to known CalGEM wells.
+Reading reaches Convex in under 2 s, and the map updates in under 5 s end to end.
+Submitted with margin.
+2. Users and demo story
+Program analyst (primary): state orphan well program staffer who needs a defensible ranked list with reasons.
+Field verifier (secondary): crew member who walks to a candidate and gets a quick yes/no on a leak.
+Community or health reviewer (tertiary): wants to see which candidates are near homes and schools.
+Judges see both views.
+Story judges should leave with: old map symbols light up as candidates, the presenter picks the top-ranked one, "walks" to it with the handheld near a simulated leak, the reading appears live, the well turns red and jumps to the top, and a Claude-written brief explains why it matters.
+3. Scope
+Rule: nothing from Could-have starts until the full live loop (sensor, phone, Command Map) works end to end.
+Must-have (the product)
+Kern County tiles from USGS TopoView with georeferencing; at least 3 sheets across at least 2 map eras.
+YOLO well-symbol detector fine-tuned on 300+ hand-labeled symbols (Roboflow), with pixel-to-lat/lon conversion.
+CalGEM cross-check: no documented well within 100 m makes a candidate.
+Enrichment and scoring using OpenStreetMap (homes, schools, water).
+Claude briefs for the top ~50 candidates.
+Handheld: ESP32 + MQ-4 + OLED posting to Convex.
+Command Map (desktop): satellite basemap, historical overlay toggle, documented vs. candidate layers, ranked sidebar, detail panel, live updates.
+Field View (mobile web page): queued list, on-site screen, live readings, log finding.
+Recorded-data fallback, "simulated" banner, backup video, Devpost, repo README.
+Should-have (Sat 2–6 PM)
+Priority sliders with live re-ranking, filters, one-line reason per list item, polish and legend, CSV export, tuned scoring, hero candidate, auto-confirm after 3 readings in 30 s, second sensor unit.
+Could-have (only if the loop works; decision at Sat 6 PM scope freeze)
+Claude vision second-pass on low-confidence crops.
+Live tile upload that triggers detection.
+Factory Droid spatial-triage agent.
+Apify Records Actor.
+Second region, satellite methane overlay.
+Out of scope: accounts and auth, native mobile app, any real gas release, regulatory-grade calibration, writing project code before the event.
+4. Team and ownership
+Ryann: data + backend. CalGEM, OSM, matching, enrichment, scoring, dedup, Convex (schema, loading, sensor endpoint, mutations), Claude briefs, replay fallback, CSV, Devpost write-up. Co-lead of pitch.
+Kunjal: frontend + pitch. Command Map, Field View, demo script. Co-lead of pitch.
+Murad: hardware + firmware. Sensor, OLED, enclosure, mock wellhead, calibration, recorded readings, demo station. Runs the field check live. Co-owns backup video.
+Emir: detector. Tiling, labeling pipeline, training, inference, pixel-to-geo, accuracy numbers, evidence crops. Answers technical questions in pitch. Co-owns backup video.
+Proposed owners for could-haves (confirm at kickoff): Emir takes Droid and Claude vision; Ryann takes Apify only if she has time, otherwise Murad.
+Repo: /app (Next.js), /convex (backend), /pipeline (Python), /firmware (ESP32). Raw sheets stay out of git (repo under 100 MB).
+5. Architecture and data contracts
+Flow: USGS maps → tile → YOLO detect → pixel-to-lat/lon → dedupe → CalGEM match → OSM enrich → score → Convex → Command Map and Field View. Handheld → phone-tagged readings → Convex → both screens, live.
+Stack: Python (GeoPandas, rasterio, pyproj), YOLO + Roboflow, Convex (live store and HTTP endpoint), Next.js + MapLibre, Claude via Anthropic API, ESP32 + MQ-4 + OLED.
+Convex tables: candidates, documentedWells, readings, fieldChecks, statusEvents, briefs, tiles, detections (plus agentRuns and agentSteps only if Droid ships).
+Candidate record (pipeline → Convex → app). Agreed fields: id, lat, lon, score, scoreParts {confidence, undocumented, people, water, field}, editionsSeen, nearestDocumentedId, nearestDocumentedDistM, distToHomeM, distToSchoolM, distToWaterM, buildingsNear250m, status, brief, evidenceImages [{year, url}], quadName, detectionId, source (model | ground_truth)
+Reading record (sensor → Convex): deviceId, value (relative, baseline-corrected), raw, timestamp, candidateId (attached by phone), lat, lon, locationSource (candidate | phone), isReplay
+Status values: candidate, queued, confirmed_leaking, confirmed_not_leaking, no_well, mislocated
+Geospatial rules
+Distances are computed in a meter-based projection (California Albers, EPSG:3310). Store WGS84 lat/lon for display.
+Each tile uses its own transform. Never reuse one sheet's transform for another.
+Record each tile's map year and report detector results per era.
+Config values, not buried constants: cross-check radius (100 m), dedup distance (20 m), proximity radius (250 m), score weights, elevated/high thresholds, detector confidence threshold (start ~0.4, tune on the held-out set).
+Transparent weighted score from scoreParts; weights are placeholders until tuned Saturday. A confirmed leak ranks above all unconfirmed candidates.
+6. Requirements and acceptance tests
+Ingestion and detector (Emir)
+Tile each sheet into 1024 px tiles with ~20% overlap, keeping each tile's ID, sheet, year and transform. Corner coordinates must match the sheet within 1 pixel.
+Label in Roboflow across clean, stained, dense and sparse maps and multiple editions. Include negative tiles with lookalikes (survey marks, small buildings, dots in text).
+Hold out the test set before training and never train on it. Record the split in a manifest.
+Fine-tune YOLO from pretrained weights; commit the run config.
+Inference output per detection: box, confidence, class, tile ID, map year, and a small symbol crop.
+Pixel-to-geo: unit test with at least 3 control points. Spot-check 10+ detections against CalGEM and report median offset (target under 50 m).
+Report precision, recall and example errors on held-out tiles only, stating which maps were checked.
+Fallback flag: switch the pipeline between model detections and hand-labeled ground truth.
+Records, scoring, briefs (Ryann)
+Load CalGEM Kern data; drop missing coordinates, standardize projection, log bad rows. Wells with low-precision location are flagged "uncertain" and excluded from matching, with a count.
+Matching: nearest documented well and distance for each detection; no record within 100 m flags a candidate.
+Enrichment: nearest home, school and waterway distances and building count within 250 m from OpenStreetMap.
+Dedup across overlapping tiles and editions; count editions each well appears in.
+Briefs: 80–120 words, four parts (summary, why it ranks here, what's uncertain, next step). Generated only from the candidate's JSON, with no numbers absent from it. Unconfirmed candidates never use the word "confirmed". Cache in Convex and regenerate only when fields change.
+Convex mutations for status changes (each logs a statusEvent) and for attaching readings. Priority-weight recompute from stored score parts.
+Dropped false detections are marked as such, never silently deleted.
+Command Map (Kunjal)
+Full-screen MapLibre map of Kern with satellite basemap, historical overlay toggle with opacity slider (under 1 s), map on right, ranked list left, detail panel slides in (under 500 ms).
+Candidates as colored dots by score; documented wells as small gray dots; status colors (red leaking, gray no well, etc.) with legend.
+Detail panel: evidence images from every edition, score breakdown bars, nearest documented well and distance, brief, status buttons, readings chart.
+Everything live from Convex: a status change shows in a second browser window within 1 s, and rank changes animate.
+Visible "simulated sensor data" banner whenever demo mode is on.
+Field View, mobile web (Kunjal)
+Today's list (queued candidates sorted by distance from phone), on-site screen (old map crop, satellite view, distance to predicted spot), Start reading button, live readings chart, log finding form (outcome, photo, note).
+Pairing: the phone sends its location and selected candidate to Convex; new device readings attach to that candidate. A logged finding updates the Command Map live.
+Handheld (Murad)
+Wire the MQ-4 through a voltage divider (its output can reach 5 V; ESP32 inputs tolerate 3.3 V). Use an ADC1 pin, because ADC2 conflicts with Wi-Fi.
+On startup average ~30 s of clean air for a baseline; report the rise above baseline. Let the sensor warm up and leave it powered once wired.
+OLED shows relative reading, CLEAN / ELEVATED / HIGH, Wi-Fi status and a visible error state. Auto-reconnect to Wi-Fi.
+Button toggles reading mode; post one reading per second to Ryann's endpoint (HTTPS, insecure client setting is fine for the demo; note it in the README). Run on the phone hotspot.
+20 back-to-back test cycles with the leak source to set realistic ELEVATED and HIGH thresholds. Record a full set of real readings to a file for the fallback.
+Battery runs the unit for 30+ minutes. Spare ESP32 with firmware flashed; second unit if parts allow.
+Leak source: ask organizers whether an unlit lighter near a mock wellhead is allowed. Get approval in writing. If not, use recorded readings for the leak moment. Always label it simulated.
+7. Sponsor tracks
+Convex (core): real-time store and HTTP endpoint for ESP32 → map. Replay uses it too.
+Anthropic (core): briefs for top ~50 candidates; vision second-pass if it ships.
+Planet-First: impact line computed from our own data: "In our test region, N candidate wells are not in state records, and M are within 250 m of homes or a school." Label as candidates, not verified wells.
+Factory Droid (could-have): only counts if it does real work in the running product. Design: spatial triage agent, triggered when a tile with detections loads. Writes only to candidates and its own run log, with per-run time and write limits, a dry-run mode, a visible Agent Run panel showing plan, steps and diff, and a README section "Where Droid is used". Confirm SDK language and how to restrict permissions. A plain script does not qualify. Not working by Sat 9 PM: cut it and do not claim the track.
+Apify (could-have): custom "Dowser Records Actor" that fetches and normalizes CalGEM records for a region, loaded into Convex via the Apify API. Only official or term-compliant sources. Downloading one file by hand does not count. Same cut rule as Droid.
+Devpost opt-in: Microsoft grand prize, Planet-First Social Impact, Most Technically Advanced, Anthropic, Convex, plus Droid or Apify only if shipped. Check the cap on prize tracks per team.
+8. Schedule
+Standups (5 minutes, standing: done, blocked, changing) at every checkpoint marked ⏱.
+Fri 6:00–7:00 PM · Kickoff and contracts ⏱ (everyone)
+Create the GitHub repo and folders, create the Convex project and add all four people.
+Lock region, data formats and status values from section 5 in the README. Confirm owners.
+Ask organizers: gas source rules, rules on pre-existing data and pretrained models, shared monitor and power, prize criteria, track cap. Check in and claim a table if possible.
+Fri 7:00–11:00 PM · Foundations
+Emir: tile the maps with georeferencing; set up Roboflow and start labeling; include lookalike negatives; set aside the held-out tiles now.
+Ryann: load and clean CalGEM Kern; pull OSM homes, schools and waterways; write matching, enrichment and scoring and test on fake points; create Convex tables and basic queries and mutations. By 8:30 PM, sensor HTTP endpoint live and URL sent to Murad. By 10:00 PM, 50 fake candidates with realistic Kern coordinates loaded.
+Kunjal: Next.js + Convex + MapLibre; full-screen satellite map with historical toggle placeholder; layout (map right, list left, sliding detail panel). At ~10 PM, render fake candidates as colored dots and a live score-sorted list.
+Murad: test every part individually, wire the voltage divider, join the phone hotspot, write baseline calibration. By 10:00 PM, post a test reading to Ryann's endpoint and confirm it lands.
+9:00–9:45 PM labeling sprint: Ryann and Kunjal label too. Target 300+ symbols by 11 PM.
+Fri 11:00 PM · Checkpoint ⏱ Must be true: 300+ labeled symbols, fake candidates on map and sorted, a real sensor reading in Convex, matching and scoring work on fake points. If labeling is behind, Ryann gives another hour to labeling.
+Fri 11:00 PM–Sat 3:00 AM · First real versions
+Emir: train first small YOLO at 1024 (Colab if no GPU). Write inference script (pixel to lat/lon, confidence, edition year, crops). Measure precision and recall on held-out tiles and write them down. Label more of the most common error type. Start a longer second run before sleeping.
+Ryann: dedup (20 m, across tiles and editions, count editions); loader script into the agreed format; load nearby documented wells for gray dots; convert 1–2 best map sheets into a map overlay for the time-travel toggle and hand to Kunjal; status-change and reading-attach mutations.
+Kunjal: detail panel, status buttons wired to mutations (verify live in a second window), documented wells layer, historical overlay toggle.
+Murad: OLED relative reading and status; post a reading each second in reading mode; Wi-Fi reconnect and error state; build the mock wellhead (pipe in a bucket of dirt or gravel) and test with the allowed leak source.
+Sleep: Murad 2:00–7:00 AM once firmware basics work. Kunjal 3:00–8:00 AM. Emir 3:30–8:00 AM. Ryann 4:00–8:30 AM after running the full dress-rehearsal pipeline on model 1 detections (detect, dedupe, match, enrich, score, load).
+Sat 8:00 AM · Morning checkpoint ⏱ Emir reports model 2 precision and recall. If precision is reasonable (aim 0.60+), run it on all tiles. If poor, spend at most 2 more hours labeling and retraining and show detections only from sheets where it performs well. Do not let the detector eat the day.
+Sat 8:00 AM–2:00 PM · Real data and field app
+Emir: run best model on every tile; hand detections and crops to Ryann; verify the pixel-to-geo spot-check; write up numbers and example images (correct and a common mistake) for the pitch; then review the top 30 candidates with Ryann and mark false detections.
+Ryann: run the full pipeline on real detections and replace the fake candidates; upload evidence crops (frontend public folder, store paths); generate briefs for top ~50; priority-weight recompute logic.
+Kunjal: build Field View and pairing; make a logged finding update the Command Map live.
+Murad: finish enclosure; 20 test cycles and set thresholds; record a full set of real readings for the fallback; then help test pairing on the phone.
+Sat 2:00 PM · Integration checkpoint ⏱ The full loop works: open the Command Map, queue the top candidate, open it on the phone, start a reading with the handheld near the mock wellhead, watch readings appear on both screens, log "Confirmed leaking", see the well turn red and lock to the top. Everyone fixes whatever breaks before anything else starts.
+Sat 2:00–6:00 PM · Should-haves
+Emir: if the loop works and Ryann doesn't need help, start a could-have (Claude vision, or Droid if the team chooses it). Otherwise build the "before vs. after" pitch visual: historical tile beside the same area with detections and candidates highlighted.
+Ryann: tune scoring so the top 10 make intuitive sense and #1 has a compelling story (multiple editions, no nearby record, near homes); pick the hero candidate and polish its evidence, brief and satellite view; CSV export; start the Devpost draft (problem, what it does, how it works, how it builds on Berkeley Lab, model numbers, what's next).
+Kunjal: priority sliders with live re-ranking; filters (status, score range, near schools, near homes, field-confirmed); one-line reason per list item; loading and empty states, consistent status colors, legend.
+Murad: second sensor unit if parts allow; demo station layout (mock wellhead, phone, laptop visible to judges); write the backup video shot list.
+Sat 6:00 PM · Scope freeze ⏱ Decide which could-haves are still worth trying. Anything not working by 9 PM is cut. Kunjal and Ryann draft the pitch outline.
+Sat 6:00–9:00 PM · Hardening
+Everyone fixes bugs from the 2 PM and 6 PM run-throughs.
+Kunjal: verify on the exact demo laptop and phone, venue resolution and hotspot.
+Ryann: recorded-data fallback (hidden button or script that replays Murad's trace into Convex as if live). Test that it looks identical.
+Murad: charge and label batteries; spare ESP32 flashed.
+Emir: finish stretch work or help with polish and pitch visuals.
+Sat 9:00 PM · Feature freeze ⏱ No new features after this. Bug fixes and pitch work only. The fallback replay must work.
+Sat 9:00 PM–Sun 1:00 AM · Pitch, video, write-up
+Ryann and Kunjal: write the 3-minute script, assign speakers, rehearse at least 3 times, timed, with at least one person who has not seen it. Prepare answers (section 10).
+Murad and Emir: record the backup video showing the full loop and the "simulated" label, under 3 minutes, with captions or voiceover.
+Everyone: clean the repo (README: what it is, setup, architecture, data sources and licenses, credits to Berkeley Lab research and data providers, where Claude, Convex, and any Droid/Apify are used); make the Devpost project image (Command Map with hero candidate open).
+Everyone sleeps by 1:30 AM until 6:00 AM. Tired presenters lose more points than missing features.
+Sun 6:00–8:30 AM · Submit
+6:00–7:00: final run-through of pitch and demo; check hotspot, sensor, phone pairing, fallback replay.
+By 8:00: at the venue with the table claimed and number recorded.
+7:00–8:15: finalize Devpost (description, accuracy numbers, video link, GitHub link, project image, table number, tracks).
+By 8:30: submitted. Do not wait for 8:59. Edits allowed until 10 AM.
+After: set up the demo station, run the loop once more, keep the fallback ready.
+9. Hard deadlines at a glance
+When
+Must be done
+Fri 7 PM
+Repo, Convex project, data formats agreed
+Fri 10 PM
+Fake candidates in app; sensor posting to Convex
+Fri 11 PM
+300+ labeled symbols
+Sat 3 AM
+First model trained and measured
+Sat 8 AM
+Second model measured; real candidates loaded
+Sat 2 PM
+Full live loop works end to end
+Sat 6 PM
+Scope freeze
+Sat 9 PM
+Feature freeze; fallback replay works
+Sun 1 AM
+Backup video recorded; pitch rehearsed
+Sun 8 AM
+At venue, table claimed
+Sun 8:30 AM
+Submitted
+
+10. Demo and pitch (3 minutes)
+0:00–0:30 Problem (Ryann): orphaned wells leak methane, crews cannot plug wells nobody knows about, and the evidence is on century-old maps.
+0:30–1:30 Command Map (Kunjal): historical overlay toggle, undocumented candidates in their own color, ranked list, open the hero candidate: evidence from each edition, score breakdown, nearest school and Claude brief.
+1:30–2:30 Field check (Murad, live): queue the candidate, open it on the phone, start reading near the mock wellhead, readings appear on both screens, log "Confirmed leaking", the well turns red and jumps to #1.
+2:30–3:00 Close (Ryann): N candidates not in records, M near homes or schools (labeled as candidates), model precision and recall, who it helps, what's next.
+Emir answers technical questions on the detector.
+Rules: show the "simulated" banner, state measured precision and recall and which maps they cover, keep the backup video and replay ready before every judging round. Also prepare a 60-second version and a self-running loop for busy judging waves.
+Prep answers for: How is this different from Berkeley Lab's work? How accurate is the detector? How do you know a candidate isn't just a mislocated record? Can cheap sensors really detect methane? Who would pay for this? Who verifies?
+11. Risks and fallbacks
+Labeling too slow or symbols vary by era: split labeling across people, keep the region small. Fallback: ground-truth flag.
+Low precision: one era first, tune threshold, show only well-performing sheets, report honestly.
+Wrong pixel-to-geo: control points early, demo on tiles already verified against CalGEM.
+MQ-4 unstable: power on early, average readings, baseline-correct. Fallback: replay recorded trace, spare sensor.
+ESP32 voltage: divider and ADC1 pin. Fallback: spare board.
+Venue Wi-Fi blocks the ESP32: use phone hotspot or travel router, test early. Fallback: replay or local network.
+No GPS indoors: phone location via the web page, or pin readings to the selected well.
+Leak setup unsafe or not approved: ask organizers, label simulated. Fallback: recorded readings and a software "simulate leak" button posting the same reading.
+Sponsor integration slips: drop the claim and keep the feature as a script.
+Live API or tile outage: cached briefs and demo tiles, backup video.
+Scope creep: the must-have list is the product; scope freeze Sat 6 PM; feature freeze Sat 9 PM.
+One config flag for live detector vs. ground truth, and live sensor vs. replay.
+12. Honesty rules
+Say "candidate undocumented wells", never "found wells", unless verified against records.
+Report precision and recall only on maps we checked, and say which maps and eras.
+Label the leak demo as simulated, on screen and in the pitch.
+The MQ-4 is a demo-grade indicator, not a calibrated instrument.
+No uncited national counts. Verify program funding status before pitching.
+Credit USGS, CalGEM, OpenStreetMap and the Berkeley Lab research.
+13. Submission checklist
+Public GitHub repo with README (setup, architecture, data sources, license notes, credits)
+Devpost: description, tech stack, tracks selected within the cap, video link, team members
+3-minute backup video, with simulated-leak label visible
+Table number recorded
+Accuracy numbers match what we measured
+Submitted by 8:30 AM Sunday
+14. What to bring
+Hardware: 2+ ESP32 boards, 2+ MQ-4 modules, OLED, jumper wires, breadboard, resistors for the divider, USB cables, battery pack, spares of anything cheap.
+Tools: small screwdrivers, wire strippers, multimeter, tape, zip ties; soldering gear only if the venue allows.
+Networking: charged phone hotspot with data, optional travel router, USB-C and Ethernet dongles.
+Props: mock wellhead, small enclosure, printed poster of a historical tile next to today's satellite view.
+Computing: laptops, chargers, power strip, external monitor or tablet if allowed, phone stands.
+Accounts and keys: Anthropic, Convex, Roboflow (plus Droid SDK and Apify if attempting) on at least two laptops; keys in env files and a shared secure note, never committed.
+Data saved locally: map sheets, CalGEM export, OSM extract, labeled samples.
+Personal: water, snacks, headphones, hoodie.

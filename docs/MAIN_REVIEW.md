@@ -1,5 +1,12 @@
 # Main branch review: 2026-10-23
 
+Historical baseline below is `15f7c8f`, not current main. ML preparation now
+includes `88c6522`: candidates/status/field-check/pairing functions were added,
+sensor names changed, cropUrl/mapYear were added, and the loader moved to
+`pipeline/`. Current contracts and scope are in [ML contract](ml/CONTRACT.md)
+and [Master Plan](master-plan/source.txt). Old "not implemented" statements below
+describe only the explicitly recorded historical snapshot.
+
 This is a source snapshot, not a live deployment verification. Read the current
 [ML status](ml/STATUS.md) for the next action and the
 [contract](ml/CONTRACT.md) for ML integration decisions.
@@ -37,9 +44,9 @@ authentication, billing, AI agents, backup, or other features are implemented.
 | [convex/http.ts](../convex/http.ts) | Token-protected reading ingest and public health route |
 | [convex/readings.ts](../convex/readings.ts) | Internal reading insert and public recent-readings query |
 | [convex/tsconfig.json](../convex/tsconfig.json) | Strict TypeScript configuration for backend modules |
-| [scripts/load_calgem.py](../scripts/load_calgem.py) | ArcGIS/CSV normalization and local JSONL/GeoJSON/log export |
+| [pipeline/load_calgem.py](../pipeline/load_calgem.py) | ArcGIS/CSV normalization and local JSONL/GeoJSON/log export |
 | [scripts/post_reading.sh](../scripts/post_reading.sh) | Live HTTP smoke script; posts replay data and checks a bad token |
-| [scripts/test_load_calgem.py](../scripts/test_load_calgem.py) | Five offline normalization/CSV tests |
+| [pipeline/test_load_calgem.py](../pipeline/test_load_calgem.py) | Five offline normalization/CSV tests |
 
 Links resolve against the current branch. The immutable SHA above identifies the
 exact source reviewed, including files later extended by the documentation PR.

@@ -4,7 +4,7 @@ Decision: use **Kern County, specifically the Oil Center + Oildale study area**.
 Start with **USGS Oil Center, map 293661, date-on-map 1954, photorevised 1968,
 printed 1970, 1:24,000 GeoTIFF**. Add Oildale 1954 and Oil Center 1992 for the
 initial three-map set. The exact files and checksums are in
-[the canonical region config](../../ml/config/region.json).
+[the canonical region config](../../pipeline/config/region.json).
 
 Research date: October 23, 2026, America/Los_Angeles. Code baseline:
 `15f7c8f` on main. This is source/data research and an ML region decision;
@@ -54,7 +54,7 @@ query rectangle, approximately 500 m or more beyond each edge:
 ```
 
 ```sh
-python3 scripts/load_calgem.py --region kern \
+python3 pipeline/load_calgem.py --region kern \
   --bbox -119.131 35.370 -118.869 35.505 --inspect
 ```
 
@@ -227,13 +227,13 @@ editions should not be described as century-old maps. [5]
 ## Reproduce and evidence boundaries
 
 ```sh
-python3 ml/research/region_sources.py catalog
-python3 ml/research/region_sources.py wells
+python3 pipeline/research/region_sources.py catalog
+python3 pipeline/research/region_sources.py wells
 python3 -m venv .venv
-.venv/bin/python -m pip install -r ml/research/requirements.txt
-.venv/bin/python ml/research/inspect_maps.py
-.venv/bin/python ml/research/region_sources.py edx
-.venv/bin/python ml/research/region_sources.py published
+.venv/bin/python -m pip install -r pipeline/research/requirements.txt
+.venv/bin/python pipeline/research/inspect_maps.py
+.venv/bin/python pipeline/research/region_sources.py edx
+.venv/bin/python pipeline/research/region_sources.py published
 ```
 
 `catalog` and `wells` use the standard library. Raster inspection and the geodesic

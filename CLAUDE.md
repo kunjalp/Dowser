@@ -15,6 +15,8 @@ Convex agent skills for common tasks can be installed by running
 ## Team documentation
 
 Read `AGENTS.md` and `CONTRIBUTING.md` for shared contributor instructions.
-For ML work, also read `ml/AGENTS.md` and start from `docs/ml/STATUS.md`.
+For ML work, also read `pipeline/AGENTS.md` and start from `docs/ml/STATUS.md`.
+`docs/master-plan/source.txt` supersedes the original PRD. Respect the zero-cost
+project constraint in `AGENTS.md`.
 Use `docs/ml/REQUIREMENTS.md` for PRD acceptance checks and
 `docs/ml/CONTRACT.md` for the existing schema and unresolved interface decisions.
