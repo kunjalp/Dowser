@@ -51,7 +51,8 @@ from another year must stay in the same partition.
    the current pricing page calls it Free Tier. Do not activate a paid plan,
    link a payment card, buy credits, or start paid labeling/training jobs.
 2. Create a project named `dowser-kern-well-symbols` with type **Object Detection**
-   (axis-aligned bounding boxes). Use one annotation class: `well_symbol`.
+   (axis-aligned bounding boxes). A class field is not required at project
+   creation: create our single class `well_symbol` when drawing the first box.
 3. Upload `data/ml/kern_1024_v1/annotation_import/train.zip` (84 PNGs) via
    **Upload Data**. Alternatively select PNGs from `images/train/`. Keep original
    tile filenames and name the batch `kern_1024_v1_train`. Do not upload full TIFF
@@ -59,7 +60,11 @@ from another year must stay in the same partition.
 4. Open an image in the annotation interface (from Assign/Annotate or Dataset).
    A useful first training example is `usgs_293661_x00511_y02820.png`.
    Choose the rectangle **Bounding Box** tool (`B`), zoom in, draw one tight box
-   per confirmed symbol, and choose `well_symbol`. Use ordinary manual boxes;
+   per confirmed symbol. For the first box, type `well_symbol` into the class
+   selector and create/save that class; select the same class for later boxes.
+   The screenshot's **Classes & Tags** sidebar entry is for class management;
+   **Tags** on the upload page describes images and is not the object class.
+   Use ordinary manual boxes;
    do not invoke AI labeling, Smart Polygon, or cloud training.
 5. Fully review 3–5 training images first and compare decisions with another
    annotator before dividing the larger batch. Save changes and confirm that

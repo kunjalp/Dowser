@@ -55,8 +55,10 @@ Test is 23.6% of 127 retained images because at least 30 are required. Both
 1954 and 1992 appear in each retained partition.
 
 **0 human-reviewed tiles, 0 human boxes.** No Dowser model trained or ran.
-No Roboflow project was configured and no images were uploaded for annotation
-by this agent. Local import archives are ready; human annotation remains next.
+Emir created the Roboflow project `dowser-kern-well-symbols`; its Object Detection
+type is confirmed by his screenshot. Class creation and annotation have not yet
+been verified. This agent has no logged-in Roboflow access and has not uploaded
+images. Local import archives are ready; human annotation remains next.
 No precision/recall or known-well accuracy is claimed. Published outputs remain
 attributed research, not labels. An earlier local `data/ml/labeling_v1/` run is
 preliminary; use the active path above.
