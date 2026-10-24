@@ -55,6 +55,31 @@ git worktree add -b ml/evaluation ../dowser-ml-evaluation origin/main
 Each person needs their own clone; worktrees are for isolation within one clone.
 Do not run agents that change branches in the same working directory concurrently.
 
+## Synchronizing with main
+
+At the start of each task, inspect status, fetch, and read incoming changes before
+editing. Record the reviewed main SHA in the task handoff when it changes.
+
+```sh
+git status --short --branch
+git fetch origin
+git rev-parse origin/main
+git log --oneline HEAD..origin/main
+git diff --name-status HEAD...origin/main
+```
+
+If incoming commits exist, save the current work in a commit first, then merge
+`origin/main` into the task branch. Resolve conflicts and recheck the affected
+behavior. When main is already an ancestor, no merge commit is needed.
+Re-read changed instructions, schema, APIs, and their consumers; update the
+contract/status when interface behavior changes. Fetch again before pushing to
+notice teammate changes made during the task.
+
+The [main review](docs/MAIN_REVIEW.md) records the fully read baseline. Future
+reviews can focus on changed files and dependencies, but must state the exact
+revision and coverage. Distinguish source inspection from deployment validation.
+Do not merge an unreviewed task PR into `main` merely to make the branches equal.
+
 ## Pull requests and integration
 
 Use a draft PR early for shared interfaces. Each PR describes behavior, PRD IDs,

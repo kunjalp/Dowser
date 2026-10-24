@@ -11,6 +11,18 @@ Backend performs CalGEM matching, proximity calculations, ranking, and persisten
 Upload orchestration and storage IDs must be agreed jointly. Keep model score
 separate from backend map confidence, risk score, and record-match distance.
 
+## Transport and persistence: not implemented yet
+
+The current backend exposes reading ingest and a recent-readings query only.
+There is no upload/ingest function for tiles or detections. ML should first
+produce local manifest/JSON fixtures matching the stored shape; backend must
+implement and agree their ingestion path before claiming an integrated pipeline.
+The full [main review](../MAIN_REVIEW.md) describes the available source surface.
+
+Application IDs are strings rather than Convex document IDs. Their indexes do
+not enforce uniqueness or referenced-row existence. Agree idempotent writes,
+tile-before-detection behavior, and duplicate IDs at the ingestion boundary.
+
 ## Tile manifest
 
 The current table requires `tileId`, `sheetName`, `mapYear`, `transform`, `crs`,
@@ -63,6 +75,7 @@ their IDs and aggregation rules before writing persistent data.
 - Field names/types and bbox/coordinate conventions agreed with backend.
 - Ground-truth representation and rank/UI behavior agreed.
 - Tile manifests, crop storage, delivery, retry behavior, and errors agreed.
+- Backend provides an agreed ingestion function; its existence is verified in code.
 - One small versioned fixture consumed by the backend before model training.
 - Breaking changes include a consumer update or explicit migration plan.
 

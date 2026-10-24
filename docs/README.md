@@ -5,6 +5,7 @@ Start with [ML status](ml/STATUS.md), then read the requirements and contract.
 | Document | Purpose | Update trigger |
 | --- | --- | --- |
 | [Full PRD](prd/source.txt) | Unmodified user-supplied product requirements | New PRD revision; preserve revision history |
+| [Reviewed main snapshot](MAIN_REVIEW.md) | Full-file coverage, actual backend flows, integration gaps | Review of changed upstream files |
 | [ML requirements](ml/REQUIREMENTS.md) | Requirement IDs, acceptance checks, evidence | Milestone, verification, or approved deviation |
 | [ML status](ml/STATUS.md) | Current state and next action | Meaningful task completion or handoff |
 | [ML contract](ml/CONTRACT.md) | Proposed tile/detection boundary with backend | Jointly agreed interface change |
