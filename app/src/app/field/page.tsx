@@ -816,7 +816,9 @@ function Paired({
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-      <div id="pc-details" className="pc-details" hidden={!detailsOpen}>
+      <div id="pc-details" className="sheet-backdrop pc-details-backdrop" hidden={!detailsOpen} onClick={() => setDetailsOpen(false)}>
+      <div className="sheet pc-details-sheet" role="dialog" aria-label="Note and photo" onClick={(e) => e.stopPropagation()}>
+        <h3>Note and photo</h3>
         <textarea
           className="field-note"
           placeholder="Optional note (smell, staining, access…)"
@@ -833,6 +835,10 @@ function Paired({
                 ? "Photo failed, tap to retry"
                 : "Add photo"}
         </button>
+        <button className="pc-sim-done" onClick={() => setDetailsOpen(false)}>
+          Done
+        </button>
+      </div>
       </div>
       <input
         ref={fileRef}

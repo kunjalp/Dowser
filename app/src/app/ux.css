@@ -595,3 +595,11 @@ main.field:has(.field-paired) > .field-toast { flex: none; }
 /* tapping a crop shows it large, over the screen, instead of pushing the layout */
 .field-paired .field-evidence .field-evidence-big { position: fixed; z-index: 15; inset: 90px 16px 150px; width: calc(100% - 32px); max-width: 528px; height: auto; max-height: none; margin: 0 auto; object-fit: contain; background: var(--bg); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 16px 48px -16px rgba(0, 0, 0, 0.5); }
 .field-paired .pc-details { max-height: 36dvh; overflow-y: auto; overscroll-behavior: contain; }
+
+/* "Add details" opens as a bottom sheet over the locked screen, so the note box and photo
+ * button are never clipped or hidden behind the decision bar or the keyboard. */
+.pc-details-backdrop[hidden] { display: none; }
+.pc-details-backdrop { z-index: 30; }
+.pc-details-sheet { gap: 10px; }
+.pc-details-sheet .field-note { margin: 0; }
+.pc-details-sheet .field-photo { margin: 0; }
