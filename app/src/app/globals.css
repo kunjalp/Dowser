@@ -3,25 +3,27 @@
   --panel: #0f1215;
   --panel-2: #14181c;
   --line: #2a3036;
-  --line-strong: #3a424a;
+  --line-strong: #626b74;
+  --line-subtle: #3a424a;
   --text: #dfe4e8;
-  --muted: #8a949e;
+  --muted: #9aa4ae;
   --accent: #f59e0b;
   --on-accent: #0f1215;
   --mono: ui-monospace, "SF Mono", Consolas, "Liberation Mono", monospace;
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 
   /* status colors: keep in sync with STATUS_META / SCORE_RAMP in lib/types.ts */
-  --status-leaking: #e5484d;
-  --status-queued: #4a9fd4;
+  --status-leaking: #f0565b;
+  --status-queued: #5aaee3;
   --status-candidate: #f59e0b;
-  --status-clear: #3fa76a;
-  --status-nowell: #8b929a;
-  --status-mislocated: #9a85d4;
+  --status-clear: #4cbc7a;
+  --status-nowell: #959ca4;
+  --status-mislocated: #a893e0;
   --score-lo: #fde68a;
   --score-mid: #f59e0b;
   --score-hi: #b45309;
-  --ok: #3fa76a;
+  --ok: #4cbc7a;
+  --here: #3b82f6;
 
   /* simulated data: near-white + hazard stripe, a hue no status uses */
   --sim: #f2f4f6;
@@ -57,7 +59,6 @@ input[type="checkbox"] { appearance: none; -webkit-appearance: none; width: 13px
 input[type="checkbox"]:checked { background: var(--accent); border-color: var(--accent); }
 input[type="checkbox"]:checked::after { content: ""; width: 7px; height: 4px; border-left: 2px solid var(--on-accent); border-bottom: 2px solid var(--on-accent); transform: rotate(-45deg) translate(1px, -1px); }
 input[type="checkbox"]:disabled { opacity: 0.45; cursor: default; }
-input[type="checkbox"]:focus-visible, button:focus-visible, select:focus-visible { outline: 1px solid var(--accent); outline-offset: 1px; }
 
 .shell { display: grid; grid-template-columns: 380px 1fr; height: 100dvh; }
 @media (max-width: 800px) { .shell { grid-template-columns: 1fr; grid-template-rows: 45dvh 1fr; } }
@@ -203,7 +204,7 @@ input[type="checkbox"]:focus-visible, button:focus-visible, select:focus-visible
 .field-btn:disabled { opacity: 0.5; }
 .field-photo { width: 100%; min-height: 56px; background: transparent; border: 1px dashed var(--line-strong); border-radius: 0; color: var(--text); text-transform: uppercase; letter-spacing: 0.06em; font-size: 12px; font-weight: 600; }
 .field-error { color: #ef6a6e; font: 12px var(--mono); }
-.sim { margin: 0 0 0 auto; }
+.reading-top .sim { margin: 0 0 0 auto; }
 
 .sheet-select { background: var(--panel-2); color: var(--text); border: 1px solid var(--line-strong); border-radius: 0; padding: 2px 4px; font: 11px var(--mono); }
 

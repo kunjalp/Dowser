@@ -4,15 +4,9 @@
  * colors use the design-system variables, plus the three new tokens below, which
  * should move into globals.css :root when Ryann folds this file in.
  */
-:root {
-  --leak: #e5484d;
-  --ok: #3fa76a;
-  --here: #3b82f6;
-}
-
 /* ---- Command Map: live status change ---- */
 .live-toast { position: absolute; top: 40px; left: 50%; transform: translateX(-50%); z-index: 7; display: flex; align-items: center; gap: 10px; max-width: calc(100% - 24px); padding: 8px 8px 8px 12px; border: 1px solid var(--accent); border-radius: 0; background: var(--panel); color: var(--text); font: 12px var(--mono); text-align: left; animation: ux-toast-in 0.25s ease-out; }
-.live-toast.leak { border-color: var(--leak); background: color-mix(in srgb, var(--leak) 16%, var(--panel)); }
+.live-toast.leak { border-color: var(--status-leaking); background: color-mix(in srgb, var(--status-leaking) 16%, var(--panel)); }
 .live-toast-go { margin-left: 4px; padding: 4px 10px; border: 1px solid currentColor; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 10px; }
 /* keep the toast clear of the 400px detail panel when it is open */
 .map-wrap:has(.detail.open) .live-toast { left: calc(50% - 200px); }
@@ -91,3 +85,135 @@ main.field { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .field-evidence .ph { display: grid; place-items: center; color: var(--muted); font-size: 12px; }
 .field-evidence figcaption { text-align: center; font-size: 12px; color: var(--muted); margin-top: 3px; }
 .field-evidence-big { margin-top: 8px; aspect-ratio: auto !important; object-fit: contain !important; max-height: 70vh; }
+
+/* ==================================================================
+ * UI polish pass (design-system/MASTER.md). Later rules win over the
+ * earlier ones above and over globals.css. Square, 11px floor, amber = interaction.
+ * ================================================================== */
+
+/* focus: 2px amber everywhere (MASTER 4.2) */
+a:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible, .row:focus-visible, .field-row:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input[type="range"] { accent-color: var(--accent); }
+
+/* 11px floor: lift the 10px values defined earlier in this file */
+.live-toast { font-size: var(--fs-xs); }
+.live-toast-go { font-size: var(--fs-2xs); }
+.fold > summary { font-size: var(--fs-xs); }
+.field-section { font-size: var(--fs-xs); }
+.field-gps, .fold-meta { font-size: var(--fs-2xs); }
+
+/* ---- 1. Command Map sidebar rows: short label ---- */
+.row { grid-template-columns: 28px 10px minmax(0, 1fr) auto; gap: 4px 8px; padding: 8px 12px 8px 8px; min-height: 48px; }
+.row-title { display: flex; align-items: baseline; gap: 8px; min-width: 0; font-size: var(--fs-sm); }
+.row-quad { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 600 var(--fs-sm) var(--sans); color: var(--text); }
+.row-id { flex: none; font: var(--fs-2xs) var(--mono); color: var(--muted); letter-spacing: 0.02em; }
+.row .dot { width: 10px; height: 10px; }
+.row .bar { height: 4px; }
+.rank { font-size: var(--fs-2xs); }
+.score { font-size: var(--fs-sm); font-weight: 700; }
+.row .reason { font-size: var(--fs-2xs); }
+.row.sel { border-left-width: 3px; }
+.row.leak { border-left-width: 3px; }
+.chips { gap: 4px; }
+.chip { min-height: 28px; padding: 4px 8px; }
+
+/* ---- 2. Filters block ---- */
+.map-filters { padding: 12px; background: var(--panel); }
+.mf-head { margin-bottom: 4px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+.mf-head h3 { font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.mf-range { gap: 8px; margin: 8px 0 10px; }
+.mf-range label { font-size: var(--fs-sm); gap: 4px; }
+.mf-range label span { font: var(--fs-sm) var(--mono); color: var(--text); }
+.mf-range input[type="range"] { height: 24px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+.mf-toggles { gap: 8px; }
+.mf-toggle { min-height: 36px; padding: 6px 12px; font-size: var(--fs-sm); font-weight: 600; letter-spacing: 0.02em; }
+.mf-toggle:hover { border-color: var(--accent); }
+.mf-toggle.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, var(--panel-2)); color: var(--text); box-shadow: inset 3px 0 0 var(--accent); }
+.mf-toggle.on::before { content: "✓ "; color: var(--accent); }
+.priority { padding: 8px 12px 10px; }
+.slider { grid-template-columns: minmax(96px, 128px) 1fr 32px; gap: 8px; margin: 4px 0; }
+.slider-label { font-size: var(--fs-xs); }
+.slider-val { font-size: var(--fs-2xs); }
+.slider input[type="range"] { height: 24px; accent-color: var(--accent); }
+
+/* ---- 3. Field View decision screen + evidence ---- */
+.field-paired h2 { font-size: var(--fs-md); margin: 8px 0 4px; }
+.field-paired > .link-btn { font-size: var(--fs-xs); }
+.reading-card { padding: 12px; }
+.reading-top .small { font-size: var(--fs-xs); }
+.reading-value { font-size: var(--fs-display); }
+.gauge { height: 20px; border-color: var(--line-subtle, var(--line-strong)); }
+.gauge-legend { font-size: var(--fs-2xs); }
+.field-evidence { margin: 16px 0; padding: 12px; border: 1px solid var(--line); background: var(--panel); }
+.field-evidence h3 { margin: 0 0 8px; font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+.field-evidence-row { gap: 8px; }
+.field-evidence img { cursor: zoom-in; border: 1px solid var(--line-strong); }
+.field-evidence .ph { font-size: var(--fs-2xs); text-transform: uppercase; letter-spacing: 0.04em; }
+.field-evidence figcaption { margin-top: 4px; font: var(--fs-xs) var(--mono); }
+.field-evidence-big { width: 100%; cursor: zoom-out; border: 1px solid var(--line-strong); background: var(--bg); }
+.field-note { min-height: 64px; font-size: 16px; }
+.field-search { font-size: 16px; }
+.field-photo { font-size: var(--fs-xs); margin-bottom: 8px; }
+.field-photo:hover { border-color: var(--accent); }
+.field-decide { gap: 8px; padding-top: 12px; border-top: 2px solid var(--line-strong); }
+.field-decide .field-btn { font-size: 16px; }
+.field-decide .out-confirmed_leaking { font-size: 18px; }
+.field-decide .field-btn:active:not(:disabled) { background: var(--c); color: var(--on-accent); }
+.field-row { gap: 12px; padding: 12px 10px; }
+.field-row-main { gap: 2px; }
+.field-row-main strong { font-size: var(--fs-md); }
+.field-dist { font-size: var(--fs-md); }
+.field-tabs .tab { font-size: var(--fs-sm); }
+.map-card-top { font-size: var(--fs-sm); }
+@media (max-width: 800px) {
+  /* one-handed: primary actions stay in the thumb zone */
+  .field-btn, .field-nav, .sheet-opt, .field-photo { min-height: 56px; }
+  .field-decide-row { gap: 8px; }
+}
+
+/* ---- 4. Detail panel ---- */
+.detail-head { padding: 12px; }
+.detail-head h2 { font-size: var(--fs-md); }
+.detail-head p { font-size: var(--fs-xs); }
+.icon-btn { min-width: 36px; min-height: 36px; font-size: var(--fs-md); border-color: var(--line); }
+.detail-top { padding: 10px 12px; }
+.badge.big { font-size: var(--fs-xs); line-height: 18px; padding: 2px 10px; letter-spacing: 0.08em; }
+.detail-top .queue-btn { min-height: 36px; font-size: var(--fs-xs); }
+.detail-body > section { padding: 12px; }
+.detail-body h3 { font-size: var(--fs-xs); margin-bottom: 8px; }
+.brief { line-height: 1.4; font-size: var(--fs-base); }
+.part { grid-template-columns: minmax(96px, 140px) 1fr 40px; }
+.part-label, .part-val { font-size: var(--fs-xs); }
+.part .bar { height: 5px; }
+.facts dt { font-size: var(--fs-xs); padding: 5px 0; }
+.facts dd { font-size: var(--fs-xs); padding: 5px 0 5px 10px; }
+.detail .evidence { gap: 8px; }
+.detail .evidence img { border-color: var(--line-strong); }
+.detail .evidence figcaption { font-size: var(--fs-xs); }
+.action { min-height: 32px; font-size: var(--fs-2xs); padding: 6px 10px; }
+.timeline .tl-main { font-size: var(--fs-xs); }
+.timeline .tl-sub { font-size: var(--fs-2xs); }
+.fold > summary { min-height: 36px; }
+.fold > summary:hover { color: var(--text); }
+.spark { height: 72px; }
+
+/* ---- 5. Legend and map controls ---- */
+.map-control { padding: 8px 12px 10px; gap: 8px; }
+.toggle { font-size: var(--fs-xs); gap: 8px; min-height: 24px; cursor: pointer; }
+.toggle input[type="checkbox"] { width: 16px; height: 16px; }
+.toggle input[type="checkbox"]:checked::after { width: 8px; height: 5px; }
+.legend { padding: 8px 12px 10px; font-size: var(--fs-xs); }
+.legend-title { font-size: var(--fs-xs); margin-bottom: 4px; }
+.legend-row { gap: 8px; margin-top: 4px; line-height: var(--lh-tight, 1.2); }
+.legend .dot { width: 10px; height: 10px; }
+.ramp { width: 160px; height: 10px; }
+.ramp-labels { font-size: var(--fs-2xs); }
+.zoom-slider { width: 31px; }
+.zoom-slider input[type="range"] { accent-color: var(--accent); }
+@media (max-width: 800px) {
+  .legend { bottom: 8px; padding: 6px 10px 8px; }
+  .toggle { min-height: 32px; }
+}
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
