@@ -9,7 +9,7 @@ It supersedes the original PRD. Legacy FR identifiers are cross-references only.
 | 1024 px tiles, about 20% overlap, own ID/year/transform | Emir: implemented | `pipeline.prepare_dataset`; 819 px stride, source hash, WKT, native offset |
 | Corner reconstruction <=1 source pixel | Emir: numerically verified | Tests/summary; not absolute map-accuracy evidence |
 | Test about 20%, >=30 tiles before training | Emir: partition implemented | Shared geography across years; crossing tiles quarantined; annotate protected tiles before evaluation |
-| >=300 human-labeled symbols, lookalike negatives, multiple eras | Count/eras verified; quality pending | Export has 568 boxes on 5 Train images: 297 from 1954, 271 from 1992; 15 large boxes flagged, no reviewed empty negatives |
+| >=300 human-labeled symbols, lookalike negatives, multiple eras | Count/eras verified; evaluation pending | V2 retains 568 boxes on 5 Train images (297 from 1954, 271 from 1992); 15 previously flagged boundaries corrected/visually checked; no reviewed empty negatives |
 | Fine-tune pretrained YOLO, imgsz 1024 | Emir: pending | No training/weights; no replacement with published U-Net |
 | Box, confidence, class, tile ID, year, crop | Emir: pending inference | Current contract documented; no fabricated detections |
 | Pixel-to-WGS84 with native tile transform | Emir: unit checked | `pipeline.geo`, edge convention and rotated-affine checks |

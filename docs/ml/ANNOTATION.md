@@ -205,11 +205,14 @@ After downloading the reviewed ZIP:
 ```sh
 .venv/bin/python -m pip install -r pipeline/requirements-audit.txt
 .venv/bin/python -m pipeline.audit_annotations \
-  data/ml/reviewed_exports/dowser-kern-well-symbols.v1-manual_5_images_v1.yolov8.zip
+  data/ml/reviewed_exports/dowser-kern-well-symbols.v2-manual_5_images_v2.yolov8.zip \
+  --output data/ml/reviewed_v2
 .venv/bin/python -m unittest discover -s pipeline/tests -v
 ```
 
-Active imported review package: `data/ml/reviewed_v1/`. The audit preserves the
+Current imported review package: `data/ml/reviewed_v2/` (v1 is historical).
+For v2 use the new ZIP filename and `--output data/ml/reviewed_v2`; for later
+exports choose a new output directory. The audit preserves the
 original archive, maps Roboflow suffixes to frozen Train IDs, verifies geometry
 against source PNGs, and uses those original PNGs instead of recompressed JPEGs.
 Only boundary overflow <=0.02 px is clipped and logged; semantic box boundaries
@@ -217,11 +220,13 @@ are not automatically changed. Re-runs require a new output directory.
 
 `audit.json` records archive/image/code hashes, counts, geometric corrections,
 and limitations. `review.html` toggles all boxes on originals.
-`large_boxes_review.png` shows the 15 boxes wider/taller than 40 px in this export.
-That size is a review heuristic; inspect symbol boundaries, not just size.
-Visual inspection found excess background around the symbols in these examples.
-Correct boxes in the original Roboflow project and export a new version; retain
-v1 and compare the revised archive rather than replacing it.
+In historical v1, `large_boxes_review.png` shows 15 boxes wider/taller than 40 px.
+That size is a review heuristic; inspect symbol boundaries, not just size. Emir
+corrected the labels and supplied v2. The v2 audit finds zero such flags and
+`changes_review.png` visually confirms tighter bounds for all 15 examples.
+The four 1954 label sets are unchanged; 41 coordinate boxes changed on the 1992
+image. Row order also changed, so use coordinate multisets/geometric pairing
+rather than treating YOLO line numbers as persistent annotation IDs.
 
 Current import has 568 boxes: 297 (1954) and 271 (1992), all five images still
 Train. No independently annotated validation/test images or reviewed empty

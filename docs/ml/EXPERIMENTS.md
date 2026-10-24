@@ -128,6 +128,37 @@ geographic holdouts. This is a data preparation run, not a model experiment.
   claim quality against training examples. Correct identified bounds, preserve
   revised export, then complete independent evaluation data/training setup.
 
+## Corrected human export: reviewed_v2 — 2026-10-24
+
+- Command: `.venv/bin/python -m pipeline.audit_annotations data/ml/reviewed_exports/dowser-kern-well-symbols.v2-manual_5_images_v2.yolov8.zip --output data/ml/reviewed_v2`.
+- Committed auditor: `7db062f67a0fb0db81b4472b312880b03e3f7dfb`, clean at run time;
+  script SHA-256 `fc04807bfba3018d9b4e2265f96a1e39080b891bc11d1269cad0fb152d5f8d3b`.
+  Same frozen manifest/environment as v1; no new dependencies or model run.
+- New ZIP SHA-256:
+  `cf894e141a525300c2d3acb01af0e9521ed1a4c6b8a7d8b3c7f5bdcdcb7da5dd`.
+  Both original ZIPs and derived v1 are preserved.
+- V2: same five Train IDs, 568 boxes, one class, 1024 px, 297 boxes from 1954
+  and 271 from 1992. Native PNG hashes and export alignment pass. Two <=0.005 px
+  edge-rounding overflows are clipped/logged only in the derived copy.
+- Compared the two audit JSON files by tile ID and coordinate multisets rounded
+  to 1e-7 px: 527 boxes retain geometry (including all 297 from the four 1954
+  images). The 1992 image retains 230 unchanged boxes and 41 unmatched boxes in
+  each version. Raw row-by-row comparison is invalid because one annotation
+  moved to the end, shifting many line numbers.
+- Remaining boxes paired by minimum total Euclidean center distance with
+  `scipy.optimize.linear_sum_assignment` (existing SciPy 1.13.1). Maximum paired
+  displacement 7.657 px. Pairing is a geometric aid, not persistent object identity.
+- Old large-box flags: 15; new flags: 0. All 15 old large boxes are present among
+  the changed/pairable regions. Visually inspected `changes_review.png`: the new
+  bounds are tighter around the symbols. No new redraw request for this batch.
+- Comparison saved in `data/ml/reviewed_v2/comparison_v1_v2.json`; native-pixel
+  review figure uses red for v1 and green for v2. No source pixels/ZIPs changed.
+- Limits: no complete independent label review, reviewed empty negatives,
+  validation/test annotations, training or measured precision/recall. Zero size
+  flags alone is not semantic approval. V2 is the current label version for the
+  first training setup; preserve the global holdouts rather than random-splitting
+  these five overlapping training images.
+
 ## Run template
 
 ```yaml

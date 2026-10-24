@@ -1,6 +1,6 @@
 # ML status and handoff
 
-Last verified: 2026-10-23, America/Los_Angeles.
+Last verified: 2026-10-24, America/Los_Angeles.
 Task branch: `ml/tile-georeferencing`; includes inspected main `84335ce`.
 Incoming dedup/matching/enrichment/scoring/loading, manual-fallback UI, overlay
 quality option, and preservation of field decisions on reload are incorporated.
@@ -22,6 +22,9 @@ During export auditing, the previously pending upstream pipeline changes and
 newer main through `84335ce` were inspected and merged. Team backend/frontend
 and existing pipeline files are unchanged relative to that revision. Source
 inspection and merge do not establish that external data pulls or deployment work.
+The v2 archive check fetched newer main `558a00b` (UI/brief/replay changes).
+Those commits have not yet been inspected/incorporated; review them before the
+next code/training task. This task used the unchanged, committed archive auditor.
 
 ## Source of truth and scope
 
@@ -71,21 +74,27 @@ Test is 23.6% of 127 retained images because at least 30 are required. Both
 
 **Imported human-drawn labels: 5 Train images, 568 boxes**, class `well_symbol`:
 297 boxes across four 1954 tiles, 271 on one 1992 tile. Version
-`manual_5_images_v1` was downloaded and saved in `data/ml/reviewed_exports/`.
+`manual_5_images_v2` is the current export in `data/ml/reviewed_exports/`;
+the earlier v1 ZIP/import are retained unchanged.
 All filenames map to the frozen Train manifest, dimensions remain 1024×1024,
 and the export JPEGs align with the source PNGs. Original PNGs are restored in
-ignored `data/ml/reviewed_v1/`; the ZIP is retained byte-for-byte.
+ignored `data/ml/reviewed_v2/`; both ZIPs are retained byte-for-byte.
 
-Structural validation passed. Three edge overflows <=0.005 px were clipped only
-in the imported copy, with before/after values recorded. Fifteen large boxes
-on the 1992 tile are flagged in `large_boxes_review.png`; inspecting them shows
-excess background around the target symbols. Correct these boundaries before
-treating the labels as quality-approved. Full-image completeness and independent
-accuracy are not established; no Dowser model trained or ran.
+Structural validation passed again. Two edge overflows <=0.005 px were clipped
+only in the derived v2 copy and logged. All four 1954 label sets are unchanged.
+On the 1992 tile, 230 boxes retain exactly the same geometry; 41 old/new boxes
+remain after multiset cancellation. Geometric pairing and visual inspection show
+that all 15 formerly large boxes have tighter bounds; no box now exceeds the
+40 px review heuristic. `changes_review.png` shows old red/new green rectangles.
+Roboflow reordered annotation rows: compare coordinates, not row positions.
+Full-image completeness and independent accuracy remain unestablished;
+no Dowser model trained or ran. No further redraw of this five-image batch is
+currently requested; use v2 for the first training setup and retain limitations.
 Emir created the Roboflow project `dowser-kern-well-symbols`; its Object Detection
 type and class creation are confirmed by his screenshots. This agent has no
 logged-in Roboflow access and has not uploaded images or changed cloud labels.
-Preserve the original project and manual work; inspect/fix identified boundaries.
+Preserve the original project and manual work; the identified large-box issue
+has been addressed in the newly supplied export.
 No precision/recall or known-well accuracy is claimed. Published outputs remain
 attributed research, not labels. An earlier local `data/ml/labeling_v1/` run is
 preliminary; use the active path above.
@@ -99,10 +108,13 @@ preliminary; use the active path above.
   restrictions, held-out rejection, projection/clipping, distance semantics,
   and deterministic selection. All 973 normalized boxes, four unchanged source
   images, and import ZIP integrity were checked; original dataset remains unlabeled.
-- Six annotation-audit tests pass (21 ML tests total). Actual export: 568 valid
+- Six annotation-audit tests pass (21 ML tests total). V1 export: 568 valid
   rows, matched frozen Train IDs, no image resizing/offset, three logged tiny
   edge-rounding corrections. Copied original PNG hashes and resulting label
   counts were independently rechecked. The large-box figure was visually inspected.
+- The unchanged auditor successfully reprocessed v2: same 5 frozen Train IDs,
+  568 boxes, 1024 px original-image alignment and 0 large-box flags. V1/v2 box
+  coordinate multisets and all 15 before/after neighborhoods were compared.
 - All 127 PNG dimensions/modes and all three ZIP contents verified. Frozen
   counts, manifest hash, environment, and transform limitations are in the
   [preparation record](EXPERIMENTS.md#preparation-kern_1024_v1--2026-10-23).
@@ -115,12 +127,11 @@ preliminary; use the active path above.
 
 ## Next action
 
-Review `data/ml/reviewed_v1/large_boxes_review.png` (1992 export rows
-11, 12, 18, 20, 23, 24, 26, 27, 30, 31, 32, 35, 36, 38, 39) and tighten loose
-boundaries in the original Roboflow image `usgs_102321_x01250_y03651.png`.
-Retain v1, export the revision, and re-audit into a new directory. Row numbers
-refer to this export, not persistent Roboflow annotation IDs. Complete a full
-label review; size flags are an aid, not an exhaustive list of possible issues.
+Prepare the first pretrained YOLO training setup at imgsz 1024 using
+`data/ml/reviewed_v2/`, after inspecting/integrating pending upstream changes.
+Record model/version/hardware, exact commands, label/archive identity and limits.
+All 15 requested boundary corrections have been checked; do not ask Emir to
+repeat the same corrections based on the obsolete v1 figures.
 
 Only training labels have been supplied: validation/test directories referenced
 by the exported YAML are absent. Annotate the frozen validation/test images
@@ -128,15 +139,12 @@ independently before reporting metrics; no re-splitting these five images or
 using the 79 unreviewed Train images as negatives. The audit writes a YAML
 template only. Training setup/weights selection and the first run remain pending.
 
-The assisted pilot can replace drawing every box from scratch for 1954 examples.
-Preview its four train images, then review/correct them
-in a separate annotation project without overwriting Emir's current work.
-Retain original splits; use only fully reviewed images for training. Agree on
-symbol/box policy before splitting work across helpers. Add examples from 1992
-and hard negatives; the count target is met, while label-quality acceptance and
-independent evaluation remain pending;
-annotate reserved test images independently. Then implement YOLO training,
-evaluation, and reviewed inference export for Ryann.
+The assisted pilot remains available if more training examples are needed;
+keep its unreviewed proposals separate from these human-drawn labels. Use future
+validation errors to guide additional training examples/negatives. The symbol
+count and two-era coverage targets are met; full quality acceptance and independent
+evaluation remain pending. Preserve reserved test images and inference provenance
+for the later handoff to Ryann.
 
 Remaining: actual-map control points, 10+ known-well offsets, detector training,
 independent evaluation, fallback export, crop publication. Main's manual fallback
