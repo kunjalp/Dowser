@@ -426,3 +426,16 @@ main.field { padding-bottom: calc(110px + env(safe-area-inset-bottom)); }
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   .field .field-tabs .seg, .field .field-tabs .tab.sort { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--panel); border-color: var(--text); }
 }
+
+/* ===== Field View map tab: full-bleed map =====
+ * The map fills the whole screen. The header floats over it as a glass bar, and the tapped-dot card
+ * floats above the tab bar. Only applies while the map tab is open (.field-map exists only then). */
+.field-map { position: fixed; inset: 0; z-index: 1; height: auto; min-height: 0; margin: 0; border: 0; background: var(--panel-2); }
+main.field:has(.field-map) .field-head { position: fixed; top: 0; left: 0; right: 0; z-index: 8; margin: 0; padding: calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-left)) 10px calc(16px + env(safe-area-inset-right)); background: var(--glass-fill); border-bottom: 1px solid var(--line); -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); }
+main.field:has(.field-map) .field-map .map-me { top: calc(76px + env(safe-area-inset-top)); }
+.field-map ~ .map-card, .field-map ~ .field-hint { position: fixed; left: 16px; right: 16px; bottom: calc(76px + env(safe-area-inset-bottom)); z-index: 9; max-width: 420px; margin: 0 auto; }
+.field-map ~ .field-hint { width: fit-content; padding: 8px 14px; border-radius: 999px; background: var(--glass-fill); border: 1px solid var(--line); box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.35); -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); }
+.field-map ~ .map-card { box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.45); }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  main.field:has(.field-map) .field-head, .field-map ~ .field-hint { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--panel); }
+}
