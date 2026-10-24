@@ -6,7 +6,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
  * Change appId to the bundle identifier registered in your Apple Developer account.
  */
 const config: CapacitorConfig = {
-  appId: "com.kunjalp.dowser",
+  appId: "com.dowser.field",
   appName: "Dowser",
   webDir: "capacitor-www", // required by Capacitor; only shown if the live URL is unreachable
   server: {
