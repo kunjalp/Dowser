@@ -38,6 +38,16 @@
   --fs-md: 16px;
   --fs-lg: 20px;
   --fs-display: 56px;
+
+  /* glass: Field View tab bar, header and sort sheet only. Fills checked for WCAG AA
+     over a white evidence crop: --text and --muted on --glass-fill (0.86) = 10.3:1 / 5.0:1;
+     on --glass-fill-sheet over the dimmed backdrop = 11.5:1 / 5.8:1. 0.72 failed --muted (3.0:1). */
+  --glass-fill: rgba(15, 18, 21, 0.86);
+  --glass-fill-sheet: rgba(21, 25, 29, 0.80);
+  --glass-border: rgba(255, 255, 255, 0.14);
+  --glass-border-dim: rgba(255, 255, 255, 0.06);
+  --glass-blur: 20px;
+  --glass-backdrop: rgba(0, 0, 0, 0.6);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -267,3 +277,36 @@ input[type="checkbox"]:disabled { opacity: 0.45; cursor: default; }
 .map-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .map-card-actions .field-nav { margin: 0; justify-content: center; }
 .map-card-actions .field-btn { min-height: 56px; }
+
+/* glass: Field View tab bar, header and sort sheet only (never the map, rows, cards or buttons).
+   These rules sit in ux.css too; the .field prefix outranks them because ux.css loads later.
+   -webkit- twin on every backdrop-filter for the Capacitor WKWebView. */
+.field .field-tabs { background: var(--glass-fill); border-top: 1px solid var(--glass-border); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%); backdrop-filter: blur(var(--glass-blur)) saturate(140%); }
+.field .field-tabs .tab { border-right-color: var(--glass-border-dim); }
+.field .field-tabs .tab:last-child { border-right: 0; }
+.field .field-head { background: var(--glass-fill); border-bottom: 1px solid var(--glass-border); -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); }
+.field .sheet-backdrop { background: var(--glass-backdrop); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+/* sheet keeps its amber top rule; the light edge is inset so the box size doesn't change */
+.field .sheet { background: var(--glass-fill-sheet); box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.15), inset -1px -1px 0 rgba(255, 255, 255, 0.05); -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); }
+/* max three blurred layers: while the sheet is open the bar and header sit under the dimmed backdrop, so drop their blur */
+.field:has(.sheet-backdrop) .field-tabs, .field:has(.sheet-backdrop) .field-head { -webkit-backdrop-filter: none; backdrop-filter: none; }
+
+/* no blur support at all (prefixed or not): near-solid fills */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .field .field-tabs, .field .field-head { background: rgba(15, 18, 21, 0.95); }
+  .field .sheet { background: rgba(21, 25, 29, 0.95); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .field .field-tabs, .field .field-head, .field .sheet, .field .sheet-backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .field .field-tabs, .field .field-head, .field .sheet { background: var(--panel); box-shadow: none; }
+  .field .field-tabs { border-top: 1px solid var(--line-strong); }
+  .field .field-head { border-bottom: 1px solid var(--line-strong); }
+}
+@media (prefers-contrast: more) {
+  .field .field-tabs, .field .field-head, .field .sheet, .field .sheet-backdrop { -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .field .field-tabs, .field .field-head, .field .sheet { background: var(--panel); box-shadow: none; }
+  .field .field-tabs { border-top: 1px solid rgba(255, 255, 255, 0.4); }
+  .field .field-head { border-bottom: 1px solid rgba(255, 255, 255, 0.4); }
+  .field .field-tabs .tab { border-right-color: rgba(255, 255, 255, 0.4); }
+  .field .field-tabs .tab:last-child { border-right: 0; }
+}
