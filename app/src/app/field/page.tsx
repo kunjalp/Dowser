@@ -16,10 +16,36 @@ const OUTCOMES: { key: Outcome; label: string }[] = [
   { key: "mislocated", label: "Wrong spot" },
 ];
 
+/** Seconds a tapped decision waits before it is saved, so a mis-tap can be undone. */
+const UNDO_SECS = 4;
+
+type Pos = { lat: number; lon: number };
+
 const fmtM = (m?: number) =>
   m === undefined ? "n/a" : m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
 
-function getPosition(): Promise<{ lat: number; lon: number } | undefined> {
+const toRad = (d: number) => (d * Math.PI) / 180;
+
+/** Great-circle distance in meters. */
+function distM(a: Pos, b: Pos): number {
+  const R = 6371000;
+  const dLat = toRad(b.lat - a.lat);
+  const dLon = toRad(b.lon - a.lon);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+/** Compass direction (N, NE, ...) you would walk from a toward b. */
+function compass(a: Pos, b: Pos): string {
+  const y = Math.sin(toRad(b.lon - a.lon)) * Math.cos(toRad(b.lat));
+  const x =
+    Math.cos(toRad(a.lat)) * Math.sin(toRad(b.lat)) -
+    Math.sin(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.cos(toRad(b.lon - a.lon));
+  const deg = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+  return ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(deg / 45) % 8];
+}
+
+function getPosition(): Promise<Pos | undefined> {
   return new Promise((resolve) => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return resolve(undefined);
     navigator.geolocation.getCurrentPosition(
@@ -30,10 +56,47 @@ function getPosition(): Promise<{ lat: number; lon: number } | undefined> {
   });
 }
 
+/** Live phone position; undefined until the first fix (or if location is denied). */
+function useHere(): Pos | undefined {
+  const [here, setHere] = useState<Pos | undefined>();
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    const id = navigator.geolocation.watchPosition(
+      (p) => setHere({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 },
+    );
+    return () => navigator.geolocation.clearWatch(id);
+  }, []);
+  return here;
+}
+
+/** True inside the iOS app wrapper (Capacitor), false in a normal browser. */
+function useInApp(): boolean {
+  const [inApp, setInApp] = useState(false);
+  useEffect(() => {
+    const w = window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } };
+    const ua = navigator.userAgent;
+    // iOS browsers always carry "Safari/" in the UA; the app's web view does not.
+    setInApp(!!w.Capacitor?.isNativePlatform?.() || (/iPhone|iPad/.test(ua) && !/Safari\//.test(ua)));
+  }, []);
+  return inApp;
+}
+
+type Mode = "near" | "queued" | "rank";
+const MODES: { key: Mode; label: string }[] = [
+  { key: "near", label: "Nearest" },
+  { key: "queued", label: "Queued" },
+  { key: "rank", label: "Top ranked" },
+];
+
 export default function FieldView() {
   const [paired, setPaired] = useState<Candidate | null>(null);
   const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<Mode>("near");
   const [done, setDone] = useState<string | null>(null);
+  const here = useHere();
+  const inApp = useInApp();
 
   const rows = useQuery(api.candidates.ranked, {
     statuses: ["queued", "candidate"] as Status[],
@@ -42,14 +105,23 @@ export default function FieldView() {
   const pairMut = useMutation(api.pairing.set);
   const clearMut = useMutation(api.pairing.clear);
 
-  // Queued first, then by rank; filter by what the person types.
+  // Distance and direction from the phone; the list order follows the chosen mode.
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const all = (rows ?? []).filter(
-      (c) => !q || c.id.toLowerCase().includes(q) || c.quadName.toLowerCase().includes(q),
-    );
-    return [...all].sort((a, b) => Number(b.status === "queued") - Number(a.status === "queued") || a.rank - b.rank);
-  }, [rows, query]);
+    const items = (rows ?? [])
+      .filter((c) => !q || c.id.toLowerCase().includes(q) || c.quadName.toLowerCase().includes(q))
+      .filter((c) => mode !== "queued" || c.status === "queued")
+      .map((c) => ({
+        c,
+        d: here ? distM(here, c) : undefined,
+        dir: here ? compass(here, c) : undefined,
+      }));
+    const byRank = (a: (typeof items)[number], b: (typeof items)[number]) =>
+      Number(b.c.status === "queued") - Number(a.c.status === "queued") || a.c.rank - b.c.rank;
+    const byDist = (a: (typeof items)[number], b: (typeof items)[number]) =>
+      a.d !== undefined && b.d !== undefined ? a.d - b.d : byRank(a, b);
+    return items.sort(mode === "rank" ? byRank : byDist);
+  }, [rows, query, mode, here]);
 
   async function pair(c: Candidate) {
     setDone(null);
@@ -66,14 +138,17 @@ export default function FieldView() {
     <main className="field">
       <header className="field-head">
         <h1>Dowser · Field</h1>
-        <Link href="/" className="link-btn">
-          Command Map
-        </Link>
+        {!inApp && (
+          <Link href="/" className="link-btn">
+            Command Map
+          </Link>
+        )}
       </header>
       {done && <div className="field-toast">{done}</div>}
       {paired ? (
         <Paired
           candidate={rows?.find((r) => r.id === paired.id) ?? paired}
+          here={here}
           onBack={unpair}
           onLogged={(msg) => {
             setDone(msg);
@@ -82,25 +157,45 @@ export default function FieldView() {
         />
       ) : (
         <>
-          <p className="muted">Pick the candidate you are standing at. Your sensor readings attach to it automatically.</p>
+          <div className="chips" role="group" aria-label="Sort and filter">
+            {MODES.map((m) => (
+              <button
+                key={m.key}
+                className={`chip ${mode === m.key ? "on" : ""}`}
+                onClick={() => setMode(m.key)}
+                aria-pressed={mode === m.key}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+          <p className="muted small field-hint">
+            {mode === "near" && !here
+              ? "Finding your location… showing top ranked until we have it."
+              : mode === "rank"
+                ? "Highest priority first."
+                : here
+                  ? "Closest to you first. Tap the one you are standing at."
+                  : "Queued candidates first."}
+          </p>
           <input
             className="field-search"
-            placeholder="Search id or quad (e.g. Lost Hills)"
+            placeholder="Filter by quad (e.g. Lost Hills)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           <ul className="field-list">
             {rows === undefined && <li className="muted">Loading…</li>}
             {rows && list.length === 0 && <li className="muted">No open candidates match.</li>}
-            {list.map((c) => (
+            {list.map(({ c, d, dir }) => (
               <li key={c._id}>
                 <button className="field-row" onClick={() => pair(c)}>
                   <span className="dot" style={{ background: dotColor(c) }} />
                   <span className="field-row-main">
-                    <strong>{c.id}</strong>
+                    <strong className="field-dist">{d !== undefined ? `${fmtM(d)} ${dir}` : `#${c.rank}`}</strong>
                     <span className="muted small">
-                      {c.quadName} · rank {c.rank}
-                      {isFake(c) ? " · simulated" : ""}
+                      {c.quadName} · {c.id}
+                      {isFake(c) ? " · sim" : ""}
                     </span>
                     {reasonLine(c) && <span className="reason">{reasonLine(c)}</span>}
                   </span>
@@ -121,10 +216,12 @@ export default function FieldView() {
 
 function Paired({
   candidate: c,
+  here,
   onBack,
   onLogged,
 }: {
   candidate: Candidate;
+  here: Pos | undefined;
   onBack: () => void;
   onLogged: (msg: string) => void;
 }) {
@@ -141,6 +238,8 @@ function Paired({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+  const [pending, setPending] = useState<{ outcome: Outcome; label: string } | null>(null);
+  const [secs, setSecs] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -158,6 +257,27 @@ function Paired({
       : 0;
   const anyReplay = chrono.some((r) => r.isReplay);
   const leaking = c.status === "confirmed_leaking";
+
+  // Gauge geometry: the trigger line sits at 2/3 of the bar unless the reading goes past it.
+  const val = latest?.value ?? 0;
+  const th = rule?.threshold ?? 1000;
+  const top = Math.max(th * 1.5, val * 1.1, 1);
+  const fillPct = Math.min(100, (val / top) * 100);
+  const markPct = Math.min(100, (th / top) * 100);
+  const gaugeText = leaking
+    ? "Confirmed leaking."
+    : !latest
+      ? "Waiting for the sensor…"
+      : !rule
+        ? ""
+        : hot >= rule.count
+          ? "Confirming…"
+          : val >= th
+            ? `High reading. ${rule.count - hot} more in ${rule.windowMs / 1000} s confirms it.`
+            : "Below the trigger line.";
+
+  const target: Pos = { lat: c.lat, lon: c.lon };
+  const toTarget = here ? `${fmtM(distM(here, target))} ${compass(here, target)}` : null;
 
   async function onPhoto(file: File | undefined) {
     if (!file) return;
@@ -194,17 +314,46 @@ function Paired({
     }
   }
 
+  // A tapped decision counts down, then saves; Undo cancels it before anything is written.
+  function choose(outcome: Outcome, label: string) {
+    setError(null);
+    setPending({ outcome, label });
+    setSecs(UNDO_SECS);
+  }
+  useEffect(() => {
+    if (!pending) return;
+    if (secs <= 0) {
+      const p = pending;
+      setPending(null);
+      void log(p.outcome, p.label);
+      return;
+    }
+    const t = setTimeout(() => setSecs((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, secs]);
+
   return (
     <section className="field-paired">
       <button className="link-btn" onClick={onBack}>
         ← Pick a different candidate
       </button>
       <h2>
-        <span className="dot" style={{ background: dotColor(c) }} /> {c.id}
+        <span className="dot" style={{ background: dotColor(c) }} /> {c.quadName} · {c.id}
       </h2>
       <p className="muted small">
-        {c.quadName} quad · {fmtM(c.distToHomeM)} to nearest home · {fmtM(c.distToWaterM)} to water
+        {fmtM(c.distToHomeM)} to nearest home · {fmtM(c.distToWaterM)} to water
       </p>
+
+      <a
+        className="field-nav"
+        href={`https://maps.apple.com/?daddr=${c.lat},${c.lon}&dirflg=d&q=${encodeURIComponent(c.id)}`}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span>Navigate</span>
+        <span className="field-nav-dist">{toTarget ?? "in Maps"}</span>
+      </a>
 
       <div className={`reading-card ${leaking ? "leak" : ""}`}>
         <div className="reading-top">
@@ -215,31 +364,40 @@ function Paired({
           {anyReplay && <span className="sim">Simulated</span>}
         </div>
         <div className="reading-value">{latest ? latest.value.toFixed(0) : "–"}</div>
+        <div className="gauge" role="meter" aria-valuenow={val} aria-valuemin={0} aria-valuemax={Math.round(top)}>
+          <span className={`gauge-fill ${val >= th ? "hi" : ""}`} style={{ width: `${fillPct}%` }} />
+          <span className="gauge-mark" style={{ left: `${markPct}%` }} />
+        </div>
+        <div className="gauge-legend">
+          <span>0</span>
+          <span>trigger {th}</span>
+        </div>
         <Sparkline values={chrono.map((r) => r.value)} />
-        {rule && (
-          <p className="small muted">
-            {leaking
-              ? "Confirmed leaking."
-              : `${Math.min(hot, rule.count)} of ${rule.count} high readings (≥ ${rule.threshold}) in the last ${
-                  rule.windowMs / 1000
-                } s. At ${rule.count} it confirms automatically.`}
-          </p>
-        )}
+        {gaugeText && <p className="small muted">{gaugeText}</p>}
       </div>
 
-      <div className="field-actions">
-        {OUTCOMES.map((o) => (
-          <button
-            key={o.key}
-            className="field-btn"
-            style={{ ["--c" as string]: STATUS_META[o.key].color }}
-            disabled={busy || photoState === "uploading"}
-            onClick={() => log(o.key, o.label)}
-          >
-            {o.label}
-          </button>
-        ))}
-      </div>
+      {pending ? (
+        <div className="undo-bar" role="status">
+          <span>
+            Marking <strong>{pending.label}</strong> in {secs}s
+          </span>
+          <button onClick={() => setPending(null)}>Undo</button>
+        </div>
+      ) : (
+        <div className="field-actions">
+          {OUTCOMES.map((o) => (
+            <button
+              key={o.key}
+              className="field-btn"
+              style={{ ["--c" as string]: STATUS_META[o.key].color }}
+              disabled={busy || photoState === "uploading"}
+              onClick={() => choose(o.key, o.label)}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <textarea
         className="field-note"
