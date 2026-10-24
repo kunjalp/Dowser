@@ -5,3 +5,4 @@ node_modules/
 data/
 __pycache__/
 *.pyc
+.DS_Store
