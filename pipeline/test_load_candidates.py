@@ -51,3 +51,27 @@ def test_missing_optional_inputs_still_produce_a_valid_record():
     assert REQUIRED <= set(c)
     assert c["editionsSeen"] == [] and c["evidenceImages"] == []
     assert c["source"] == "model"
+
+
+def test_kern_box():
+    from load_candidates import in_kern
+    assert in_kern(35.2, -119.44)
+    assert not in_kern(37.8, -122.4)   # San Francisco
+
+
+def test_publish_evidence_copies_local_files(tmp_path):
+    from load_candidates import publish_evidence
+    crop = tmp_path / "d7_1947.png"
+    crop.write_bytes(b"png")
+    public = tmp_path / "public"
+    assert publish_evidence(str(crop), str(public)) == "/evidence/d7_1947.png"
+    assert (public / "evidence" / "d7_1947.png").exists()
+    assert publish_evidence("/evidence/d7_1947.png", str(public)) == "/evidence/d7_1947.png"
+    assert publish_evidence("https://example.org/x.png", str(public)) == "https://example.org/x.png"
+    assert publish_evidence(str(tmp_path / "missing.png"), str(public)) is None
+
+
+def test_brief_is_sent_when_present():
+    c = to_candidate(ROW.copy().set_axis(ROW.index).combine_first(pd.Series({"brief": "Summary: hi"})))
+    assert c["brief"] == "Summary: hi"
+    assert "brief" not in to_candidate(ROW)

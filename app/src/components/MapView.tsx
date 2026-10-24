@@ -46,6 +46,11 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [sheetSel, setSheetSel] = useState<string>("all");
   const [mapReady, setMapReady] = useState(false);
+  const [zoom, setZoom] = useState(8.4);
+  // CalGEM documented wells: "none" = file not published yet, "off"/"on" = available.
+  const [wellsOn, setWellsOn] = useState(true);
+  const [wellsAvail, setWellsAvail] = useState<"checking" | "yes" | "no">("checking");
+  const wellsData = useRef<unknown>(null);
   rowsRef.current = rows;
   selectRef.current = onSelect;
 
@@ -103,6 +108,17 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
         ]);
 
         map.addLayer({
+          id: "candidates-halo",
+          type: "circle",
+          source: "candidates",
+          paint: {
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 8, 13, 17],
+            "circle-color": "#0b0f14",
+            "circle-opacity": 0.55,
+            "circle-blur": 0,
+          },
+        });
+        map.addLayer({
           id: "candidates",
           type: "circle",
           source: "candidates",
@@ -139,6 +155,7 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
         map.on("mouseleave", "candidates", () => (map.getCanvas().style.cursor = ""));
         readyRef.current = true;
         setMapReady(true);
+        map.on("zoom", () => setZoom(map.getZoom()));
       });
     })();
 
@@ -150,6 +167,69 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
       mapRef.current = null;
     };
   }, []);
+
+  // Documented wells (CalGEM): one compact file, loaded once, drawn as hollow rings under the candidates.
+  useEffect(() => {
+    let alive = true;
+    fetch("/calgem/wells.json")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d) => {
+        if (!alive) return;
+        wellsData.current = d;
+        setWellsAvail("yes");
+      })
+      .catch(() => alive && setWellsAvail("no"));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || wellsAvail !== "yes") return;
+    if (!map.getSource("calgem")) {
+      map.addSource("calgem", { type: "geojson", data: wellsData.current as never });
+      // Zoomed out: a soft density glow. Zoomed in: individual rings. Never a solid white mass.
+      map.addLayer(
+        {
+          id: "calgem-heat",
+          type: "heatmap",
+          source: "calgem",
+          maxzoom: 12.5,
+          paint: {
+            "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 7, 9, 11, 30],
+            "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 7, 0.12, 11, 0.4],
+            "heatmap-color": [
+              "interpolate", ["linear"], ["heatmap-density"],
+              0, "rgba(255,255,255,0)",
+              0.2, "rgba(255,255,255,0.08)",
+              0.6, "rgba(255,255,255,0.2)",
+              1, "rgba(255,255,255,0.38)",
+            ],
+            "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 10.5, 0.9, 12.5, 0],
+          },
+        },
+        "candidates-halo",
+      );
+      map.addLayer(
+        {
+          id: "calgem-wells",
+          type: "circle",
+          source: "calgem",
+          minzoom: 11.5,
+          paint: {
+            "circle-color": "rgba(0,0,0,0)",
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 11.5, 1.3, 14, 3, 17, 6],
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 11.5, 0.5, 14, 1, 17, 1.4],
+            "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 11.5, 0.35, 14, 0.7, 16, 0.9],
+          },
+        },
+        "candidates-halo",
+      );
+    }
+    for (const id of ["calgem-heat", "calgem-wells"]) map.setLayoutProperty(id, "visibility", wellsOn ? "visible" : "none");
+  }, [wellsAvail, wellsOn, mapReady]);
 
   // Historical sheets: public/historical/manifest.json is written by pipeline/geotiff_to_overlay.py.
   useEffect(() => {
@@ -177,7 +257,7 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
         });
         map.addLayer(
           { id, type: "raster", source: id, layout: { visibility: "none" }, paint: { "raster-opacity": 0.7, "raster-fade-duration": 0 } },
-          "candidates",
+          map.getLayer("calgem-heat") ? "calgem-heat" : "candidates-halo",
         );
       }
       const show = histOn && (sheetSel === "all" || sheetSel === sh.id);
@@ -218,10 +298,20 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
   }, [selectedId]);
 
   return (
-    <div className="map">
+    <div className={`map ${selectedId ? "panel-open" : ""}`}>
       <div ref={el} className="map-canvas" />
 
-      <div className="map-control" aria-label="Historical map overlay">
+      <div className="map-control" aria-label="Map layers">
+        <label className={`toggle ${wellsAvail === "yes" ? "" : "disabled"}`} title="Wells already in the state's CalGEM records: a density glow zoomed out, individual rings zoomed in.">
+          <input
+            type="checkbox"
+            checked={wellsAvail === "yes" && wellsOn}
+            disabled={wellsAvail !== "yes"}
+            onChange={(e) => setWellsOn(e.target.checked)}
+          />
+          <span>Documented wells (CalGEM)</span>
+          {wellsAvail === "no" && <em>not loaded</em>}
+        </label>
         {sheets.length === 0 ? (
           <label className="toggle disabled" title="Add a converted sheet with pipeline/geotiff_to_overlay.py">
             <input type="checkbox" checked={false} disabled readOnly />
@@ -265,6 +355,19 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
         )}
       </div>
 
+      <div className="zoom-slider" aria-label="Zoom">
+        <input
+          type="range"
+          min={6}
+          max={18}
+          step={0.05}
+          value={Math.min(18, Math.max(6, zoom))}
+          onChange={(e) => mapRef.current?.setZoom(Number(e.target.value))}
+          aria-label="Zoom level"
+          title="Drag to zoom"
+        />
+      </div>
+
       <div className="legend" aria-label="Legend">
         <div className="legend-title">Candidate score</div>
         <div
@@ -275,6 +378,12 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
           <span>low</span>
           <span>high</span>
         </div>
+        {wellsAvail === "yes" && wellsOn && (
+          <div className="legend-row">
+            <span className="dot ring" />
+            In CalGEM records
+          </div>
+        )}
         {(Object.keys(STATUS_META) as (keyof typeof STATUS_META)[])
           .filter((s) => s !== "candidate")
           .map((s) => (

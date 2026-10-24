@@ -11,6 +11,10 @@ Run from the repo root, after score.py:
   python pipeline/load_candidates.py               # loads into YOUR dev deployment (safe test)
   python pipeline/load_candidates.py --prod        # loads into the SHARED deployment the team sees
 
+Before sending it checks: inside the Kern box, scores 0..1, unique ids, and that every
+evidence image exists. Local crop images are copied into app/public/evidence/ and their
+URLs become /evidence/<file>.png, so commit that folder for the website to show them.
+
 Warning: re-loading a candidate overwrites it, including its status. Do not re-run with --prod
 after the field check has changed statuses unless you mean to reset them.
 """
@@ -28,6 +32,35 @@ import pandas as pd
 
 PART_KEYS = ("confidence", "undocumented", "people", "water", "field")
 BATCH_SIZE = 50
+# Kern study box (minLon, minLat, maxLon, maxLat); anything outside is a bad coordinate.
+KERN_BOX = (-120.19, 34.79, -117.63, 35.80)
+PUBLIC_DIR = os.path.join("app", "public")   # Next.js serves files here at the site root
+EVIDENCE_SUBDIR = "evidence"
+
+
+def in_kern(lat, lon) -> bool:
+    return KERN_BOX[0] <= lon <= KERN_BOX[2] and KERN_BOX[1] <= lat <= KERN_BOX[3]
+
+
+def publish_evidence(url: str, public_dir: str = PUBLIC_DIR):
+    """Return a URL the website can serve, or None if the crop cannot be published.
+    - http(s) URLs are kept as they are.
+    - paths already under the site (e.g. /evidence/x.png) are kept if the file exists in public/.
+    - local files are copied into public/evidence/ and become /evidence/<name>.
+    """
+    if url.startswith(("http://", "https://")):
+        return url
+    if url.startswith("/") and os.path.exists(os.path.join(public_dir, url.lstrip("/"))):
+        return url
+    if os.path.isfile(url):
+        dest_dir = os.path.join(public_dir, EVIDENCE_SUBDIR)
+        os.makedirs(dest_dir, exist_ok=True)
+        name = os.path.basename(url)
+        dest = os.path.join(dest_dir, name)
+        if not os.path.exists(dest):
+            shutil.copyfile(url, dest)
+        return f"/{EVIDENCE_SUBDIR}/{name}"
+    return None
 
 
 def _num(v):
@@ -77,6 +110,8 @@ def to_candidate(row: pd.Series) -> dict:
         "detectionId": det_id,
         "source": source if source in ("model", "ground_truth") else "model",
     }
+    if _str(row.get("brief")):
+        doc["brief"] = _str(row.get("brief"))
     optional = {
         "nearestDocumentedId": _str(row.get("nearestDocumentedId")),
         "nearestDocumentedDistM": _num(row.get("nearestDocumentedDistM")),
@@ -112,13 +147,40 @@ def main() -> None:
     ap.add_argument("--prod", action="store_true", help="load into the shared production deployment")
     ap.add_argument("--dry-run", action="store_true", help="write the JSON file only, send nothing")
     ap.add_argument("--limit", type=int, help="only load the top N by score")
+    ap.add_argument("--public-dir", default=PUBLIC_DIR, help="the website's public folder")
     args = ap.parse_args()
 
     df = pd.read_csv(args.input, dtype={"nearestDocumentedId": str, "detectionId": str})
     df = df.sort_values("score", ascending=False)
+
+    # Checks before anything is sent: Kern box, score range, unique ids, publishable evidence.
+    inside = [in_kern(float(r["lat"]), float(r["lon"])) for _, r in df.iterrows()]
+    if not all(inside):
+        print(f"Skipping {inside.count(False)} rows outside the Kern box {KERN_BOX}")
+        df = df[inside]
     if args.limit:
         df = df.head(args.limit)
     candidates = [to_candidate(r) for _, r in df.iterrows()]
+    bad_scores = [c["id"] for c in candidates if not 0 <= c["score"] <= 1]
+    if bad_scores:
+        sys.exit(f"Scores outside 0..1: {bad_scores[:5]}")
+    ids = [c["id"] for c in candidates]
+    if len(ids) != len(set(ids)):
+        sys.exit("Duplicate candidate ids; check that detectionIds are unique.")
+    dropped = 0
+    for c in candidates:
+        kept = []
+        for e in c["evidenceImages"]:
+            url = publish_evidence(e["url"], args.public_dir)
+            if url:
+                kept.append({"year": e["year"], "url": url})
+            else:
+                dropped += 1
+        c["evidenceImages"] = kept
+    if dropped:
+        print(f"Warning: {dropped} evidence images were not found and were left out.")
+    n_img = sum(len(c["evidenceImages"]) for c in candidates)
+    print(f"Evidence images ready: {n_img} (copied into {os.path.join(args.public_dir, EVIDENCE_SUBDIR)})")
     with open(args.json_out, "w") as fh:
         json.dump(candidates, fh, indent=1)
     print(f"Prepared {len(candidates)} candidates -> {args.json_out}")

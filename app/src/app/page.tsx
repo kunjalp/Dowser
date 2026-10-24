@@ -46,7 +46,7 @@ export default function CommandMap() {
       <section className="map-wrap">
         {anyFake && (
           <div className="demo-banner" role="status">
-            <strong>Demo data</strong> · simulated candidates
+            <strong>Simulated data</strong> / not field verified
           </div>
         )}
         <MapView rows={rows ?? []} selectedId={selectedId} onSelect={setSelectedId} />

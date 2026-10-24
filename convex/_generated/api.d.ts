@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as briefPrompt from "../briefPrompt.js";
+import type * as briefs from "../briefs.js";
 import type * as candidates from "../candidates.js";
 import type * as constants from "../constants.js";
 import type * as fieldChecks from "../fieldChecks.js";
@@ -24,6 +26,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  briefPrompt: typeof briefPrompt;
+  briefs: typeof briefs;
   candidates: typeof candidates;
   constants: typeof constants;
   fieldChecks: typeof fieldChecks;
