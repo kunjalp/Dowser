@@ -105,6 +105,12 @@ export default function DetailPanel({
     return () => clearInterval(t);
   }, []);
 
+  // A newly selected candidate starts at the top (brief first), not where the last one was scrolled.
+  const bodyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (candidate) bodyRef.current?.scrollTo({ top: 0 });
+  }, [candidate?.id]);
+
   const chrono = readings ? [...readings].reverse() : [];
   const anyReplay = chrono.some((r) => r.isReplay);
   // Open the sensor block by itself while readings are arriving (last 10 minutes).
@@ -128,7 +134,7 @@ export default function DetailPanel({
             </button>
           </header>
 
-          <div className="detail-body">
+          <div className="detail-body" ref={bodyRef}>
             <div className="detail-top">
               <div className="badge big" style={{ ["--c" as string]: STATUS_META[c.status].color }}>
                 {STATUS_META[c.status].label}

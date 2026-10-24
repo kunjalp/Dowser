@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import DetailPanel from "../components/DetailPanel";
 import MapView from "../components/MapView";
 import PrioritySliders, { DEFAULT_WEIGHTS } from "../components/PrioritySliders";
+import MapFilters, { DEFAULT_FILTERS, applyFilters } from "../components/MapFilters";
+import type { MapFilterState } from "../components/MapFilters";
 import Sidebar from "../components/Sidebar";
 import { api } from "../lib/convexApi";
 import { STATUS_META, isFake } from "../lib/types";
@@ -27,6 +29,9 @@ export default function CommandMap() {
     weights: customWeights && !allZero ? weights : undefined,
     limit: 1000,
   }) as Candidate[] | undefined;
+
+  const [mf, setMf] = useState<MapFilterState>(DEFAULT_FILTERS);
+  const shown = useMemo(() => (rows ? applyFilters(rows, mf) : undefined), [rows, mf]);
 
   const anyFake = !!rows?.some(isFake);
 
@@ -59,17 +64,22 @@ export default function CommandMap() {
     };
   }, [rows]);
 
-  const selected = useMemo(() => rows?.find((r) => r.id === selectedId) ?? null, [rows, selectedId]);
+  const selected = useMemo(() => shown?.find((r) => r.id === selectedId) ?? null, [shown, selectedId]);
 
   return (
     <main className="shell">
       <Sidebar
-        rows={rows}
+        rows={shown}
         selectedId={selectedId}
         onSelect={setSelectedId}
         filter={filter}
         onFilter={setFilter}
-        extra={<PrioritySliders weights={weights} onChange={setWeights} />}
+        extra={
+          <>
+            <MapFilters value={mf} onChange={setMf} />
+            <PrioritySliders weights={weights} onChange={setWeights} />
+          </>
+        }
         reranked={customWeights}
         changedIds={changed}
       />
@@ -92,7 +102,7 @@ export default function CommandMap() {
             <span className="live-toast-go">Show</span>
           </button>
         )}
-        <MapView rows={rows ?? []} selectedId={selectedId} onSelect={setSelectedId} pulse={pulse} />
+        <MapView rows={shown ?? []} selectedId={selectedId} onSelect={setSelectedId} pulse={pulse} />
         <DetailPanel candidate={selected} onClose={() => setSelectedId(null)} />
       </section>
     </main>
