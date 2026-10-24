@@ -464,3 +464,7 @@ h1, h2, h3, h4, strong, b, .badge, .chip, .field-btn, .field-nav, .link-btn, .ta
 .sim, .tag.sim { font-weight: 700 !important; }
 body, button, input, textarea, select { font-feature-settings: "tnum" 1, "kern" 1; font-variant-numeric: tabular-nums; }
 .field-btn, .field-nav { font-size: var(--fs-base); }
+
+/* the info icon is a background image: without no-repeat it tiles 2x2 inside the 44px button */
+.maplibregl-ctrl-attrib-button { background-repeat: no-repeat !important; background-position: center !important; background-size: 22px 22px !important; }
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon { background-repeat: no-repeat; background-position: center; }
