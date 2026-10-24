@@ -2,8 +2,7 @@
 
 import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Sparkline } from "../../components/DetailPanel";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import MapView from "../../components/MapView";
 import { api } from "../../lib/convexApi";
 import { haptics, hapticsStatus } from "../../lib/haptics";
@@ -454,6 +453,47 @@ function FieldEvidence({ images }: { images: Candidate["evidenceImages"] }) {
   );
 }
 
+/** Smooth reading trace: fading area, dashed auto-confirm line, dot on the latest value. No axes. */
+function FieldSpark({ values, threshold }: { values: number[]; threshold: number }) {
+  const gid = useId();
+  if (values.length < 2) return <div className="pc-spark-empty">Waiting for readings…</div>;
+  const w = 300;
+  const h = 72;
+  const pad = 6;
+  const max = Math.max(...values, threshold * 1.15, 1);
+  const y = (v: number) => h - pad - (v / max) * (h - pad * 2);
+  const pts = values.map((v, i) => [(i / (values.length - 1)) * w, y(v)] as const);
+  // Catmull-Rom to cubic Bezier: a smooth curve through every reading, clamped so it never overshoots the box.
+  const clamp = (n: number) => Math.min(h, Math.max(0, n));
+  let d = `M${pts[0][0]},${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i - 1] ?? pts[i];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[i + 2] ?? p2;
+    d += ` C${p1[0] + (p2[0] - p0[0]) / 6},${clamp(p1[1] + (p2[1] - p0[1]) / 6)} ${p2[0] - (p3[0] - p1[0]) / 6},${clamp(p2[1] - (p3[1] - p1[1]) / 6)} ${p2[0]},${p2[1]}`;
+  }
+  const last = pts[pts.length - 1];
+  const over = values[values.length - 1] >= threshold;
+  const ty = y(threshold);
+  return (
+    <div className={`pc-spark ${over ? "over" : ""}`}>
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label="Recent sensor readings">
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="currentColor" stopOpacity="0.28" />
+            <stop offset="1" stopColor="currentColor" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={`${d} L${w},${h} L0,${h} Z`} fill={`url(#${gid})`} />
+        <line x1="0" x2={w} y1={ty} y2={ty} className="pc-spark-th" vectorEffect="non-scaling-stroke" />
+        <path d={d} fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <span className="pc-spark-dot" style={{ top: `${(last[1] / h) * 100}%` }} />
+    </div>
+  );
+}
+
 function Paired({
   candidate: c,
   gone,
@@ -483,6 +523,7 @@ function Paired({
   const [now, setNow] = useState(() => Date.now());
   const [pending, setPending] = useState<{ outcome: Outcome; label: string } | null>(null);
   const [secs, setSecs] = useState(0);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -521,19 +562,6 @@ function Paired({
   const top = Math.max(th * 1.5, val * 1.1, 1);
   const fillPct = Math.min(100, (val / top) * 100);
   const markPct = Math.min(100, (th / top) * 100);
-  const gaugeText = leaking
-    ? "Confirmed leaking."
-    : gone
-      ? "Status changed elsewhere."
-      : !latest
-      ? "Waiting for the sensor…"
-      : !rule
-        ? ""
-        : hot >= rule.count
-          ? "Confirming…"
-          : val >= th
-            ? `High reading. ${rule.count - hot} more in ${rule.windowMs / 1000} s confirms it.`
-            : "Below the trigger line.";
 
   const target: Pos = { lat: c.lat, lon: c.lon };
   const dist = here ? distM(here, target) : undefined;
@@ -611,74 +639,107 @@ function Paired({
     </button>
   );
 
+  const stateWord = leaking ? "Confirmed leaking" : val >= th && latest ? "High" : "Below trigger";
+  const stateKind = leaking ? "leak" : val >= th && latest ? "high" : "ok";
+  const hasDetails = note.trim() !== "" || photoState !== "none";
+
   return (
     <section className="field-paired">
-      <button className="link-btn" onClick={onBack}>
-        ← Pick a different candidate
-      </button>
-      <h2>
-        <span className="dot" style={{ background: dotColor(c) }} /> {c.quadName} · {c.id}
-      </h2>
-      <p className="muted small">
-        {fmtM(c.distToHomeM)} to nearest home · {fmtM(c.distToWaterM)} to water
-      </p>
+      <header className="pc-head">
+        <button className="pc-back" onClick={onBack} aria-label="Back to candidates">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M15 5l-7 7 7 7" />
+          </svg>
+        </button>
+        <h2 className="pc-title">
+          <span className="dot" style={{ background: dotColor(c) }} />
+          <span className="pc-name">{c.quadName}</span>
+          <span className="pc-id">{c.id}</span>
+        </h2>
+        <span className="pc-chip" title="Distance to the nearest home">
+          {fmtM(c.distToHomeM)} to home
+        </span>
+      </header>
 
       {arrived ? (
-        <div className="arrive on" role="status">
+        <div className="pc-where here" role="status">
           <strong>You&apos;re here</strong>
-          <span className="small">{weakGps ? `GPS ±${Math.round(here?.acc ?? 0)} m, look for the pad` : "Readings are attached to this site"}</span>
+          <span>{weakGps ? `GPS ±${Math.round(here?.acc ?? 0)} m, look for the pad` : "Readings are attached to this site"}</span>
         </div>
       ) : (
-        <a
-          className="field-nav"
-          href={`https://maps.apple.com/?daddr=${c.lat},${c.lon}&dirflg=d&q=${encodeURIComponent(c.id)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <span>Navigate</span>
-          <span className="field-nav-dist">
-            {here && dist !== undefined ? awayText(dist, bearing(here, target)) : "in Maps"}
-          </span>
-        </a>
+        <div className="pc-where">
+          <span className="pc-away">{here && dist !== undefined ? awayText(dist, bearing(here, target)).replace(/(?<! away)$/, " away") : "Location off"}</span>
+          <a
+            className="pc-nav"
+            href={`https://maps.apple.com/?daddr=${c.lat},${c.lon}&dirflg=d&q=${encodeURIComponent(c.id)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Navigate
+          </a>
+        </div>
       )}
 
-      <div className={`reading-card ${leaking ? "leak" : ""} ${anyReplay ? "sim-data" : ""}`}>
-        <div className="reading-top">
-          <span className={`live-dot ${live ? "on" : ""}`} />
-          <span className="small">
-            {latest ? (live ? "Sensor live" : `Last reading ${age}s ago`) : "Waiting for the sensor…"}
+      <div className={`pc-reading ${stateKind} ${anyReplay ? "sim-data" : ""}`}>
+        <div className="pc-reading-top">
+          <span className={`pc-state ${stateKind}`} role={leaking ? "alert" : undefined}>
+            {latest ? stateWord : gone ? "Status changed" : "Waiting for sensor"}
           </span>
           {anyReplay && <span className="sim">Simulated</span>}
+          <span className="pc-live" title={latest ? (live ? "Sensor live" : `Last reading ${age}s ago`) : "No readings yet"}>
+            <span className={`live-dot ${live ? "on" : ""}`} />
+            {latest ? (live ? "Live" : `${age}s ago`) : ""}
+          </span>
         </div>
-        <div className="reading-value">
-          {latest ? latest.value.toFixed(0) : "–"}
-          {anyReplay && <em className="tag sim">Sim</em>}
+        <div className="pc-value">{latest ? latest.value.toFixed(0) : "–"}</div>
+        <div className="pc-gauge" role="meter" aria-label="Reading against trigger" aria-valuenow={val} aria-valuemin={0} aria-valuemax={Math.round(top)}>
+          <span className={`pc-gauge-fill ${val >= th ? "hi" : ""}`} style={{ width: `${fillPct}%` }} />
+          <span className="pc-gauge-mark" style={{ left: `${markPct}%` }} />
         </div>
-        <div className={`gauge ${anyReplay ? "sim-data" : ""}`} role="meter" aria-valuenow={val} aria-valuemin={0} aria-valuemax={Math.round(top)}>
-          <span className={`gauge-fill ${val >= th ? "hi" : ""}`} style={{ width: `${fillPct}%` }} />
-          <span className="gauge-mark" style={{ left: `${markPct}%` }} />
-        </div>
-        <div className="gauge-legend">
+        <div className="pc-gauge-legend">
           <span>0</span>
           <span>trigger {th}</span>
         </div>
-        <Sparkline values={chrono.map((r) => r.value)} sim={anyReplay} />
-        {gaugeText && latest && (
-          <p className={`small ${leaking ? "gauge-confirmed" : "muted"}`} role={leaking ? "alert" : undefined}>
-            {gaugeText}
+        <FieldSpark values={chrono.map((r) => r.value)} threshold={th} />
+        {rule && latest && !leaking && !gone && val >= th && (
+          <p className="pc-hint">
+            {hot >= rule.count ? "Confirming…" : `${rule.count - hot} more in ${rule.windowMs / 1000} s confirms it.`}
           </p>
         )}
       </div>
 
       <FieldEvidence images={c.evidenceImages} />
 
-      <textarea
-        className="field-note"
-        placeholder="Optional note (smell, staining, access…)"
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        rows={2}
-      />
+      <button
+        className="pc-details-toggle"
+        aria-expanded={detailsOpen}
+        aria-controls="pc-details"
+        onClick={() => setDetailsOpen((o) => !o)}
+      >
+        <span>Add details</span>
+        {hasDetails && <span className="pc-details-dot" role="img" aria-label="Has note or photo" />}
+        <svg className="pc-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M6 9l6 6 6-6" />
+        </svg>
+      </button>
+      <div id="pc-details" className="pc-details" hidden={!detailsOpen}>
+        <textarea
+          className="field-note"
+          placeholder="Optional note (smell, staining, access…)"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          rows={2}
+        />
+        <button className="field-photo" onClick={() => fileRef.current?.click()} disabled={photoState === "uploading"}>
+          {photoState === "uploading"
+            ? "Uploading photo…"
+            : photoState === "ready"
+              ? "Photo attached ✓ (tap to replace)"
+              : photoState === "error"
+                ? "Photo failed, tap to retry"
+                : "Add photo"}
+        </button>
+      </div>
       <input
         ref={fileRef}
         type="file"
@@ -687,15 +748,6 @@ function Paired({
         hidden
         onChange={(e) => onPhoto(e.target.files?.[0])}
       />
-      <button className="field-photo" onClick={() => fileRef.current?.click()} disabled={photoState === "uploading"}>
-        {photoState === "uploading"
-          ? "Uploading photo…"
-          : photoState === "ready"
-            ? "Photo attached ✓ (tap to replace)"
-            : photoState === "error"
-              ? "Photo failed, tap to retry"
-              : "Add photo"}
-      </button>
       {error && <p className="field-error">{error}</p>}
 
       <div className="field-decide">
