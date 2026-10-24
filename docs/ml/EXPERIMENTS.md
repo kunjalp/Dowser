@@ -673,6 +673,52 @@ the shipped 64/62. Among qualifying mixes prefer fewer candidate groups, then
 higher Val F1. The known-false count is a training-feedback regression check,
 not independent accuracy. If nothing qualifies, nothing is promoted.
 
+Targeted mix (patience 10): s42 .786 / s43 .695 / s7 .817 (median .786) ->
+fails rule (a); its exports give 29/13, 132/34 and 34/20 candidates/known
+false with 1,264-1,698 matched groups. Full: s7 .683, median .717 -> fails.
+
+### E4: full schedule (patience 10 -> 50), commit e939785 clean
+
+Only `patience` changes vs `train_cursor_translate.json`; all runs train 50
+epochs (best.pt still chosen by the SDK's Val fitness). Product columns from
+`candidate_regression` on all 87 Train/Val tiles at each run's own cutoff.
+
+| Run | Val cutoff | TP/FP/FN | F1 | R | CalGEM-matched | Candidates | Known false |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| e4_mixv1_s42 (reference data) | .71 | 46/4/3 | .929 | .939 | 1,593 | 64 | 62 |
+| e4_mixv1_s43 | .58 | 43/14/6 | .811 | .878 | 1,891 | 115 | 51 |
+| e4_mixv1_s7 | .60 | 37/11/12 | .763 | .755 | 1,401 | 15 | 7 |
+| **e4_mixed_s42** | .67 | 43/0/6 | .935 | .878 | 1,695 | 27 | 17 |
+| e4_mixed_s43 | .56 | 44/4/5 | .907 | .898 | 1,816 | 56 | 31 |
+| e4_mixed_s7 | .63 | 43/3/6 | .905 | .878 | 1,752 | 49 | 29 |
+| e4_targeted_s42 | .57 | 46/2/3 | .948 | .939 | 1,846 | 70 | 25 |
+| e4_targeted_s43 | .30 | 42/5/7 | .875 | .857 | 1,763 | 31 | 11 |
+| e4_targeted_s7 | .56 | 42/6/7 | .866 | .857 | 1,828 | 31 | 21 |
+
+Medians: mixv1 .811, mixed .907, targeted .875. The full schedule removes the
+mixed collapse (s43 .577 -> .907). e4_mixv1_s42 reproduces the shipped
+reference exactly (best epoch 24, 46/4/3, 1,657/64/62), confirming the
+regression chain is deterministic; e4_mixed_s42 equals repair_v2_mixed_s42
+(best epoch 27, identical metrics; checkpoint bytes differ only in metadata).
+
+**Selection by the pre-registered rule.** targeted_s42 has the best Val F1
+but 70 candidate groups (not below 64) -> fails. mixv1 is the reference.
+**Selected: `kern_e4_mixed_s42`** (pin `inference_kern_e4_mixed_s42.json`,
+cutoff .67, weights SHA `566ab5b4...1849`). Chosen over the identical
+patience-10 run because its recipe is the one with stable seeds.
+Frozen Test protocol: `pipeline/config/final_test_repair_v2_e4_mixed_s42.json`
+(the cursor_translate v1 protocol is unchanged). Paired Val report:
+`data/ml/runs/kern_e4_mixed_s42/comparison_to_cursor_translate/`.
+
+Honest limits: product metrics vary strongly by seed (mixed 27/49/56
+candidates); the selected seed is the best of three. Visual review of its 27
+candidates found about one plausible plain circle; the rest are blue water
+wells (10), dotted landmark circles (5), squares/diamonds (10) and a letter.
+Val recall fell from .939 to .878: six clear hollow circles near tank dots,
+hatched rails/levees or a blue outline are missed. The known-false drop
+(62 -> 17) is training-feedback regression, not independent accuracy. The
+candidate list is not ready to publish without the human review gate.
+
 Test intake: `audit_annotations --split test` imported
 `reviewed_test_emir_v1` (12 images, 407 boxes) and `reviewed_test_teammate_v1`
 (15 images, 318 boxes, 3 empty). No overlap/conflict; **27/30 covered**,

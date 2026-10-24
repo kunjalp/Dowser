@@ -22,6 +22,7 @@ def digest(path):
 
 def freeze(base_protocol, pin_path, output, purpose, selection_record):
     """Write and return the new protocol dict."""
+    base_protocol, pin_path = (Path(p) if Path(p).is_absolute() else ROOT / p for p in (base_protocol, pin_path))
     base = json.loads(Path(base_protocol).read_text())
     pin = json.loads(Path(pin_path).read_text())
     if not base['status'].startswith('frozen'):

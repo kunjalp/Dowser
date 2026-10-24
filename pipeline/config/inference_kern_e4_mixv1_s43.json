@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "status": "repair_v2_candidate_pending_review_not_promoted",
+  "training_run": "kern_e4_mixv1_s43",
+  "weights": "data/ml/runs/kern_e4_mixv1_s43/training/weights/best.pt",
+  "weights_sha256": "45448b94523258fbefa05912b95cd0b158af609a8fd3372c735fb4492c4e127e",
+  "manifest": "data/ml/kern_1024_v2/manifest.jsonl",
+  "manifest_sha256": "ebb2f8a4fdfefabf7dcdd9f3e4339f4c5912d4b2b2ecbb448b3f6da06c0ef572",
+  "confidence": 0.58,
+  "nms_iou": 0.7,
+  "imgsz": 1024,
+  "max_det": 1000,
+  "device": "mps",
+  "selection": "Val-only F1 sweep .05..95 step .01, IoU .5, tie -> higher cutoff; Test unused",
+  "validation_at_selected": {
+    "tp": 43,
+    "fp": 14,
+    "fn": 6,
+    "precision": 0.7543859649122807,
+    "recall": 0.8775510204081632,
+    "f1": 0.8113207547169812
+  }
+}

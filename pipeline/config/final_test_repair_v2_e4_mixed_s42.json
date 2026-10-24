@@ -1,0 +1,284 @@
+{
+  "schema_version": 1,
+  "status": "frozen_before_candidate_test_inference",
+  "frozen_at_utc": "2026-10-24T20:13:24.885441+00:00",
+  "purpose": "Single independent Test evaluation of the selected repair_v2 candidate kern_e4_mixed_s42 at its Val-selected cutoff; no tuning on Test",
+  "model": {
+    "training_run": "kern_e4_mixed_s42",
+    "weights": "data/ml/runs/kern_e4_mixed_s42/training/weights/best.pt",
+    "weights_sha256": "566ab5b48e79599530e70e47fa76fa833d31cd97a58e0019330196c686e41849",
+    "confidence": 0.67,
+    "nms_iou": 0.7,
+    "imgsz": 1024,
+    "max_det": 1000,
+    "device": "mps"
+  },
+  "source_pin": "pipeline/config/inference_kern_e4_mixed_s42.json",
+  "source_pin_sha256": "31b36857c053d4b65482ef0fb1228dd379f1dd1560f2008367305da1c5717bf4",
+  "manifest": "data/ml/kern_1024_v2/manifest.jsonl",
+  "manifest_sha256": "ebb2f8a4fdfefabf7dcdd9f3e4339f4c5912d4b2b2ecbb448b3f6da06c0ef572",
+  "test_image_archive": "data/ml/final_test_cursor_v1/test_images.zip",
+  "test_image_archive_sha256": "b6440e90621a8be4f5c8fb63dd530dc1f6d1cdfdd367be0db1f5b7f94cf15d86",
+  "test_tiles": [
+    {
+      "tileId": "usgs_102321_x00431_y00375",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x00431_y00375.png",
+      "png_sha256": "7e78cd406c6f29f0b2fdff6116b7f0ec1c16ce11dcfc5a5591d608cd68c5ed61"
+    },
+    {
+      "tileId": "usgs_102321_x01250_y00375",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x01250_y00375.png",
+      "png_sha256": "37b3f1b432ac1b453f3e1cd17f6005c2e850aac7bc2f8207a4eec55488fe733b"
+    },
+    {
+      "tileId": "usgs_102321_x02069_y00375",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x02069_y00375.png",
+      "png_sha256": "2565eb504ef44891e014c52fbe63ef46ae0f4379dabe9a6430852b27e79c67b3"
+    },
+    {
+      "tileId": "usgs_102321_x02888_y00375",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x02888_y00375.png",
+      "png_sha256": "039d2aa0ee368a9c295bf8cd8dbe33a9e26bbeee9fd364ee9833799e07b73247"
+    },
+    {
+      "tileId": "usgs_102321_x02888_y01194",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x02888_y01194.png",
+      "png_sha256": "5d86a2e999308a9f18becbcacccd02fcb14c2277f75dc9c562c598be135fcbec"
+    },
+    {
+      "tileId": "usgs_102321_x03707_y00375",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x03707_y00375.png",
+      "png_sha256": "8441f449a89084366b6961991904d2e904989fb4110488e6b0750f8ec679e100"
+    },
+    {
+      "tileId": "usgs_102321_x03707_y01194",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x03707_y01194.png",
+      "png_sha256": "9d66d7674e3073939c4721a4d29b5f7b94a7f34c0ffcc0de962390ae20cdf13b"
+    },
+    {
+      "tileId": "usgs_102321_x04526_y00375",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x04526_y00375.png",
+      "png_sha256": "e82e1114f29148514b45a47c779b86ae46fc56e149e2179c7914ac4ab5a74243"
+    },
+    {
+      "tileId": "usgs_102321_x04526_y01194",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x04526_y01194.png",
+      "png_sha256": "51df7b2bdb4bb75ec76fb65aa7156914289dcc3df8500a7c39357fda4526e5ce"
+    },
+    {
+      "tileId": "usgs_102321_x05345_y00375",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x05345_y00375.png",
+      "png_sha256": "6524fdfbc5bd275c6e5b82770c3da0416eafc2c7d0b38adbdd00a9dc884da98b"
+    },
+    {
+      "tileId": "usgs_102321_x05345_y01194",
+      "mapYear": 1992,
+      "source_map_id": "usgs_102321",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_102321_x05345_y01194.png",
+      "png_sha256": "856d6f55cce46fd1920c1730aea08a623dd924607061a08abd848f58ad5ad758"
+    },
+    {
+      "tileId": "usgs_293661_x00511_y00363",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x00511_y00363.png",
+      "png_sha256": "16e8e25ff94a72c8a0cdd356aced31d980ce7a234e201eee16cbb6a869a61ae9"
+    },
+    {
+      "tileId": "usgs_293661_x01330_y00363",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x01330_y00363.png",
+      "png_sha256": "d653e749fe584892879e3e84a13624f6945696574dcd8c724bceb9f76e360bac"
+    },
+    {
+      "tileId": "usgs_293661_x02149_y00363",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x02149_y00363.png",
+      "png_sha256": "de22540e1f34970090e4783830086d5b31f17d9c56dfde7ecb0f14f9f77de2d0"
+    },
+    {
+      "tileId": "usgs_293661_x02149_y01182",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x02149_y01182.png",
+      "png_sha256": "d040695b526c4b153705a3c8058adebcd8df7feb192bdc6e6aa8eaf4469af274"
+    },
+    {
+      "tileId": "usgs_293661_x02968_y00363",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x02968_y00363.png",
+      "png_sha256": "e0612659aa5cb71e2bf0fbe1438979e824320f5313735cfcbfcd9dccbe341e61"
+    },
+    {
+      "tileId": "usgs_293661_x02968_y01182",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x02968_y01182.png",
+      "png_sha256": "3d5581d0d698a679f285c84b015879564006ce108b4a18cba4a14fa05dbe21db"
+    },
+    {
+      "tileId": "usgs_293661_x03787_y00363",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x03787_y00363.png",
+      "png_sha256": "74c175e0dc289922fde17df0af46b1846a5cf1410b955cd7ff5ec64086646bbb"
+    },
+    {
+      "tileId": "usgs_293661_x03787_y01182",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x03787_y01182.png",
+      "png_sha256": "314929a3619bd46ae96ca81f84299eb4c5a1bd0ea831918432c95dda34d2b83c"
+    },
+    {
+      "tileId": "usgs_293661_x04606_y00363",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x04606_y00363.png",
+      "png_sha256": "d327900a614fc7751f5b368b7bb0168f103d2f0d04a9a9b05b1714c4ea215063"
+    },
+    {
+      "tileId": "usgs_293661_x04606_y01182",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x04606_y01182.png",
+      "png_sha256": "8a7204c5247bde8a4da68a1a0fd8b28fc107f92f8e3b9f0a487c2face2f03842"
+    },
+    {
+      "tileId": "usgs_293661_x05425_y00363",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x05425_y00363.png",
+      "png_sha256": "91fffd17bbb9afb8fb70cc14c0a67a4f49b47cd2d948f8bfc16e50cf2c754ed9"
+    },
+    {
+      "tileId": "usgs_293661_x05425_y01182",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293661",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293661_x05425_y01182.png",
+      "png_sha256": "b7f42b48f84d374f7ecda4d91f8403b2f6829c4baab7e69b314ef32e2ce6496a"
+    },
+    {
+      "tileId": "usgs_293664_x00500_y00361",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293664",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293664_x00500_y00361.png",
+      "png_sha256": "5190cb2f50361fabda8b43d9df07f0b4f973cb7356b870a4a7264f723583df08"
+    },
+    {
+      "tileId": "usgs_293664_x01319_y00361",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293664",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293664_x01319_y00361.png",
+      "png_sha256": "19a0c08f2238a30c05d56f87ca7d11317c44cdf6d887145583dd8c9188785e72"
+    },
+    {
+      "tileId": "usgs_293664_x02138_y00361",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293664",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293664_x02138_y00361.png",
+      "png_sha256": "0d0640cb7175d9c44bdc5f257d6b810c9d9590debb9c86b5592b3a17ce916f74"
+    },
+    {
+      "tileId": "usgs_293664_x02957_y00361",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293664",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293664_x02957_y00361.png",
+      "png_sha256": "ad5406f22d60bbdf140b3bcf4ec3aa6b811abb099fcf36a1c0717ad3ab19ab1b"
+    },
+    {
+      "tileId": "usgs_293664_x03776_y00361",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293664",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293664_x03776_y00361.png",
+      "png_sha256": "95fd1dbe8223b5e03976f81db92d2b3e01e237cfbb280b062b8008fe93c312d2"
+    },
+    {
+      "tileId": "usgs_293664_x04595_y00361",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293664",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293664_x04595_y00361.png",
+      "png_sha256": "31a9adec4b93644f0d4acfe21559561cb32865471476ace32c4142ca88c074fa"
+    },
+    {
+      "tileId": "usgs_293664_x05414_y00361",
+      "mapYear": 1954,
+      "source_map_id": "usgs_293664",
+      "image_path": "data/ml/kern_1024_v2/images/test/usgs_293664_x05414_y00361.png",
+      "png_sha256": "99523ec179567d9f1356b4934be6bcd9656ef9d1207c324af2cb1c3fbd12f9bf"
+    }
+  ],
+  "annotation": {
+    "class_names": [
+      "well_symbol"
+    ],
+    "native_size": [
+      1024,
+      1024
+    ],
+    "source": "human_reported",
+    "predictions_visible_to_annotator": false,
+    "every_image_requires_full_review": true,
+    "empty_label_requires_explicit_negative_review": true,
+    "all_30_required": true,
+    "allow_resize": false,
+    "allow_augmentation": false,
+    "allow_ai_prefill": false,
+    "allow_random_split": false
+  },
+  "evaluation": {
+    "match_iou": 0.5,
+    "matching": "descending-confidence one-to-one, highest-IoU unmatched GT per prediction, per tile; no geographic dedup",
+    "allow_confidence_sweep": false,
+    "allow_training_on_test": false,
+    "report": [
+      "TP",
+      "FP",
+      "FN",
+      "precision",
+      "recall",
+      "F1",
+      "per-era counts and metrics",
+      "false positives on reviewed negatives",
+      "representative FP/FN",
+      "inference time with hardware and timing scope"
+    ],
+    "no_positive_slice": "Recall undefined if zero positive GT instances; never report 0 or 100 percent recall for such slices",
+    "scope": "30 frozen tiles across three editions and two quadrangles; overlapping tiles are not independent wells; no universal accuracy guarantee"
+  },
+  "uncompleted": [
+    "Remaining human Test tiles",
+    "Human review attestation",
+    "Single Test inference and report via pipeline.evaluate_final_test"
+  ],
+  "supersedes_for_this_candidate": {
+    "protocol": "pipeline/config/final_test_cursor_translate_v1.json",
+    "sha256": "ef6b5267b1e10ceaf88755f546e7e8d8223709de6ec420cceb60c55bf86a7163",
+    "note": "earlier protocol kept unchanged for its own model"
+  },
+  "selection_record": "docs/ml/EXPERIMENTS.md: repair_v2 pre-registered selection rule and E4 outcome",
+  "test_state_at_freeze": "human Test labels partially imported and structurally audited (counts only); no model Test inference by any candidate; Test unused for selection"
+}

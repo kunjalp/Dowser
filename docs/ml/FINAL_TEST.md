@@ -1,11 +1,19 @@
 # Final Test: frozen protocol and annotation handoff
 
 Prepared 2026-10-24 in `/Users/emirtg/Desktop/dowser-cursor`. No model Test
-inference was performed. Human Test annotation is in progress in Roboflow;
-no Test label ZIP has been received locally. Original checkout,
+inference was performed. Human imports now cover 27/30 unique Test images
+(725 boxes, three explicit negatives), without conflicts. Original checkout,
 canonical data_v2 pin and frozen split IDs remain unchanged. Master Plan
 sections 3/6: reserve at least 30 Test tiles before training and report actual
 precision/recall with checked map/era coverage.
+
+Coverage-only verification on 2026-10-24 still requires human labels for
+`usgs_293661_x02149_y01182`, `usgs_293661_x04606_y00363`, and
+`usgs_293664_x04595_y00361`. Imports are `data/ml/reviewed_test_emir_v1` and
+`data/ml/reviewed_test_teammate_v1`. Structural validity is not semantic approval.
+The frozen-protocol evaluator is implemented in `pipeline/evaluate_final_test.py`.
+Current model/release decision and integration plan:
+[INTEGRATION_QUALITY_PLAN.md](../INTEGRATION_QUALITY_PLAN.md).
 
 ## Ready files
 
@@ -47,7 +55,7 @@ was used to select images during this preparation.
 
 ## Human annotation needed
 
-Latest Emir screenshot shows **12 annotated / 18 unannotated** in the original
+The earlier Emir screenshot showed **12 annotated / 18 unannotated** in the original
 30-image job. A partial export is allowed. In "Add Images to Dataset", choose
 **Add All Images to Testing Set**, rather than the displayed 70/20/10 split.
 Unannotated images remain pending; do not mark them negative to finish a batch.
@@ -56,7 +64,7 @@ Auto-Orient) or augmentation. Export YOLOv8 / "Download zip to computer".
 
 Prepared intake folders are `data/ml/reviewed_exports/test_emir_v1/` and
 `data/ml/reviewed_exports/test_teammate_v1/`. Keep downloaded ZIPs unchanged.
-No incoming Test archive has been imported or evaluated. Reconcile original
+Two incoming archives have since been imported; no model Test was evaluated. Reconcile original
 tile IDs: the custom 15-image assignment overlaps both original halves, so
 adding batch counts does not establish coverage. Require all 30 unique Test
 IDs and resolve duplicate-label disagreements before final evaluation.
@@ -107,15 +115,36 @@ claim. Preserve the failed cases in the fixed model's report.
 
 2. Verify all 30 IDs, original hashes, label geometry, explicit negative decisions
    and human annotation attestation. Review labels without predictions.
-3. Add the final-Test evaluation entry point governed by the frozen protocol.
-   Current preview/evaluate helpers intentionally admit only Train/Val. Do not
-   rename Test to Val to bypass them. Reject missing/extra IDs, assistant GT,
-   changed model/settings and threshold sweeps.
+3. Use the implemented `pipeline.evaluate_final_test` entry point governed by
+   the frozen protocol. Current preview/evaluate helpers intentionally admit
+   only Train/Val; do not rename Test to Val to bypass them. The final evaluator
+   rejects missing/extra IDs, assistant GT and changed model/settings. Keep the
+   old model protocol; freeze a separate one for the chosen repaired pipeline
+   before its first Test inference. Two-stage verifier protocols are unsupported.
 4. Run the fixed checkpoint on Test and issue the final measured report.
 
-Only preparation is complete. Import, semantic check, Test evaluation entry
-point and final model-quality report remain pending. Human labels are the main
-dependency; neither retraining nor redrawing the five Train images is needed.
+Partial imports and the evaluator are complete. Three human labels, semantic
+completeness review, final model/protocol selection and the measured report
+remain pending. Training repair proceeds independently on Train; these Test
+labels must not be used to improve the model.
+
+## Update: repair_v2 candidate protocol and intake (2026-10-24)
+
+A second, separate protocol freezes the selected repair_v2 candidate before
+any of its Test inference: `pipeline/config/final_test_repair_v2_e4_mixed_s42.json`
+(`kern_e4_mixed_s42`, cutoff .67, NMS .70, 1024, max_det 1000; same 30 IDs,
+annotation and scoring rules copied from v1). The v1 protocol is unchanged.
+
+Intake: `reviewed_test_emir_v1` (12 images / 407 boxes) and
+`reviewed_test_teammate_v1` (15 / 318, three empty) are structurally audited,
+27/30 unique, no overlap. Missing: `usgs_293661_x02149_y01182`,
+`usgs_293661_x04606_y00363`, `usgs_293664_x04595_y00361`.
+
+`pipeline/evaluate_final_test.py` is the Test entry point: `--coverage-only`
+validates protocol and imports without inference; the full run requires all
+30 tiles, identical duplicates only, human-only labels, unchanged pixels and
+checkpoint, and a written `--attestation`; it has no cutoff option or sweep and
+refuses to overwrite its output. Evaluate each protocol at most once.
 
 ## Interpretation
 

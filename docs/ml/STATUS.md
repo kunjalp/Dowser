@@ -7,20 +7,58 @@ This worktree branch: `ml/cursor-improvements`. Parent ML branch remains
 PRs #1/#2 superseded; ML agent has not merged a PR into main.
 Editor entry point: [CONTINUE.md](../CONTINUE.md).
 
-## In progress: repair_v2 (complete-frame annotation + retraining)
+## Integration review and next product-quality plan
 
-Updated 2026-10-24. Details: [EXPERIMENTS.md](EXPERIMENTS.md) "repair_v2".
+Read [INTEGRATION_QUALITY_PLAN.md](../INTEGRATION_QUALITY_PLAN.md) before
+promoting a repair model or replacing the map dataset. Reviewed main is
+`00f4dee`, ML `e939785`: 25/46 exclusive commits; isolated merge-tree succeeds.
+Draft PR #3 still points at `ml/tile-georeferencing`, not this Claude branch.
+Source compatibility is not product acceptance. Main lacks a separate persisted
+symbol-review/publishing gate; reviewed main contains 64 old evidence crops,
+62 matching human-confirmed false IDs. Live database visibility is not verified.
+Plan covers review ledger, stable identities/versioned releases, UI score and
+replay consistency, missing tracked historical overlays, final Test and live
+rehearsal. No merge, promotion or deployment was performed. E4 was left running.
+73 ML software tests passed in this review; frontend/backend/browser checks
+remain integration work. Primary 95% goal is published-symbol precision with
+independent evidence, separate from detector recall and physical field findings.
 
-- Done: all 20 queued error-source Train frames fully reviewed by the
-  assistant (156 boxes on 6 frames, 14 reviewed empty; `human_verified=false`)
-  in `data/ml/repair_annotation_v2/`. Two Train mixes built, preflight passed.
-- Seed 42 Val: `full` (17/30 empty) 33/0/16 at .05, rejected on recall;
-  `mixed` 43/0/6 at .67, F1 .9348 vs reference .9293 — not yet a claim.
-  Seeds 43/7 and the post-CalGEM candidate regression are running.
-- Test: 27/30 audited human tiles present, no conflicts; 3 missing tiles block
-  the final run. `pipeline/evaluate_final_test.py` exists; Test untouched.
+## repair_v2 result: selected candidate kern_e4_mixed_s42 (not promoted)
+
+Updated 2026-10-24 after E4. Details and all runs: [EXPERIMENTS.md](EXPERIMENTS.md)
+"repair_v2" / "E4".
+
+- Annotation: all 20 queued error-source Train frames fully reviewed by the
+  assistant (156 boxes on 6 frames, 14 reviewed empty; `human_verified=false`),
+  `data/ml/repair_annotation_v2/`. Second semantic review still advisable.
+- 15 trainings over four data mixes x seeds 42/43/7 and two schedules. Only
+  `mixed` (mix_v1 + 6 mixed-context frames) passes the pre-registered rule;
+  adding empty frames (`full`, `targeted`) costs recall or raises candidates.
+- **Selected `kern_e4_mixed_s42`**, pin `pipeline/config/inference_kern_e4_mixed_s42.json`
+  (.67). Val 43/0/6, P 1.000 / R .878 / F1 .935 vs cursor_translate 46/4/3,
+  .920 / .939 / .929. Post-CalGEM on 87 Train/Val tiles: 1,695 matched groups
+  (ref 1,593), **27 candidates (ref 64), 17 known false (ref 62)**. Seed medians
+  F1 .907 (ref .811); candidates vary 27/49/56 across seeds.
+- Not solved: about 1 of 27 remaining candidates looks plausible; residual
+  types are blue water wells, dotted landmark circles and squares. Publish
+  only through a human symbol-review gate. Known-false drop is regression on
+  training feedback, not independent accuracy.
+- Test: frozen protocol `pipeline/config/final_test_repair_v2_e4_mixed_s42.json`
+  (v1 for cursor_translate unchanged). 27/30 human tiles audited; missing
+  `usgs_293661_x02149_y01182`, `usgs_293661_x04606_y00363`,
+  `usgs_293664_x04595_y00361`. No Test inference performed.
 - Reference pins (`inference_cursor_translate.json`, `inference_selected.json`)
-  and delivered archives are unchanged.
+  and delivered archives are unchanged; nothing was deployed or sent.
+
+Next action: obtain the three missing human Test tiles plus a written
+prediction-blind review attestation, then run once:
+`pipeline/.venv/bin/python -m pipeline.evaluate_final_test --protocol
+pipeline/config/final_test_repair_v2_e4_mixed_s42.json --imports
+data/ml/reviewed_test_emir_v1 data/ml/reviewed_test_teammate_v1 <third import>
+--out data/ml/final_test_repair_v2_e4_mixed_s42 --attestation "..."`.
+In parallel, the next model factor is colour/landmark-aware negatives that
+do not crush recall (e.g. labelled crops of blue wells/dotted circles inside
+positive frames) rather than more fully empty frames.
 
 ## Rollout quality issue: investigate final candidates before promotion
 
@@ -38,14 +76,16 @@ is unused. Do not present the earlier package's candidate list as verified wells
 
 ### Incoming Test annotation and next-agent brief
 
-Latest user screenshot: 12 of 30 Test tiles annotated in Roboflow, 18 pending.
-No new Test ZIP is present locally. Export completed images as **100% Test**,
-native 1024, no preprocessing/augmentation, YOLOv8 ZIP. Prepared intake folders:
-`data/ml/reviewed_exports/test_emir_v1/` and `test_teammate_v1/`. Combine by
-original ID and require all 30 unique reviewed tiles; assignments overlap.
-Test is evaluation-only. Training repair uses the separate frozen Train images.
-See [FINAL_TEST.md](FINAL_TEST.md) and
-[NEXT_AGENT_TRAINING.md](NEXT_AGENT_TRAINING.md) for exact continuation.
+Current local imports are `reviewed_test_emir_v1` (12 images / 407 boxes) and
+`reviewed_test_teammate_v1` (15 / 318, three explicit negatives): 27/30 unique
+human Test tiles, no conflicts. Coverage-only check reproduced missing IDs
+`usgs_293661_x02149_y01182`, `usgs_293661_x04606_y00363`,
+`usgs_293664_x04595_y00361`. Test inference is still unused. Human semantic
+completeness review remains required. `evaluate_final_test.py` now implements
+merge/coverage/frozen inference; older briefs saying it is absent are historical.
+Keep future exports 100% Test, native 1024, no preprocessing/augmentation.
+See [the integration plan](../INTEGRATION_QUALITY_PLAN.md) for the current next
+action; [NEXT_AGENT_TRAINING.md](NEXT_AGENT_TRAINING.md) predates Claude repair_v2.
 
 ## Ready for Ryann: geographic integration package
 
