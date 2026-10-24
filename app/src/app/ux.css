@@ -603,3 +603,9 @@ main.field:has(.field-paired) > .field-toast { flex: none; }
 .pc-details-sheet { gap: 10px; }
 .pc-details-sheet .field-note { margin: 0; }
 .pc-details-sheet .field-photo { margin: 0; }
+
+/* tab icons: icon and label side by side inside the pill, filled icon when active */
+.field-tabs .tab-inner { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.field-tabs .tab-icon { width: 20px; height: 20px; flex: none; }
+.field-tabs .tab-label { font-size: var(--fs-sm); }
+.field .field-tabs .tab.sort .tab-icon { width: 24px; height: 24px; }

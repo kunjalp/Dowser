@@ -6,6 +6,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import MapView from "../../components/MapView";
 import { api } from "../../lib/convexApi";
 import { haptics, hapticsStatus } from "../../lib/haptics";
+import FieldTabs from "./FieldTabs";
 import { STATUS_META, dotColor, isFake, reasonLine } from "../../lib/types";
 import type { Candidate, Reading, Status } from "../../lib/types";
 
@@ -342,44 +343,7 @@ export default function FieldView() {
             </>
           )}
 
-          <nav className="field-tabs" aria-label="Field View">
-            <div className="seg" role="tablist" data-view={view}>
-              <span className="seg-thumb" aria-hidden="true" />
-              <button
-                role="tab"
-                aria-selected={view === "list"}
-                className={`tab ${view === "list" ? "on" : ""}`}
-                onClick={() => {
-                  if (view !== "list") haptics.tick();
-                  setView("list");
-                }}
-              >
-                List
-              </button>
-              <button
-                role="tab"
-                aria-selected={view === "map"}
-                className={`tab ${view === "map" ? "on" : ""}`}
-                onClick={() => {
-                  if (view !== "map") haptics.tick();
-                  setView("map");
-                }}
-              >
-                Map
-              </button>
-            </div>
-            {view === "list" && (
-              <button
-                className="tab sort"
-                onClick={() => {
-                  haptics.light();
-                  setSheet(true);
-                }}
-              >
-                Sort
-              </button>
-            )}
-          </nav>
+          <FieldTabs view={view} onView={setView} onSort={() => setSheet(true)} />
 
           {sheet && (
             <div className={`sheet-backdrop ${sheetClosing ? "closing" : ""}`} onClick={closeSheet}>
