@@ -386,6 +386,57 @@ geographic holdouts. This is a data preparation run, not a model experiment.
   Original source ZIP hashes and native image references rechecked. No backend
   detections/candidate load, evidence publication, deployment or API call.
 
+## Text/lookalike error review and Train mining — 2026-10-24
+
+- Trigger: user observed letters/digits detected as wells in the baseline preview.
+  No retraining or change to baseline/Val/Test annotations in this task.
+- Reused baseline saved predictions SHA
+  `ad760bc4c73af38c9f2c1b5ad00ad5ff2e425c7032cd07cd150bc8c0e1c25b43`.
+  Error gallery filters score>=.70 and max IoU to any existing label <.10;
+  32 unmatched candidates across seen-Train/Val, 16 displayed with <=4 per tile.
+  `data/ml/error_review_v1/review.json` preserves tile/box/source identities;
+  `unmatched_predictions.png` shows native 90 px neighborhoods. Visual inspection
+  confirms letter/number examples (O/9/4/8/e), structures and contour marks.
+  Unmatched candidates are not automatically approved false/negative GT.
+- Existing data: five Train images/568 boxes, no explicitly empty Train images;
+  positive-image background is present but diverse hard negatives are limited.
+  Working hypothesis is insufficient data/context variety and possible label
+  inconsistency, not proven architecture failure. See IMPROVEMENT_PLAN.md.
+- Mining code base `154ce556e3f8d4ce4683595c725c516f0bba9fa2`, dirty helper
+  additions. Pinned baseline best.pt SHA
+  `c1a09e4b094408283f3f425c6e2e98504195995b3fa4649cabe7aa63898379bb`;
+  active frozen manifest SHA unchanged:
+  `ebb2f8a4fdfefabf7dcdd9f3e4339f4c5912d4b2b2ecbb448b3f6da06c0ef572`.
+  Same local training environment, MPS, native 1024, batch 2, NMS IoU .7,
+  proposal cutoff .4, max_det 1000. No model parameter updates.
+- First command `pipeline/.venv/bin/python -m pipeline.mine_training_batch`
+  used a preliminary config output `data/ml/hard_negative_review_v1` and inferred
+  **55** full-content unreviewed Train images. Twelve other unreviewed Train images
+  failed valid_fraction>=.95; all five human Train IDs, Val/Test/buffer excluded.
+  Initial six-image selection included a 207-prediction dense tile, so it is
+  superseded for this small review workload, not presented as empty background.
+- Revised selection replay, without a second GPU inference:
+  `pipeline/.venv/bin/python -m pipeline.mine_training_batch --predictions data/ml/hard_negative_review_v1/proposals.json`.
+  Current config output `hard_negative_review_v2`. Prefer 1..35 predictions at
+  .70, up to two per source, disjoint envelopes across editions; return five
+  rather than force a sixth dense frame. This ranks workload, not true object
+  count or actual text errors; all selected images still require full review.
+- Selected IDs: `usgs_102321_x04526_y05289`, `usgs_293661_x01330_y05277`,
+  `usgs_293664_x02138_y05275`, `usgs_102321_x02888_y05289`,
+  `usgs_293664_x03776_y03637`. All five visually inspected. Gallery includes
+  text/contours/tanks and sparse real-looking symbol groups; no empty label files
+  or semantic approvals generated. Human labels added: **0**.
+- Current proposals JSON SHA:
+  `f5d713f033da557499a770b2462d67a13bc22ee36e2b4a1ac4985a3f248ddb4c`.
+  `review_train_images.zip` SHA:
+  `699ffa995d5ffa7d3a652db8eb37da3e8763bb9848d9a591e768ebd363ea0b8c`.
+  ZIP contains five native PNGs only; integrity, source-byte hashes, exact selected
+  IDs and replayed selection checked. Preview labels proposals as unreviewed.
+- 44 ML unit tests pass, including four mining selection/integrity-boundary
+  cases. Baseline checkpoint, source label imports and frozen held-outs unchanged.
+  No claim of improved precision/recall before reviewed additions and a controlled
+  retrain/comparison. Actual package source/script identity is in proposals.json.
+
 ## Model-run template
 
 ```yaml

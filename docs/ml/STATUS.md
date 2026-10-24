@@ -73,11 +73,26 @@ negatives only, so its recall is undefined. No claim of accuracy on all maps/era
 
 ## Next action
 
-Emir can open the new preview now and compare missed symbols/false positives.
-No repeat of the five-image labeling or 15-image Val export is requested.
-Use the patterns of errors to choose additional **Train** examples, especially
-reviewed negatives/lookalikes, while preserving Val/Test membership. The present
-five Train images contain no explicitly empty negative examples.
+Emir reported letters/digits being detected as wells. Native error-neighborhood
+inspection confirms O, 9, 4, 8, e and rectangular/contour lookalikes among unmatched
+predictions. Main hypothesis: too little Train variety/context, with possible
+annotation inconsistency; the 568-symbol count on five images is not a guarantee.
+See [improvement plan](IMPROVEMENT_PLAN.md) for evidence and a controlled data-first
+experiment, not a promise that more labels or a larger model automatically work.
+
+**Prepared next batch:** `data/ml/hard_negative_review_v2/preview.html` and
+`review_train_images.zip`, five native images from unreviewed **Train only**.
+Human task: full-image review in Roboflow, only real well_symbol boxes, Mark Null
+only for confirmed empty tiles; preserve Train/1024 px/no random split. Separate
+additions project avoids duplicates in the original queue. Export unchanged ZIP
+under reviewed_exports. Review instructions and exact IDs are in the plan.
+
+Mining inferred on 55 eligible Train images; model scores select review candidates,
+not known negatives. All five selected images were visually inspected, but zero
+human labels/negative approvals were invented. Val/Test and original five-image
+labels are unchanged. The overly dense preliminary v1 batch is superseded by v2.
+No new training run or improved-model result yet; await reviewed additions before
+combining versioned Train imports and comparing against the same Val.
 
 Before reporting pitch/final accuracy: independently label the protected 30 Test
 images, add positive-era coverage if claiming 1992 recall, freeze model/cutoff,
@@ -93,9 +108,11 @@ pre-training assessment. YOLO11n is an architecture name, not eleven trained run
 
 ## Verification and collaboration
 
-- 40 ML tests pass, including fixed-cutoff one-to-one matching, Train exclusion,
+- 44 ML tests pass, including fixed-cutoff one-to-one matching, Train exclusion,
   undefined negative-only recall, native preview coordinates and progress/failure
   records. Baseline/saved prediction artifacts and threshold-grid replay checked.
+  Four mining checks cover held-out/reviewed/padded exclusions, dense-batch
+  filtering and cross-era overlap. Five-image ZIP/native hashes checked; no labels.
 - First diagnostic and baseline finished; previews contain 20 exact audited
   Train/Val inputs and no Test. Native-image links resolve, source ZIPs preserved.
 - Main through 2b4678a integrated; app/Convex/mobile/backend team code unchanged.
