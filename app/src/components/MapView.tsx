@@ -16,6 +16,8 @@ const BASEMAP_ATTRIBUTION =
 
 const KERN_CENTER: [number, number] = [-119.35, 35.38];
 
+type Sheet = { id: string; name: string; year: number; url: string; corners: [number, number][] };
+
 type Props = {
   rows: Candidate[];
   selectedId: string | null;
@@ -41,6 +43,9 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
   const selectRef = useRef(onSelect);
   const [histOn, setHistOn] = useState(false);
   const [opacity, setOpacity] = useState(70);
+  const [sheets, setSheets] = useState<Sheet[]>([]);
+  const [sheetSel, setSheetSel] = useState<string>("all");
+  const [mapReady, setMapReady] = useState(false);
   rowsRef.current = rows;
   selectRef.current = onSelect;
 
@@ -133,16 +138,68 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
         map.on("mouseenter", "candidates", () => (map.getCanvas().style.cursor = "pointer"));
         map.on("mouseleave", "candidates", () => (map.getCanvas().style.cursor = ""));
         readyRef.current = true;
+        setMapReady(true);
       });
     })();
 
     return () => {
       cancelled = true;
       readyRef.current = false;
+      setMapReady(false);
       created?.remove();
       mapRef.current = null;
     };
   }, []);
+
+  // Historical sheets: public/historical/manifest.json is written by pipeline/geotiff_to_overlay.py.
+  useEffect(() => {
+    let alive = true;
+    fetch("/historical/manifest.json", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((m) => alive && Array.isArray(m) && setSheets(m as Sheet[]))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Add each sheet as an image layer under the candidate dots; show/hide and fade on demand.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    for (const sh of sheets) {
+      const id = `hist-${sh.id}`;
+      if (!map.getSource(id)) {
+        map.addSource(id, {
+          type: "image",
+          url: sh.url,
+          coordinates: sh.corners as [[number, number], [number, number], [number, number], [number, number]],
+        });
+        map.addLayer(
+          { id, type: "raster", source: id, layout: { visibility: "none" }, paint: { "raster-opacity": 0.7, "raster-fade-duration": 0 } },
+          "candidates",
+        );
+      }
+      const show = histOn && (sheetSel === "all" || sheetSel === sh.id);
+      map.setLayoutProperty(id, "visibility", show ? "visible" : "none");
+      map.setPaintProperty(id, "raster-opacity", opacity / 100);
+    }
+  }, [sheets, histOn, sheetSel, opacity, mapReady]);
+
+  // Jump to the sheet(s) when the overlay is switched on or the sheet changes.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !histOn) return;
+    const shown = sheets.filter((s) => sheetSel === "all" || s.id === sheetSel);
+    if (!shown.length) return;
+    const lons = shown.flatMap((s) => s.corners.map((c) => c[0]));
+    const lats = shown.flatMap((s) => s.corners.map((c) => c[1]));
+    map.fitBounds(
+      [[Math.min(...lons), Math.min(...lats)], [Math.max(...lons), Math.max(...lats)]],
+      { padding: 60, duration: 700 },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [histOn, sheetSel, mapReady]);
 
   // Push live data into the map whenever the query result changes.
   useEffect(() => {
@@ -165,20 +222,47 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
       <div ref={el} className="map-canvas" />
 
       <div className="map-control" aria-label="Historical map overlay">
-        <label className="toggle disabled" title="The historical overlay arrives Saturday (from Ryann's converted sheets)">
-          <input type="checkbox" checked={histOn} disabled onChange={(e) => setHistOn(e.target.checked)} />
-          <span>Historical map overlay</span>
-          <em>coming soon</em>
-        </label>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={opacity}
-          disabled
-          onChange={(e) => setOpacity(Number(e.target.value))}
-          aria-label="Overlay opacity"
-        />
+        {sheets.length === 0 ? (
+          <label className="toggle disabled" title="Add a converted sheet with pipeline/geotiff_to_overlay.py">
+            <input type="checkbox" checked={false} disabled readOnly />
+            <span>Historical map overlay</span>
+            <em>no sheets yet</em>
+          </label>
+        ) : (
+          <>
+            <label className="toggle">
+              <input type="checkbox" checked={histOn} onChange={(e) => setHistOn(e.target.checked)} />
+              <span>Historical map overlay</span>
+              {histOn && sheetSel !== "all" && (
+                <em>{sheets.find((s) => s.id === sheetSel)?.year}</em>
+              )}
+            </label>
+            {sheets.length > 1 && (
+              <select
+                className="sheet-select"
+                value={sheetSel}
+                onChange={(e) => setSheetSel(e.target.value)}
+                aria-label="Which historical sheet"
+              >
+                <option value="all">All sheets</option>
+                {sheets.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} · {s.year}
+                  </option>
+                ))}
+              </select>
+            )}
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={opacity}
+              disabled={!histOn}
+              onChange={(e) => setOpacity(Number(e.target.value))}
+              aria-label="Overlay opacity"
+            />
+          </>
+        )}
       </div>
 
       <div className="legend" aria-label="Legend">

@@ -25,7 +25,7 @@ function ScoreBars({ parts }: { parts: ScoreParts }) {
   );
 }
 
-function Sparkline({ values }: { values: number[] }) {
+export function Sparkline({ values }: { values: number[] }) {
   if (values.length < 2) return <div className="muted small">Waiting for readings…</div>;
   const w = 300;
   const h = 64;

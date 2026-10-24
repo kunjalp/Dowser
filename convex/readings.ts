@@ -2,6 +2,14 @@ import { internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { locationSourceValidator } from "./constants";
 import { PAIRING_TTL_MS } from "./pairing";
+import { applyStatus } from "./candidates";
+
+/**
+ * Auto-confirm rule (Master Plan should-have): this many readings at or above the
+ * threshold within the window flips a candidate to confirmed_leaking. The threshold is
+ * in the same units as `value` (the corrected reading); tune it once Murad has a baseline.
+ */
+export const AUTO_CONFIRM = { threshold: 1000, count: 3, windowMs: 30_000 } as const;
 
 /** Called by the HTTP ingest action in http.ts after validation. */
 export const ingest = internalMutation({
@@ -49,10 +57,41 @@ export const ingest = internalMutation({
       locationSource: locationSource ?? (candidateId !== undefined ? "candidate" : "none"),
       isReplay: args.isReplay,
     });
-    // Auto-confirm after 3 readings above threshold in 30 s is a should-have (P1);
-    // it hooks in here. For now readings are only stored.
-    return { id, receivedAt, candidateId: candidateId ?? null };
+
+    // Auto-confirm: N hot readings inside the window for a still-open candidate.
+    let autoConfirmed = false;
+    if (candidateId !== undefined && args.value >= AUTO_CONFIRM.threshold) {
+      const cand = await ctx.db
+        .query("candidates")
+        .withIndex("by_candidate_id", (q) => q.eq("id", candidateId as string))
+        .unique();
+      if (cand && (cand.status === "candidate" || cand.status === "queued")) {
+        const recent = await ctx.db
+          .query("readings")
+          .withIndex("by_candidate_receivedAt", (q) =>
+            q.eq("candidateId", candidateId as string).gte("receivedAt", receivedAt - AUTO_CONFIRM.windowMs),
+          )
+          .take(50);
+        const hot = recent.filter((r) => r.value >= AUTO_CONFIRM.threshold).length;
+        if (hot >= AUTO_CONFIRM.count) {
+          const res = await applyStatus(ctx, {
+            id: candidateId,
+            status: "confirmed_leaking",
+            source: "auto",
+            note: `${hot} readings >= ${AUTO_CONFIRM.threshold} within ${AUTO_CONFIRM.windowMs / 1000}s`,
+          });
+          autoConfirmed = res.changed;
+        }
+      }
+    }
+    return { id, receivedAt, candidateId: candidateId ?? null, autoConfirmed };
   },
+});
+
+/** The auto-confirm rule, so the UI can show "2 of 3 hot readings" without hardcoding it. */
+export const autoConfirmRule = query({
+  args: {},
+  handler: async () => AUTO_CONFIRM,
 });
 
 /** Live readings feed for the chart. Newest first; pass candidateId for one well. */

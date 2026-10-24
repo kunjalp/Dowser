@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { STATUSES, STATUS_META, dotColor } from "../lib/types";
@@ -39,7 +40,12 @@ export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, 
   return (
     <aside className="sidebar">
       <header className="sidebar-head">
-        <h1>Dowser</h1>
+        <h1>
+          Dowser{" "}
+          <Link href="/field" className="link-btn small">
+            Field View →
+          </Link>
+        </h1>
         <p className="muted">
           Candidate undocumented wells, Kern County.{" "}
           {rows ? `${rows.length} shown` : "Loading…"}
