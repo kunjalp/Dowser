@@ -115,9 +115,13 @@ conversion, Kunjal map UI. User withdrew the zero-cost constraint on 2026-10-23.
 
 ## Verification and collaboration
 
-- 53 ML tests pass: geometry/split, source/label integrity, mining guards, mixed
+- 54 ML tests pass: geometry/split, source/label integrity, mining guards, mixed
   supervision/negative provenance, actual optimizer progress, native preview,
   per-tile matching, human-Val comparison consistency and Test exclusion.
+  The independent Cursor worktree also passes training preflight and all 54
+  tests. Copied data/environments are not symlinks; reference bytes match with
+  independent file identities. Cross-worktree comparison accepts only matching
+  image bytes when paths differ. No Cursor improvement run has happened yet.
 - Both data runs completed from clean committed code; raw metadata records actual
   progress, versions/times/metrics. Original human Train/Val and manifest hashes
   are verified unchanged. Paired reports use identical human Val images/boxes.

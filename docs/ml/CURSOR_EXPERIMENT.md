@@ -105,6 +105,13 @@ not independent proof; small gains may need repeat seeds to assess stability.
 
 ## Setup checks and output for the later review
 
+Setup was verified on the handoff machine: separate branch/worktree created,
+data/environments file-cloned, copied activation/launcher paths relocated and SDK
+output directories isolated inside the new checkout. Python resolves the Cursor
+checkout/environment, reference checkpoint/manifest/label hashes match without
+shared file identities, training preflight passes and **54 ML tests pass**.
+This verifies setup, not a new model improvement. No Cursor model run started yet.
+
 ```sh
 git status --short --branch
 pipeline/.venv/bin/python -m pipeline.train_detector \
