@@ -311,6 +311,81 @@ geographic holdouts. This is a data preparation run, not a model experiment.
   inspect false positives/negatives. The diagnostic is preserved as a setup run,
   not acceptable detector quality or a reason to change final Test membership.
 
+## First baseline: kern_yolo11n_baseline_v1 — 2026-10-24
+
+- Command: `pipeline/.venv/bin/python -u -m pipeline.train_detector --config pipeline/config/train_baseline.json --name kern_yolo11n_baseline_v1`, log
+  `data/ml/kern_yolo11n_baseline_v1.log`. Clean code
+  `13c0f7ca1d9012ff58b29dcf6c640421c5e48535`.
+- Config SHA `1204376aa8ed9336c333a6e5e06f9a4025eeb6b49038d0e9d75a847924cbf1c7`.
+  Same frozen manifest, five-image Train import (568 boxes), 15-image Val import
+  (49 boxes/11 negatives), source weights and Python 3.12.14/SDK environment as
+  the diagnostic above. Started from pretrained YOLO11n, not the smoke checkpoint.
+  Apple M5/MPS, 24 GiB, batch 2, nbs 2, imgsz 1024, workers 0, amp false,
+  AdamW/lr0 .001, warmup 3, seed 42, augmentation off, max_det 1000.
+- Requested up to 50 epochs, patience 10. Started `2026-10-24T11:31:13.958657Z`,
+  finished `11:32:23.077495Z`; runner elapsed **69.107 s**. Early stop after
+  **29 epochs / 87 actual optimizer post-step calls**. CSV best mAP50-95 row is
+  epoch 19. MPS logged ~3.25 GiB allocated during observed batches, not a measured
+  system-wide peak; nondeterministic-operation warnings mean seed does not imply
+  bit-identical MPS replay. No cloud compute or Test inputs.
+- SDK revalidation of selected best.pt: precision 0.5388106177570324,
+  recall 0.8345309161603993, mAP50 0.6483984825827707,
+  mAP50-95 0.33465734125197244. SDK confidence-sweep metrics are distinct from
+  fixed-cutoff predictions below. Do not conflate them or call either final Test.
+- Best.pt SHA:
+  `c1a09e4b094408283f3f425c6e2e98504195995b3fa4649cabe7aa63898379bb`;
+  last.pt `bccf92fd910164e41cd2dea2ee4134a6ee7a141b9a9faa583813f078f79f6d4a`.
+  run.json SHA `3fb8782eb7af5a39016d20cb8f6e7a929c2508080ce671e105c8a1e4e516df98`;
+  results.csv SHA `6cbf2c47393374d0751f257347e1d7bd80ac60dbd321e4b80c870b4649a77798`.
+  Actual SDK args, plots, and all checkpoints stay under the ignored run directory.
+  Training curves and the SDK Val prediction mosaic were visually inspected.
+
+## Baseline preview and threshold tuning — 2026-10-24
+
+- `pipeline/.venv/bin/python -m pipeline.preview_detector data/ml/runs/kern_yolo11n_baseline_v1`
+  generated 20 records: 15 Val and 5 seen-Train. Test never read. Helpers were
+  being added on top of committed training code; final source/artifact hashes
+  are retained in the run's `artifact_receipt.json` after report verification.
+  Prediction source is the best checkpoint above, 1024 px, MPS float32, batch 2,
+  NMS IoU .7, max_det 1000, minimum saved confidence .05. Native xyxy is converted
+  directly to xywh with no half-pixel shift; original PNGs are referenced unchanged.
+- Prediction iteration took ~1.884 s for 20 images, excluding model construction
+  and HTML rendering. This is local diagnostic timing, not full-sheet throughput.
+  `preview/predictions.json` SHA:
+  `ad760bc4c73af38c9f2c1b5ad00ad5ff2e425c7032cd07cd150bc8c0e1c25b43`.
+  Original `preview.html` opens at .40; `preview_selected.html` at the selected .70.
+  Interactive controls select Train/Val, display cutoff and ground-truth/model
+  overlays; sliders do not recompute metrics or change the saved predictions.
+- Fixed evaluation command: `pipeline/.venv/bin/python -m pipeline.evaluate_preview data/ml/runs/kern_yolo11n_baseline_v1/preview/predictions.json`.
+  Confidence .40, IoU .50: **48 TP / 215 FP / 1 FN**, P .18250950570342206,
+  R .9795918367346939. High recall at this starting cutoff hides many lookalike
+  false detections; do not report SDK sweep P/R as the score at .40.
+- Threshold tuning command: same evaluator with `--sweep`. Maximize per-tile
+  F1 over .05..95 inclusive in .01 steps, ties favor higher cutoff. The original
+  selection/grid were replayed into a separate temporary report and matched.
+  Selection is Val tuning only; no Test/Train quality used. Matching: confidence
+  descending, highest-IoU unmatched human box per prediction, threshold IoU .50,
+  one-to-one within a tile. Overlapping tiles are counted separately, no geo dedup.
+- Selected .70: **31 TP / 23 FP / 18 FN**, P .5740740740740741,
+  R .6326530612244898, F1 .6019417475728156. Per era: 1954 TP31/FP21/FN18
+  (P .5961538461538461, R .6326530612244898); 1992 TP0/FP2/FN0, recall undefined
+  because there are no positive 1992 Val labels. Selection saved in
+  `preview/threshold_selection.json` and `pipeline/config/inference_baseline.json`.
+- Fixed selected-cutoff replay: evaluator with `--confidence .7 --output
+  data/ml/runs/kern_yolo11n_baseline_v1/preview/evaluation_conf070_iou050.json`.
+  The evaluator refuses to overwrite reports. To regenerate the selected HTML
+  without GPU inference, call `pipeline.preview_detector.render` with the saved
+  JSON records, minimum .05, initial .70, filename `preview_selected.html`.
+- Limits: four positive strips are geographically narrow and overlap. No held-out
+  Test labels/performance, calibrated confidence, absolute geo accuracy or broad
+  1992 recall. Overall fixed-cutoff precision remains below .60 target. Next
+  inspect false detections, add reviewed **Train** negatives/lookalikes from its
+  existing partition (never repurpose Val/Test), then independent Test/geo checks.
+- 40 ML tests pass, including native-box preview checks, one-to-one duplicate
+  matching, Train exclusion and undefined recall for all-negative examples.
+  Original source ZIP hashes and native image references rechecked. No backend
+  detections/candidate load, evidence publication, deployment or API call.
+
 ## Model-run template
 
 ```yaml

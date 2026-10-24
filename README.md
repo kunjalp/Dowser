@@ -52,7 +52,8 @@ split has 84 train / 13 val / 30 test images; 62 crossing windows are quarantine
 Preparation creates **unlabeled** images, not negative examples. The active split
 is now `kern_1024_v2`, preserving human Train/Test while improving Val coverage;
 the current human Train import has 5 images/568 boxes. Use
-[ML status](docs/ml/STATUS.md) for active paths and the 15-image Validation task.
+[ML status](docs/ml/STATUS.md) for active paths, trained baseline and prediction
+preview; the 15-image Validation export is now imported.
 See the
 [labeling handoff](docs/ml/ANNOTATION.md) before importing or training.
 No paid services or cloud training are invoked. Preparation refuses to overwrite

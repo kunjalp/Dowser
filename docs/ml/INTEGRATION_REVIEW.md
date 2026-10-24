@@ -1,5 +1,10 @@
 # Team update compared with implementation — 2026-10-24
 
+Historical snapshot before the first training run. Subsequent Val import,
+training, real metrics and preview are recorded in [STATUS.md](STATUS.md) and
+[EXPERIMENTS.md](EXPERIMENTS.md); the zero-epoch statements below describe that
+earlier review and must not override current status.
+
 Scope: review of Emir's pasted team update against Master Plan sections 3, 5,
 6, 8 and 12, current code/artifacts, and draft PR #3. The update is coordination
 context; the original Master Plan remains preserved verbatim.

@@ -5,6 +5,11 @@ trigger paid labeling jobs or upload anything externally.
 
 ## Active Validation handoff
 
+This handoff is completed: the supplied 15-image export was audited, and the first
+baseline trained. Counts/checkpoint/preview/next action are in [STATUS.md](STATUS.md).
+Retain the instructions below for reproducing the annotation workflow; no redraw
+or re-export is currently requested.
+
 The five-image Train export is complete and imported as `data/ml/reviewed_v2/`
 (568 boxes). Do not redraw it. Current split revision is `kern_1024_v2`, made
 before any model fitting because the original Val images are mostly padded edge

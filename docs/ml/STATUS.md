@@ -1,144 +1,108 @@
 # ML status and handoff
 
 Last verified: 2026-10-24, America/Los_Angeles.
-Branch: `ml/tile-georeferencing`; incorporates main `2b4678a` via `bc3c0ae`
-(previous mobile main `b0bd0bc` via `e48f84c`)
-(prior backend/UI main `558a00b` via `e1a4b4c`).
-[Draft PR #3](https://github.com/kunjalp/Dowser/pull/3) proposes integration into main.
-PRs #1/#2 are closed/superseded. No PR was merged by the ML agent.
-For another editor, start at [CONTINUE.md](../CONTINUE.md).
+Branch: `ml/tile-georeferencing`; incorporates main `2b4678a` via `bc3c0ae`.
+[Draft PR #3](https://github.com/kunjalp/Dowser/pull/3) is the integration proposal.
+PRs #1/#2 are superseded; ML agent has not merged any PR into main.
+Editor entry point: [CONTINUE.md](../CONTINUE.md).
 
-## Current stage
+## Current result
 
-**Validation imported and first five-epoch diagnostic completed.** Train is
-5 images/568 boxes; Val is 15 images/49 boxes with 11 reviewed empty images.
-All Val positives are Oildale 1954; 1992 has negatives only, so its recall cannot
-be measured. Test remains untouched/unlabeled. The first diagnostic saved weights
-but showed low Val quality (framework P 0.279, R 0.082); these are not final Test
-scores or fixed-confidence-0.4 metrics. A longer baseline is the next action.
-YOLO11n names the architecture, not eleven completed runs. See the
-[update/PR review](INTEGRATION_REVIEW.md). Its two described inference/export
-scripts have not been supplied as files and are absent from main/this checkout.
+**First YOLO11n baseline trained and a prediction preview is available.**
+Diagnostic: 5 epochs. Baseline: 29 epochs/87 actual optimizer updates, early stop
+with patience 10; best CSV fitness at epoch 19. Total baseline runner time
+69.107 s on Apple M5/MPS, 24 GiB. No cloud training/deployment was started.
 
-The [Master Plan](../master-plan/source.txt) supersedes the original PRD.
-Emir owns ML; Ryann owns dedup/matching/enrichment/scoring and overlay conversion;
-Kunjal owns the interactive map. User withdrew the zero-cost rule on 2026-10-23.
-No cloud training, deployment or API generation was started here.
+Open locally:
+`data/ml/runs/kern_yolo11n_baseline_v1/preview/preview_selected.html`.
+Green boxes are human labels; orange are model predictions. Default view is
+Validation at confidence 0.70, with toggles and a cutoff slider. Train images
+are explicitly marked as seen during fitting. There are 20 images total
+(15 Val + 5 Train), and protected Test is excluded. Original PNGs are unchanged.
 
-## Verified artifacts
+**Fixed-cutoff Val result at confidence 0.70 / IoU 0.50:**
+31 TP, 23 FP, 18 FN; precision 0.5741, recall 0.6327.
+Cutoff was selected on Val F1 over 0.05..0.95, step 0.01.
+At the original 0.40 cutoff: 48 TP, 215 FP, 1 FN (P 0.1825, R 0.9796).
+The model still over-detects lookalikes; the 0.60 precision target is not met.
 
-- Three pinned Kern raster editions: Oil Center 293661 (base 1954, revised 1968,
-  imprint 1970), Oildale 293664 (1954, imprint 1956), Oil Center 102321 (1992,
-  edit/imprint 1995). Region/source config is unchanged.
-- Native 1024 px images, stride 819, per-tile WKT/affine, masked collars, common
-  geographic partitions across years. Numerical geo checks pass; actual-map
-  control points and known-well accuracy remain pending.
-- Original preparation `data/ml/kern_1024_v1/` is preserved: 84 Train / 13 Val /
-  30 Test / 62 buffer. Its Val consists mostly of padded edge strips.
-- **Active split: `data/ml/kern_1024_v2/`**, revised before any fitting:
-  72 Train / 15 Val / 30 Test / 72 buffer, 189 rows, 117 retained PNGs.
-  Added two full-content unreviewed Val tiles, one per era; quarantined ten
-  other overlapping Train tiles across editions. All five human Train IDs and
-  exact original 30 Test IDs remain; zero cross-split envelope overlap.
-  All 117 retained PNGs are byte-identical to original preparation outputs.
-- Human import `data/ml/reviewed_v2/`: **5 Train images, 568 boxes**,
-  class 0 `well_symbol`; 297 from 1954, 271 from 1992. Native PNGs restored.
-  Both source ZIPs in `data/ml/reviewed_exports/` remain unchanged.
-  All 15 previously loose bounds have tighter v2 replacements, visually checked;
-  zero boxes exceed the 40 px review heuristic. Full independent semantic
-  completeness is not established. No repeat of those corrections is requested.
-- Old `data/ml/proposals_pilot_v2/preview.html` contains attributed published
-  EDX proposals, not new model results or human ground truth. Do not prelabel
-  Val/Test from it. Its selected IDs predate the split revision: reconcile IDs
-  with the active manifest before any further proposal import.
-- Training environment `pipeline/.venv/`: Python 3.12.14, torch 2.14.1,
-  torchvision 0.29.1, ultralytics 8.4.185, numpy 2.5.4, direct/full lock files.
-  Root `.venv/` stays Python 3.9.6 for map preparation/auditing.
-- Pinned pretrained YOLO11n weights are in `data/ml/weights/`. Full 1024 px
-  loss/backward on one real Train image (271 boxes) passed on MPS with finite
-  gradients in 5.976 s. No optimizer step or trained weights saved.
-  The subsequent batch-2 diagnostic completed five epochs and saved plots/weights;
-  see the run record below. The compatibility probe remains distinct.
-- `pipeline.train_detector` checks missing Val, changed labels/images, wrong
-  frozen partitions, overlapping Train/Val, extra unaudited images, and weight
-  identity. A fresh recorded run is created only after preflight passes.
+SDK best-checkpoint metrics separately report P 0.5388, R 0.8345, mAP50 0.6484,
+mAP50-95 0.3347. Those confidence-sweep metrics use the SDK evaluation path and
+must not be substituted for our fixed-cutoff preview evaluation.
+All results are **Validation/tuning, not independent final Test performance**.
+All 49 Val positives are on four overlapping Oildale 1954 strips; 1992 contains
+negatives only, so its recall is undefined. No claim of accuracy on all maps/eras.
 
-## Current Validation and next action
+## Artifacts and provenance
 
-Emir supplied `dowser-kern-validation.v1-manual_validation_v1.yolov8.zip`.
-Audited import: `data/ml/reviewed_validation_v1/`, all 15 exact frozen Val IDs,
-native PNGs restored, 49 class-0 boxes, 11 explicit empty labels, no large-box
-flags. One 0.005 px export-edge overflow was clipped/logged only in the derived
-copy. Original archive is unchanged; full independent semantic approval is not
-claimed. Four positive annotation strips and both full negative tiles were
-visually inspected. No new labeling request is pending for Emir.
+- Master Plan is authoritative; Emir owns ML, Ryann dedup/matching/enrichment/
+  ranking/overlay conversion, Kunjal map UI. The user withdrew the zero-cost
+  restriction on 2026-10-23; record actual material usage.
+- Three pinned GeoTIFF editions: Oil Center 293661 (1954, revised 1968, imprint
+  1970), Oildale 293664 (1954, imprint 1956), Oil Center 102321 (1992, edit/imprint
+  1995). Three editions across two geographic quadrangles. Native 1024 px tiles,
+  stride 819, per-tile WKT/affine, masked collars and shared geographic splits.
+- Active manifest `data/ml/kern_1024_v2/manifest.jsonl`: 72 Train / 15 Val /
+  30 Test / 72 buffer, 189 rows. All retained PNGs equal original v1 pixels.
+  Old `kern_1024_v1` remains intact. Revised split preserved five human Train
+  IDs and exact 30 Test IDs, with zero cross-split metric-envelope overlap.
+- Train import `data/ml/reviewed_v2/`: 5 images, 568 boxes (297 from 1954,
+  271 from 1992), class 0 well_symbol. The 15 previously loose boundaries were
+  corrected/visually checked; original v1/v2 source ZIPs remain unchanged.
+- New Val import `data/ml/reviewed_validation_v1/`: all 15 frozen IDs,
+  49 boxes on four images, 11 explicit empty labels, native PNGs restored.
+  Original `dowser-kern-validation.v1-manual_validation_v1.yolov8.zip` preserved.
+  One 0.005 px edge overflow clipped/logged only in derived copy; zero size flags.
+  Positive-strip contact sheet and both full negative tiles visually inspected.
+  Structural audit/user-complete status is not independent semantic completeness.
+- Baseline weights:
+  `data/ml/runs/kern_yolo11n_baseline_v1/training/weights/best.pt`,
+  SHA-256 `c1a09e4b094408283f3f425c6e2e98504195995b3fa4649cabe7aa63898379bb`.
+  Selected diagnostic inference settings: `pipeline/config/inference_baseline.json`.
+- Exact run data/config/code/environment/metrics/checksum records are in
+  [EXPERIMENTS.md](EXPERIMENTS.md). Run metadata and checkpoints are ignored.
+- Two environments: root `.venv/` Python 3.9.6 for maps/audit;
+  `pipeline/.venv/` Python 3.12.14 for training, torch 2.14.1, torchvision
+  0.29.1, ultralytics 8.4.185, numpy 2.5.4. Preserve both and their separate pins.
+- First diagnostic used default nbs=64, accumulating all 15 batches before one
+  inferred update. Config now nbs=2 at batch=2. Baseline instrumented actual
+  optimizer post-step calls and epoch/timing progress; interrupted runs retain it.
+- Old `proposals_pilot_v2/preview.html` is attributed published research, not
+  this trained model. Its old IDs predate split revision; reconcile before reuse.
+  Neither published proposals nor Val/Test predictions become Train ground truth.
 
-Diagnostic `data/ml/runs/kern_yolo11n_smoke_v1/` completed at clean code `a3cf379`.
-Installed SDK defaults nbs=64 accumulated 15 batches before its first update;
-the five-epoch diagnostic therefore supplied very few parameter updates (one
-inferred from inspected SDK cadence, not an instrumented counter). Preserve it.
-Config now explicitly uses nbs=2 for batch=2; the runner records actual optimizer
-steps, completed epochs, timestamps and elapsed time, including partial failures.
-35 ML tests pass, including update-counter/failure-record checks.
+## Next action
 
-Next: run `pipeline/config/train_baseline.json` from pinned pretrained weights,
-up to 50 epochs/patience 10, then render a local prediction preview at recorded
-confidence 0.4. Use the same frozen Train/Val; do not tune on protected Test or
-claim per-era recall for 1992. See [training plan](TRAINING_PLAN.md) and
-[experiment records](EXPERIMENTS.md).
+Emir can open the new preview now and compare missed symbols/false positives.
+No repeat of the five-image labeling or 15-image Val export is requested.
+Use the patterns of errors to choose additional **Train** examples, especially
+reviewed negatives/lookalikes, while preserving Val/Test membership. The present
+five Train images contain no explicitly empty negative examples.
 
-### Completed human handoff (retained instructions)
+Before reporting pitch/final accuracy: independently label the protected 30 Test
+images, add positive-era coverage if claiming 1992 recall, freeze model/cutoff,
+and evaluate without tuning on Test. Any dataset expansion must retain provenance
+and account for already used Val; never silently move it into Train.
 
-Emir: create a **separate Object Detection project** `dowser-kern-validation`
-and upload **`data/ml/kern_1024_v2/annotation_import/val.zip` (15 PNGs)**.
-Use the same single class `well_symbol`, native 1024 px, unchanged filenames.
-A separate project avoids duplicate handling: two newly reserved Val tiles
-already exist unannotated in the original project's old 84-image Train queue.
-Preserve the five-image project and its labels.
+Geographic work next: real-map control points and 10+ verified CalGEM well
+offsets, then model/fallback CSV/crops for Ryann. Pixel-to-WGS84 primitives already
+exist; full detection export/crop publication is not yet completed. The teammate's
+described detect_sheet.py/labels_to_detections.py files have not been supplied or
+found in main. See [integration review](INTEGRATION_REVIEW.md), a historical
+pre-training assessment. YOLO11n is an architecture name, not eleven trained runs.
 
-Independently review whole images, box all recognizable targets, explicitly
-mark empty only after confirming no targets, and leave ambiguous work unfinished.
-Keep the new batch in Validation, with no random reassignment.
-See [annotation instructions](ANNOTATION.md#active-validation-handoff).
-**Do not use the old 13-image val.zip or label the old 79-image queue wholesale.**
-Only 67 of that queue still belong to active Train; two are Val and ten buffer.
-Extra Train labeling is not the immediate task.
+## Verification and collaboration
 
-Save the untouched YOLOv8 Validation export in `data/ml/reviewed_exports/`.
-Audit with `--split val --dataset data/ml/kern_1024_v2 --output
-data/ml/reviewed_validation_v1`. Reviewed negatives need explicit empty label
-files; never interpret unreviewed images as negatives.
-Then follow [TRAINING_PLAN.md](TRAINING_PLAN.md): preflight, five diagnostic
-epochs, prediction preview, then a separately configured baseline up to 50
-epochs/patience 10. If all Val is negative, only diagnostics/false positives are
-assessable; recall/mAP and quality checkpoint selection are unavailable.
-The full baseline requires independent positive Val examples. No random split
-of the five overlapping Train images or use of protected Test for tuning.
-
-## Verification and integration
-
-- 33 ML tests pass: geometry/splits, proposal restrictions, Train/Val archive
-  auditing including explicit negatives, split revision, training guards.
-- Actual new ZIP: 15 PNGs, integrity/content checked; Test IDs and all native PNG
-  identities preserved. Five-image import and both source archive hashes pass.
-- Before the human export, preflight correctly refused missing Val. After import,
-  it passes with 5/568 Train and 15/49 Val. First diagnostic completed; exact
-  identities/results are in [EXPERIMENTS.md](EXPERIMENTS.md).
-- Main through `2b4678a` is incorporated. Incoming brief/evidence-URL loading,
-  CalGEM layer, impact/replay and UI changes were source-inspected; see
-  [main review](../MAIN_REVIEW.md). Team files are unchanged by ML. No deployment,
-  external pulls, replay, Claude API generation or UI end-to-end validation.
-  Latest incoming iOS/Capacitor/Codemagic files were integrated unchanged after
-  targeted mobile/dependency diff inspection; no signing, build or publishing ran.
-  Latest main changes only the mobile publishing flag; it was inspected/integrated.
-- PR #3 is suitable for team review as a preparation/setup increment, without
-  waiting for a trained model. It remains draft with no submitted reviews at this
-  check. Successful Vercel contexts do not validate ML/inference end to end.
-- Kunjal works directly on main. Fetch/review incoming changes before the next
-  code task or merge; PR #3 still needs team review. Preserve this checkout:
-  ignored datasets, labels, weights and environments are not restored by Git.
-
-Remaining after first training: independent Test labels/evaluation, actual-map
-control points, 10+ known-well offsets, detection/fallback export, crops and Ryann
-handoff. Fallback must use explicit `source=ground_truth`, numeric 1.0 and the
-hand-labeled UI tag; this is not model confidence.
+- 40 ML tests pass, including fixed-cutoff one-to-one matching, Train exclusion,
+  undefined negative-only recall, native preview coordinates and progress/failure
+  records. Baseline/saved prediction artifacts and threshold-grid replay checked.
+- First diagnostic and baseline finished; previews contain 20 exact audited
+  Train/Val inputs and no Test. Native-image links resolve, source ZIPs preserved.
+- Main through 2b4678a integrated; app/Convex/mobile/backend team code unchanged.
+  No live loading, brief generation, replay, mobile publishing or UI end-to-end
+  validation by ML. Vercel success is not ML quality evidence.
+- Kunjal works directly on main. Fetch/review again before another code task or
+  merge. PR #3 remains an incremental integration proposal requiring team review.
+- Keep local data, label ZIPs, checkpoints and environments: Git cannot restore
+  ignored artifacts. Ground-truth fallback requires explicit source=ground_truth,
+  numeric 1.0 plus the hand-labeled UI convention, not model confidence.

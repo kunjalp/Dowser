@@ -31,9 +31,10 @@ There are two Python environments: root `.venv/` for preparation/auditing and
 `pipeline/.venv/` for YOLO/MPS training. Their NumPy pins differ intentionally;
 see [training setup](ml/TRAINING_PLAN.md). Active splits are in `kern_1024_v2`,
 while human Train labels are in `reviewed_v2`. Preserve original v1 artifacts.
-The next human task is the new 15-image Validation package, not the old 13-image
-ZIP or the original remaining Train queue. Do not run epochs before the reviewed
-Validation import passes `pipeline.train_detector --check-only`.
+The 15-image Validation export has now been imported and the first baseline
+trained. Current preview, checkpoint, counts, metric limitations and next action
+are in ML status; do not ask the user to repeat finished annotations. Additional
+runs must still pass `pipeline.train_detector --check-only`.
 
 ## Read before editing
 

@@ -66,6 +66,10 @@ contamination review; do not silently change it after examining model results.
 
 ## Commands and sequence
 
+The commands below describe the recorded runs; their output names now exist and
+must not be overwritten. For reproduction choose fresh run/output names.
+Current trained checkpoint/preview and interpretation are in [STATUS.md](STATUS.md).
+
 After independent review/export of all 15 Validation images (see
 [annotation handoff](ANNOTATION.md#active-validation-handoff)):
 
@@ -112,6 +116,29 @@ pipeline/.venv/bin/python -m pipeline.train_detector \
 Start from pinned pretrained weights, select checkpoint/threshold on Val, record
 actual stopping and per-era errors. Freeze choices, evaluate on independently
 labeled 30-image Test, then export WGS84 detections/crops and check well offsets.
+
+## Inspect predictions and fixed-cutoff metrics
+
+Actual baseline stopped at 29 epochs/87 updates; the first Val-tuned inference
+candidate is pinned in `pipeline/config/inference_baseline.json` at confidence
+.70. Fixed-cutoff precision .5741 / recall .6327 is distinct from the SDK's
+confidence-sweep metrics. Final Test remains unlabeled/unmeasured.
+
+```sh
+# These artifact paths already exist; use new --output destinations for replay.
+pipeline/.venv/bin/python -m pipeline.preview_detector \
+  data/ml/runs/kern_yolo11n_baseline_v1
+pipeline/.venv/bin/python -m pipeline.evaluate_preview \
+  data/ml/runs/kern_yolo11n_baseline_v1/preview/predictions.json
+pipeline/.venv/bin/python -m pipeline.evaluate_preview \
+  data/ml/runs/kern_yolo11n_baseline_v1/preview/predictions.json --sweep
+```
+
+Open `preview/preview_selected.html` under the baseline run. Green is human GT,
+orange is model output, Train is explicitly marked as seen during fitting.
+Moving its slider is a visual diagnostic, not a recomputed metric report.
+Quality helpers exclude Train and reject Test inputs; Val-only threshold tuning
+does not replace the Master Plan's final held-out acceptance or real geo checks.
 
 ## Primary references
 

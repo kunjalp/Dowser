@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "diagnostic_candidate_pending_final_test_and_real_map_controls",
+  "training_run": "kern_yolo11n_baseline_v1",
+  "weights": "data/ml/runs/kern_yolo11n_baseline_v1/training/weights/best.pt",
+  "weights_sha256": "c1a09e4b094408283f3f425c6e2e98504195995b3fa4649cabe7aa63898379bb",
+  "manifest": "data/ml/kern_1024_v2/manifest.jsonl",
+  "manifest_sha256": "ebb2f8a4fdfefabf7dcdd9f3e4339f4c5912d4b2b2ecbb448b3f6da06c0ef572",
+  "confidence": 0.7,
+  "nms_iou": 0.7,
+  "imgsz": 1024,
+  "max_det": 1000,
+  "device": "mps",
+  "selection": "Max per-tile Validation F1 at IoU 0.5 on grid 0.05..0.95 step 0.01; ties favor higher cutoff. No Test use.",
+  "validation_limits": "49 positive instances on four overlapping 1954 Oildale tiles; no positive 1992 Validation labels; not independent final Test performance."
+}
