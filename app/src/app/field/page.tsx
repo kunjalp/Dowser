@@ -9,6 +9,7 @@ import { api } from "../../lib/convexApi";
 import { haptics, hapticsStatus } from "../../lib/haptics";
 import { STATUS_META, dotColor, isFake, reasonLine } from "../../lib/types";
 import type { Candidate, Reading, Status } from "../../lib/types";
+import FieldTabs from "./FieldTabs";
 
 type Outcome = "confirmed_leaking" | "confirmed_not_leaking" | "no_well" | "mislocated";
 const OUTCOMES: Record<Outcome, string> = {
@@ -314,37 +315,7 @@ export default function FieldView() {
             </>
           )}
 
-          <nav className="field-tabs" aria-label="Field View">
-            <button
-              className={`tab ${view === "list" ? "on" : ""}`}
-              onClick={() => {
-                if (view !== "list") haptics.tick();
-                setView("list");
-              }}
-            >
-              List
-            </button>
-            <button
-              className={`tab ${view === "map" ? "on" : ""}`}
-              onClick={() => {
-                if (view !== "map") haptics.tick();
-                setView("map");
-              }}
-            >
-              Map
-            </button>
-            {view === "list" && (
-              <button
-                className="tab sort"
-                onClick={() => {
-                  haptics.light();
-                  setSheet(true);
-                }}
-              >
-                Sort
-              </button>
-            )}
-          </nav>
+          <FieldTabs view={view} onView={setView} onSort={() => setSheet(true)} />
 
           {sheet && (
             <div className={`sheet-backdrop ${sheetClosing ? "closing" : ""}`} onClick={closeSheet}>
