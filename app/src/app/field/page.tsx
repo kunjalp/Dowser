@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkline } from "../../components/DetailPanel";
 import MapView from "../../components/MapView";
 import { api } from "../../lib/convexApi";
-import { haptics } from "../../lib/haptics";
+import { haptics, hapticsStatus } from "../../lib/haptics";
 import { STATUS_META, dotColor, isFake, reasonLine } from "../../lib/types";
 import type { Candidate, Reading, Status } from "../../lib/types";
 
@@ -199,6 +199,7 @@ export default function FieldView() {
         <span className="field-gps">
           {here ? `GPS ±${Math.round(here.acc ?? 0)} m` : "Locating…"}
         </span>
+        {inApp && <span className="field-gps">{hapticsStatus()}</span>}
         {!inApp && (
           <Link href="/" className="link-btn">
             Command Map
