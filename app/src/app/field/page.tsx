@@ -315,24 +315,31 @@ export default function FieldView() {
           )}
 
           <nav className="field-tabs" aria-label="Field View">
-            <button
-              className={`tab ${view === "list" ? "on" : ""}`}
-              onClick={() => {
-                if (view !== "list") haptics.tick();
-                setView("list");
-              }}
-            >
-              List
-            </button>
-            <button
-              className={`tab ${view === "map" ? "on" : ""}`}
-              onClick={() => {
-                if (view !== "map") haptics.tick();
-                setView("map");
-              }}
-            >
-              Map
-            </button>
+            <div className="seg" role="tablist" data-view={view}>
+              <span className="seg-thumb" aria-hidden="true" />
+              <button
+                role="tab"
+                aria-selected={view === "list"}
+                className={`tab ${view === "list" ? "on" : ""}`}
+                onClick={() => {
+                  if (view !== "list") haptics.tick();
+                  setView("list");
+                }}
+              >
+                List
+              </button>
+              <button
+                role="tab"
+                aria-selected={view === "map"}
+                className={`tab ${view === "map" ? "on" : ""}`}
+                onClick={() => {
+                  if (view !== "map") haptics.tick();
+                  setView("map");
+                }}
+              >
+                Map
+              </button>
+            </div>
             {view === "list" && (
               <button
                 className="tab sort"
