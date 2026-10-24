@@ -8,7 +8,7 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 45
     integrations:
-      app_store_connect: dowser-asc
+      app_store_connect: appstore_creds
     environment:
       ios_signing:
         distribution_type: app_store
