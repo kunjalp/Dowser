@@ -3,8 +3,8 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
-import { SCORE_RAMP, STATUS_META } from "../lib/types";
-import type { Candidate } from "../lib/types";
+import { IDLE_COLOR, LANE_META, SCORE_RAMP, STATUS_META, laneOf } from "../lib/types";
+import type { Candidate, Lane } from "../lib/types";
 
 // Satellite basemap: Esri World Imagery (no key). Swap via NEXT_PUBLIC_BASEMAP_URL.
 const BASEMAP_URL =
@@ -28,7 +28,11 @@ type Props = {
   here?: { lat: number; lon: number };
   /** Bump `n` to play a short expanding-ring pulse on candidate `id` (a live status change). */
   pulse?: { id: string; n: number } | null;
+  /** The sidebar tab: that lane draws at full opacity, the other at 35%. Omit to draw both at full. */
+  activeLane?: Lane;
 };
+
+const DIM = 0.35;
 
 const hereGeoJSON = (h?: { lat: number; lon: number }) => ({
   type: "FeatureCollection" as const,
@@ -37,18 +41,47 @@ const hereGeoJSON = (h?: { lat: number; lon: number }) => ({
     : [],
 });
 
-function toGeoJSON(rows: Candidate[]) {
+function toGeoJSON(rows: Candidate[], activeLane?: Lane) {
   return {
     type: "FeatureCollection" as const,
     features: rows.map((c) => ({
       type: "Feature" as const,
       geometry: { type: "Point" as const, coordinates: [c.lon, c.lat] },
-      properties: { id: c.id, score: c.rankScore, status: c.status },
+      properties: {
+        id: c.id,
+        score: c.rankScore,
+        status: c.status,
+        idle: laneOf(c) === "idle",
+        dim: activeLane !== undefined && laneOf(c) !== activeLane,
+      },
     })),
   };
 }
 
-export default function MapView({ rows, selectedId, onSelect, compact, here, pulse }: Props) {
+/** Opacity `full`, or 35% of it for the lane that is not the active tab. */
+const dimmed = (full: unknown) => ["*", ["case", ["get", "dim"], DIM, 1], full] as never;
+
+/**
+ * Hollow square for idle wells, as a signed distance field so MapLibre can tint it by status
+ * (icon-color) and outline it (icon-halo). 40 px at pixelRatio 2; the outline is 5 px thick.
+ */
+function hollowSquareSDF() {
+  const size = 40;
+  const half = 10; // centre of the outline, from the middle
+  const thick = 5;
+  const data = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const cheb = Math.max(Math.abs(x + 0.5 - size / 2), Math.abs(y + 0.5 - size / 2));
+      const d = Math.abs(cheb - half) - thick / 2; // < 0 inside the outline
+      const a = Math.round(255 * Math.min(1, Math.max(0, 0.75 - d / 8))); // MapLibre's SDF edge sits at 0.75
+      data.set([a, a, a, a], (y * size + x) * 4);
+    }
+  }
+  return { width: size, height: size, data };
+}
+
+export default function MapView({ rows, selectedId, onSelect, compact, here, pulse, activeLane }: Props) {
   const hereRef = useRef(here);
   const centeredRef = useRef(false);
   hereRef.current = here;
@@ -67,8 +100,10 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
   const [wellsOn, setWellsOn] = useState(true);
   const [wellsAvail, setWellsAvail] = useState<"checking" | "yes" | "no">("checking");
   const wellsData = useRef<unknown>(null);
+  const laneRef = useRef(activeLane);
   rowsRef.current = rows;
   selectRef.current = onSelect;
+  laneRef.current = activeLane;
 
   // Create the map once.
   useEffect(() => {
@@ -105,7 +140,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
       map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "bottom-right");
 
       map.on("load", () => {
-        map.addSource("candidates", { type: "geojson", data: toGeoJSON(rowsRef.current) });
+        map.addSource("candidates", { type: "geojson", data: toGeoJSON(rowsRef.current, laneRef.current) });
 
         const statusMatch: unknown[] = ["match", ["get", "status"]];
         (Object.keys(STATUS_META) as (keyof typeof STATUS_META)[])
@@ -126,14 +161,42 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
           SCORE_RAMP[2],
         ]);
 
+        // Idle wells (known to the state): hollow teal squares, smaller than the candidate
+        // circles and drawn underneath them. Tinted by status once a decision is made.
+        const idleColor: unknown[] = ["match", ["get", "status"]];
+        (Object.keys(STATUS_META) as (keyof typeof STATUS_META)[])
+          .filter((s) => s !== "candidate")
+          .forEach((s) => idleColor.push(s, STATUS_META[s].color));
+        idleColor.push(IDLE_COLOR);
+        map.addImage("idle-square", hollowSquareSDF(), { pixelRatio: 2, sdf: true });
+        map.addLayer({
+          id: "idle-wells",
+          type: "symbol",
+          source: "candidates",
+          filter: ["==", ["get", "idle"], true],
+          layout: {
+            "icon-image": "idle-square",
+            "icon-size": ["interpolate", ["linear"], ["zoom"], 7, 0.55, 13, 1],
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
+          },
+          paint: {
+            "icon-color": idleColor as never,
+            "icon-halo-color": "#0b0f14",
+            "icon-halo-width": 1.2,
+            "icon-opacity": dimmed(1),
+          },
+        });
+
         map.addLayer({
           id: "candidates-halo",
           type: "circle",
           source: "candidates",
+          filter: ["!=", ["get", "idle"], true],
           paint: {
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 8, 13, 17],
             "circle-color": "#0b0f14",
-            "circle-opacity": 0.55,
+            "circle-opacity": dimmed(0.55),
             "circle-blur": 0,
           },
         });
@@ -141,6 +204,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
           id: "candidates",
           type: "circle",
           source: "candidates",
+          filter: ["!=", ["get", "idle"], true],
           paint: {
             "circle-color": statusMatch as never,
             "circle-radius": [
@@ -150,7 +214,8 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
             ],
             "circle-stroke-color": "#0b0f14",
             "circle-stroke-width": 1.5,
-            "circle-opacity": ["match", ["get", "status"], ["no_well", "mislocated"], 0.55, 0.95],
+            "circle-opacity": dimmed(["match", ["get", "status"], ["no_well", "mislocated"], 0.55, 0.95]),
+            "circle-stroke-opacity": dimmed(1),
           },
         });
         // Status symbols that colour alone can't carry on satellite imagery:
@@ -166,6 +231,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
             "circle-color": "rgba(0,0,0,0)",
             "circle-stroke-color": "#ffffff",
             "circle-stroke-width": 2,
+            "circle-stroke-opacity": dimmed(1),
           },
         });
         map.addLayer({
@@ -178,7 +244,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
             "circle-color": "rgba(0,0,0,0)",
             "circle-stroke-color": STATUS_META.confirmed_leaking.color,
             "circle-stroke-width": 2,
-            "circle-stroke-opacity": 0.55,
+            "circle-stroke-opacity": dimmed(0.55),
           },
         });
         map.addLayer({
@@ -191,6 +257,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
             "circle-color": "rgba(0,0,0,0)",
             "circle-stroke-color": STATUS_META.confirmed_not_leaking.color,
             "circle-stroke-width": 2.5,
+            "circle-stroke-opacity": dimmed(1),
           },
         });
         map.addSource("pulse", { type: "geojson", data: hereGeoJSON(undefined) });
@@ -234,12 +301,16 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
           paint: { "circle-radius": 6, "circle-color": "#7b8ce7", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5 },
         });
 
-        map.on("click", "candidates", (e) => {
-          const id = e.features?.[0]?.properties?.id;
+        // One handler for both lanes; the topmost feature (a candidate circle) wins over a square under it.
+        const clickable = ["candidates", "idle-wells"];
+        map.on("click", (e) => {
+          const id = map.queryRenderedFeatures(e.point, { layers: clickable })[0]?.properties?.id;
           if (typeof id === "string") selectRef.current(id);
         });
-        map.on("mouseenter", "candidates", () => (map.getCanvas().style.cursor = "pointer"));
-        map.on("mouseleave", "candidates", () => (map.getCanvas().style.cursor = ""));
+        for (const layer of clickable) {
+          map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
+          map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
+        }
         readyRef.current = true;
         setMapReady(true);
         map.on("zoom", () => setZoom(map.getZoom()));
@@ -296,7 +367,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
             "heatmap-opacity": ["interpolate", ["linear"], ["zoom"], 10.5, 0.9, 12.5, 0],
           },
         },
-        "candidates-halo",
+        "idle-wells",
       );
       map.addLayer(
         {
@@ -312,7 +383,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
             "circle-stroke-opacity": ["interpolate", ["linear"], ["zoom"], 11.5, 0.35, 14, 0.7, 16, 0.9],
           },
         },
-        "candidates-halo",
+        "idle-wells",
       );
     }
     for (const id of ["calgem-heat", "calgem-wells"]) map.setLayoutProperty(id, "visibility", wellsOn ? "visible" : "none");
@@ -344,7 +415,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
         });
         map.addLayer(
           { id, type: "raster", source: id, layout: { visibility: "none" }, paint: { "raster-opacity": 0.7, "raster-fade-duration": 0 } },
-          map.getLayer("calgem-heat") ? "calgem-heat" : "candidates-halo",
+          map.getLayer("calgem-heat") ? "calgem-heat" : "idle-wells",
         );
       }
       const show = histOn && (sheetSel === "all" || sheetSel === sh.id);
@@ -372,8 +443,8 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !readyRef.current) return;
-    (map.getSource("candidates") as GeoJSONSource | undefined)?.setData(toGeoJSON(rows));
-  }, [rows]);
+    (map.getSource("candidates") as GeoJSONSource | undefined)?.setData(toGeoJSON(rows, activeLane));
+  }, [rows, activeLane]);
 
   // Phone position: keep the blue dot current; on the first fix near the candidates, move there.
   useEffect(() => {
@@ -507,6 +578,8 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
       </div>
 
       <div className="legend" aria-label="Legend">
+        <div className={`legend-section ${activeLane === "idle" ? "dim" : ""}`}>
+        <div className="legend-head undocumented">{LANE_META.undocumented.tab}</div>
         <div className="legend-title">Candidate score</div>
         <div
           className="ramp"
@@ -516,12 +589,6 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
           <span>low</span>
           <span>high</span>
         </div>
-        {wellsAvail === "yes" && wellsOn && (
-          <div className="legend-row">
-            <span className="dot ring" />
-            In CalGEM records
-          </div>
-        )}
         {(Object.keys(STATUS_META) as (keyof typeof STATUS_META)[])
           .filter((s) => s !== "candidate")
           .map((s) => (
@@ -539,6 +606,20 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
               {STATUS_META[s].label}
             </div>
           ))}
+        </div>
+        <div className={`legend-section ${activeLane === "undocumented" ? "dim" : ""}`}>
+          <div className="legend-head idle">{LANE_META.idle.tab}</div>
+          <div className="legend-row">
+            <span className="sq-idle" />
+            Idle well within 250 m of a home or school
+          </div>
+          {wellsAvail === "yes" && wellsOn && (
+            <div className="legend-row">
+              <span className="dot ring" />
+              All CalGEM wells
+            </div>
+          )}
+        </div>
       </div>
         </>
       )}
