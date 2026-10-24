@@ -16,6 +16,7 @@ For a quick progress check, read [ML status](ml/STATUS.md).
 | [ML contract](ml/CONTRACT.md) | Proposed tile/detection boundary with backend | Jointly agreed interface change |
 | [Experiments](ml/EXPERIMENTS.md) | Reproducible preparation, training and evaluation records | Each meaningful run |
 | [First training plan](ml/TRAINING_PLAN.md) | Selected model, local GPU, run settings, remaining data prerequisites | Training decision or measured result |
+| [Team update and PR review](ml/INTEGRATION_REVIEW.md) | GeoTIFF/inference coordination, verified gaps, bounded merge recommendation | New integration evidence |
 | [Annotation handoff](ml/ANNOTATION.md) | Local dataset commands, frozen partitions, labeling policy | Preparation/annotation change |
 | [Contribution guide](../CONTRIBUTING.md) | Branches, review, ownership, integration | Team workflow change |
 | [Agent instructions](../AGENTS.md) | Persistent instructions for AI sessions | Engineering policy change |
@@ -31,7 +32,7 @@ Documentation is stored with code and reviewed in the same PR. Prefer English fo
 shared technical files and code identifiers; chat can remain in Russian. Do not
 copy mutable statuses across several documents. Link to evidence instead.
 
-The ML branch incorporates main `b0bd0bc`. The contract reflects the inspected
+The ML branch incorporates main `2b4678a`. The contract reflects the inspected
 backend interfaces; deployment was not validated by ML. Raw artifacts are ignored:
 maps/tiling are reproducible, but preserve human label ZIPs separately because Git
 cannot restore them. Current annotation, split and training readiness are in

@@ -174,3 +174,7 @@ full iOS/build/signing review. Do not execute signing, publishing or TestFlight
 commands as part of this ML setup. Incorporated in merge `e48f84c`, after saving
 the ML work in `1e4fbbc`. Verified app/Convex/backend/mobile team files have zero
 diff against `origin/main` at `b0bd0bc`. No mobile build or signing was run.
+
+Main `2b4678a` then changed only `submit_to_testflight` from true to false in
+`codemagic.yaml`. That exact diff was inspected and incorporated by `bc3c0ae`.
+No ML/backend interface changed; no mobile publishing command was executed.

@@ -46,10 +46,14 @@ python3 -m venv .venv
 .venv/bin/python -m unittest discover -s pipeline/tests -v
 ```
 
-Local output: `data/ml/kern_1024_v1/`. Native 1024 px tiles use 819 px stride
+Original preparation output: `data/ml/kern_1024_v1/`. Native 1024 px tiles use 819 px stride
 (about 20% overlap), per-tile CRS/affine and masked collars. The fixed geographic
 split has 84 train / 13 val / 30 test images; 62 crossing windows are quarantined.
-All images are **unlabeled**, not negative examples. See the
+Preparation creates **unlabeled** images, not negative examples. The active split
+is now `kern_1024_v2`, preserving human Train/Test while improving Val coverage;
+the current human Train import has 5 images/568 boxes. Use
+[ML status](docs/ml/STATUS.md) for active paths and the 15-image Validation task.
+See the
 [labeling handoff](docs/ml/ANNOTATION.md) before importing or training.
 No paid services or cloud training are invoked. Preparation refuses to overwrite
 an existing dataset; use `--output` with a new version for a deliberate rerun.
