@@ -105,8 +105,9 @@ No separate documentation sprint is needed.
 Existing loader checks: `python3 pipeline/test_load_calgem.py` or
 `npm run test:calgem`. Offline ML checks:
 `.venv/bin/python -m unittest discover -s pipeline/tests -v`.
-Backend `npm test` needs its generated files; do not provision/deploy a service
-just to run ML checks. Preserve Convex instructions for backend work.
+Backend `npm test` needs installed Node dependencies; generated Convex files are
+now tracked in main. Do not provision/deploy a service just to run ML checks.
+Preserve Convex instructions for backend work.
 
 Useful ML checks include synthetic/control-point coordinate checks, overlapping
 tile deduplication, split leakage checks, detection serialization, explicit

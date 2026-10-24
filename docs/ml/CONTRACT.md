@@ -1,7 +1,7 @@
 # ML/backend contract
 
 Source of truth: [Master Plan sections 4–6](../master-plan/source.txt).
-Backend inspected at `88c6522`, incorporated into the ML preparation branch.
+Backend/schema inspected at `f7e5eeb`, incorporated into the ML preparation branch.
 The original PRD and the old `15f7c8f` schema are superseded.
 
 ## Ownership and delivery
@@ -55,7 +55,9 @@ no candidate loading path exists is obsolete.
 
 Exact statuses: `candidate`, `queued`, `confirmed_leaking`,
 `confirmed_not_leaking`, `no_well`, `mislocated`. Manual field logging is P0;
-three-reading auto-confirmation is P1. Readings use `value`, `timestamp`, and
+three-reading auto-confirmation is P1 and is now implemented in main (three
+readings >=1000 within 30 s for a candidate/queued item; threshold still needs
+hardware calibration). Readings use `value`, `timestamp`, and
 `candidateId`, replacing `corrected`, `ts`, and `wellId`.
 
 Application IDs are strings. Indexes alone enforce neither uniqueness nor
@@ -74,3 +76,6 @@ map/survey accuracy are separate; report known-well offsets after those checks.
 
 No deployment, schema change, paid API, or paid resource was invoked for ML
 preparation. Backend code remains exactly as received from main.
+Main also contains Command Map/Field View and `pipeline/geotiff_to_overlay.py`;
+these are team implementations, not additional ML scope. Source integration
+does not establish deployed behavior or verify the UI end to end.

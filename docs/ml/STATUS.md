@@ -1,7 +1,7 @@
 # ML status and handoff
 
 Last verified: 2026-10-23, America/Los_Angeles.
-Task branch: `ml/tile-georeferencing`; includes current main `88c6522`.
+Task branch: `ml/tile-georeferencing`; includes reviewed main `f7e5eeb`.
 
 ## Source of truth and scope
 
@@ -28,6 +28,8 @@ The user's zero-cost constraint is recorded in root agent instructions.
   Numerical checks are not field-accuracy measurements.
 - Backend changes were merged from main. Current schema includes `mapYear`,
   optional `cropUrl`, candidate loading, field status changes, and pairing.
+  Main now also contains auto-confirmation, Command Map/Field View, and an overlay
+  converter. Those team files are unchanged relative to `f7e5eeb`.
   See [current contract](CONTRACT.md).
 
 ## Data preparation run
@@ -54,7 +56,9 @@ preliminary; use the active path above.
 - Actual source-corner residual is in summary; initial maximum approximately
   `2.33e-10` pixels. Cross-split overlap pairs: zero.
 - Five existing loader checks pass: `python3 pipeline/test_load_calgem.py`.
-- Backend behavior was not deployed or exercised by this ML task.
+- Backend behavior was not deployed or exercised by this ML task. Its generated
+  files now exist in main, but local Node dependencies are not installed; backend
+  and frontend test/build checks were not run for this Python-only change.
 
 ## Next action
 

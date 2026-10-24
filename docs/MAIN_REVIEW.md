@@ -1,9 +1,10 @@
 # Main branch review: 2026-10-23
 
 Historical baseline below is `15f7c8f`, not current main. ML preparation now
-includes `88c6522`: candidates/status/field-check/pairing functions were added,
+includes `f7e5eeb`: candidates/status/field-check/pairing functions were added,
 sensor names changed, cropUrl/mapYear were added, and the loader moved to
-`pipeline/`. Current contracts and scope are in [ML contract](ml/CONTRACT.md)
+`pipeline/`. Main also has the app, overlay converter, auto-confirmation, and
+generated Convex files. Current contracts and scope are in [ML contract](ml/CONTRACT.md)
 and [Master Plan](master-plan/source.txt). Old "not implemented" statements below
 describe only the explicitly recorded historical snapshot.
 
