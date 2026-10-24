@@ -22,7 +22,20 @@ type Props = {
   rows: Candidate[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Phone layout: no layer panel, legend or zoom slider; pinch to zoom. */
+  compact?: boolean;
+  /** The phone's own position, drawn as a blue dot when given. */
+  here?: { lat: number; lon: number };
+  /** Bump `n` to play a short expanding-ring pulse on candidate `id` (a live status change). */
+  pulse?: { id: string; n: number } | null;
 };
+
+const hereGeoJSON = (h?: { lat: number; lon: number }) => ({
+  type: "FeatureCollection" as const,
+  features: h
+    ? [{ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [h.lon, h.lat] }, properties: {} }]
+    : [],
+});
 
 function toGeoJSON(rows: Candidate[]) {
   return {
@@ -35,7 +48,10 @@ function toGeoJSON(rows: Candidate[]) {
   };
 }
 
-export default function MapView({ rows, selectedId, onSelect }: Props) {
+export default function MapView({ rows, selectedId, onSelect, compact, here, pulse }: Props) {
+  const hereRef = useRef(here);
+  const centeredRef = useRef(false);
+  hereRef.current = here;
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
@@ -94,7 +110,10 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
         const statusMatch: unknown[] = ["match", ["get", "status"]];
         (Object.keys(STATUS_META) as (keyof typeof STATUS_META)[])
           .filter((s) => s !== "candidate")
-          .forEach((s) => statusMatch.push(s, STATUS_META[s].color));
+          .forEach((s) =>
+            // Not-leaking is drawn as a hollow ring (see the ring layer below), so its fill is clear.
+            statusMatch.push(s, s === "confirmed_not_leaking" ? "rgba(0,0,0,0)" : STATUS_META[s].color),
+          );
         statusMatch.push([
           "interpolate",
           ["linear"],
@@ -131,9 +150,63 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
             ],
             "circle-stroke-color": "#0b0f14",
             "circle-stroke-width": 1.5,
-            "circle-opacity": 0.95,
+            "circle-opacity": ["match", ["get", "status"], ["no_well", "mislocated"], 0.55, 0.95],
           },
         });
+        // Status symbols that colour alone can't carry on satellite imagery:
+        // queued = white ring, leaking = wide red ring, not leaking = hollow green ring.
+        const radius = (a: number, b: number) => ["interpolate", ["linear"], ["zoom"], 7, a, 13, b] as never;
+        map.addLayer({
+          id: "candidates-queued",
+          type: "circle",
+          source: "candidates",
+          filter: ["==", ["get", "status"], "queued"],
+          paint: {
+            "circle-radius": radius(8, 14),
+            "circle-color": "rgba(0,0,0,0)",
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 2,
+          },
+        });
+        map.addLayer({
+          id: "candidates-leaking-ring",
+          type: "circle",
+          source: "candidates",
+          filter: ["==", ["get", "status"], "confirmed_leaking"],
+          paint: {
+            "circle-radius": radius(12, 24),
+            "circle-color": "rgba(0,0,0,0)",
+            "circle-stroke-color": STATUS_META.confirmed_leaking.color,
+            "circle-stroke-width": 2,
+            "circle-stroke-opacity": 0.55,
+          },
+        });
+        map.addLayer({
+          id: "candidates-notleaking-ring",
+          type: "circle",
+          source: "candidates",
+          filter: ["==", ["get", "status"], "confirmed_not_leaking"],
+          paint: {
+            "circle-radius": radius(4.5, 9.5),
+            "circle-color": "rgba(0,0,0,0)",
+            "circle-stroke-color": STATUS_META.confirmed_not_leaking.color,
+            "circle-stroke-width": 2.5,
+          },
+        });
+        map.addSource("pulse", { type: "geojson", data: hereGeoJSON(undefined) });
+        map.addLayer({
+          id: "pulse",
+          type: "circle",
+          source: "pulse",
+          paint: {
+            "circle-radius": 0,
+            "circle-color": "rgba(0,0,0,0)",
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": 3,
+            "circle-stroke-opacity": 0,
+          },
+        });
+
         map.addLayer({
           id: "candidates-selected",
           type: "circle",
@@ -145,6 +218,20 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
             "circle-stroke-color": "#ffffff",
             "circle-stroke-width": 2.5,
           },
+        });
+
+        map.addSource("here", { type: "geojson", data: hereGeoJSON(hereRef.current) });
+        map.addLayer({
+          id: "here-halo",
+          type: "circle",
+          source: "here",
+          paint: { "circle-radius": 16, "circle-color": "#3b82f6", "circle-opacity": 0.25 },
+        });
+        map.addLayer({
+          id: "here",
+          type: "circle",
+          source: "here",
+          paint: { "circle-radius": 6, "circle-color": "#3b82f6", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5 },
         });
 
         map.on("click", "candidates", (e) => {
@@ -288,6 +375,46 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
     (map.getSource("candidates") as GeoJSONSource | undefined)?.setData(toGeoJSON(rows));
   }, [rows]);
 
+  // Phone position: keep the blue dot current; on the first fix near the candidates, move there.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    (map.getSource("here") as GeoJSONSource | undefined)?.setData(hereGeoJSON(here));
+    if (!compact || !here || centeredRef.current || selectedId) return;
+    centeredRef.current = true;
+    const near = rowsRef.current.some((r) => Math.abs(r.lat - here.lat) < 1 && Math.abs(r.lon - here.lon) < 1.2);
+    if (near) map.jumpTo({ center: [here.lon, here.lat], zoom: 13 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [here, mapReady, compact]);
+
+  // Live status change: two expanding rings in the new status colour, ~2.4 s.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || !pulse) return;
+    const c = rowsRef.current.find((r) => r.id === pulse.id);
+    const src = map.getSource("pulse") as GeoJSONSource | undefined;
+    if (!c || !src) return;
+    src.setData(hereGeoJSON({ lat: c.lat, lon: c.lon }));
+    map.setPaintProperty("pulse", "circle-stroke-color", STATUS_META[c.status].color);
+    const start = performance.now();
+    const DUR = 2400;
+    let raf = 0;
+    const tick = (t: number) => {
+      const k = (t - start) / DUR;
+      if (k >= 1) {
+        map.setPaintProperty("pulse", "circle-stroke-opacity", 0);
+        return;
+      }
+      const phase = (k * 2) % 1;
+      map.setPaintProperty("pulse", "circle-radius", 10 + phase * 40);
+      map.setPaintProperty("pulse", "circle-stroke-opacity", 0.9 * (1 - phase));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pulse?.n, mapReady]);
+
   // Highlight and fly to the selected candidate.
   useEffect(() => {
     const map = mapRef.current;
@@ -301,6 +428,17 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
     <div className={`map ${selectedId ? "panel-open" : ""}`}>
       <div ref={el} className="map-canvas" />
 
+      {compact && here && (
+        <button
+          className="map-me"
+          onClick={() => mapRef.current?.easeTo({ center: [here.lon, here.lat], zoom: 14, duration: 600 })}
+        >
+          Me
+        </button>
+      )}
+
+      {!compact && (
+        <>
       <div className="map-control" aria-label="Map layers">
         <label className={`toggle ${wellsAvail === "yes" ? "" : "disabled"}`} title="Wells already in the state's CalGEM records: a density glow zoomed out, individual rings zoomed in.">
           <input
@@ -388,11 +526,22 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
           .filter((s) => s !== "candidate")
           .map((s) => (
             <div key={s} className="legend-row">
-              <span className="dot" style={{ background: STATUS_META[s].color }} />
+              {s === "queued" ? (
+                <span className="dot ring" />
+              ) : s === "confirmed_not_leaking" ? (
+                <span className="dot ring" style={{ borderColor: STATUS_META[s].color }} />
+              ) : (
+                <span
+                  className="dot"
+                  style={{ background: STATUS_META[s].color, opacity: s === "no_well" || s === "mislocated" ? 0.55 : 1 }}
+                />
+              )}
               {STATUS_META[s].label}
             </div>
           ))}
       </div>
+        </>
+      )}
     </div>
   );
 }
