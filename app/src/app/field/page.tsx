@@ -572,7 +572,7 @@ function Paired({
   onBack: () => void;
   onLogged: (msg: string) => void;
 }) {
-  const readings = useQuery(api.readings.recent, { candidateId: c.id, limit: 40 }) as Reading[] | undefined;
+  const readings = useQuery(api.readings.recent, { candidateId: c.id, limit: 120 }) as Reading[] | undefined;
   const rule = useQuery(api.readings.autoConfirmRule, {}) as
     | { threshold: number; count: number; windowMs: number }
     | undefined;
