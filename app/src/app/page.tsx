@@ -46,7 +46,7 @@ export default function CommandMap() {
       <section className="map-wrap">
         {anyFake && (
           <div className="demo-banner" role="status">
-            <strong>Demo data</strong> · these candidates are simulated. Real detections replace them once loaded.
+            <strong>Demo data</strong> · simulated candidates
           </div>
         )}
         <MapView rows={rows ?? []} selectedId={selectedId} onSelect={setSelectedId} />
