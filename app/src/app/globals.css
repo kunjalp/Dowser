@@ -159,3 +159,11 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .timeline .tl-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 6px; }
 .timeline .tl-main { font-size: 13px; }
 .timeline .tl-sub { font-size: 12px; color: var(--muted); }
+
+/* zoom slider: sits just above the +/- buttons; slides left when the detail panel opens */
+.zoom-slider { position: absolute; right: 10px; bottom: 124px; height: 150px; width: 29px; display: flex; align-items: center; justify-content: center; background: #0c1117d9; border: 1px solid var(--line); border-radius: 8px; backdrop-filter: blur(6px); z-index: 3; transition: right 0.28s ease; }
+.zoom-slider input { writing-mode: vertical-lr; direction: rtl; height: 120px; width: 18px; margin: 0; accent-color: var(--accent); cursor: ns-resize; }
+.map .maplibregl-ctrl-bottom-right { transition: right 0.28s ease; }
+.map.panel-open .maplibregl-ctrl-bottom-right { right: 400px; }
+.map.panel-open .zoom-slider { right: 410px; }
+@media (max-width: 800px) { .map.panel-open .maplibregl-ctrl-bottom-right { right: 0; } .map.panel-open .zoom-slider { right: 10px; } }
