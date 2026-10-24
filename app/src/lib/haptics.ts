@@ -47,3 +47,14 @@ export const haptics = {
   warning: () => fire("notify", (m) => m.Haptics.notification({ type: m.NotificationType.Warning })),
   error: () => fire("notify", (m) => m.Haptics.notification({ type: m.NotificationType.Error })),
 };
+
+/** Diagnostic text for the Field View header: why haptics are or are not firing. */
+export function hapticsStatus(): string {
+  try {
+    if (typeof window === "undefined") return "";
+    if (!Capacitor.isNativePlatform()) return "haptics: web (off)";
+    return Capacitor.isPluginAvailable("Haptics") ? "haptics: ready" : "haptics: plugin missing in this build";
+  } catch {
+    return "haptics: error";
+  }
+}
