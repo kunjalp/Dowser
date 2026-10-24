@@ -439,3 +439,16 @@ main.field:has(.field-map) .field-map .map-me { top: calc(76px + env(safe-area-i
 @media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
   main.field:has(.field-map) .field-head, .field-map ~ .field-hint { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--panel); }
 }
+
+/* ===== Map controls on the Field View map tab: zoom and info move to the top, round like the tab bar ===== */
+/* the zoom icons were inverted for the old dark theme; on the light theme they must stay dark */
+.maplibregl-ctrl-group button .maplibregl-ctrl-icon { filter: none; }
+.field-map .maplibregl-ctrl-bottom-right { bottom: auto; top: calc(132px + env(safe-area-inset-top)); right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.field-map .maplibregl-ctrl-bottom-right .maplibregl-ctrl { margin: 0; float: none; }
+.field-map .maplibregl-ctrl-group { border-radius: 999px !important; overflow: hidden; background: var(--glass-fill) !important; border: 1px solid var(--line); box-shadow: 0 8px 24px -10px rgba(0, 0, 0, 0.35) !important; -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%); backdrop-filter: blur(var(--glass-blur)) saturate(140%); }
+.field-map .maplibregl-ctrl-group button { width: 44px; height: 44px; background: transparent !important; border-radius: 0 !important; }
+.field-map .maplibregl-ctrl-attrib { border-radius: 999px !important; overflow: hidden; background: var(--glass-fill) !important; border: 1px solid var(--line); box-shadow: 0 8px 24px -10px rgba(0, 0, 0, 0.35); -webkit-backdrop-filter: blur(var(--glass-blur)); backdrop-filter: blur(var(--glass-blur)); }
+.field-map .maplibregl-ctrl-attrib-button { width: 44px; height: 44px; border-radius: 50% !important; background-color: transparent !important; }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .field-map .maplibregl-ctrl-group, .field-map .maplibregl-ctrl-attrib { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--panel) !important; border-color: var(--text); }
+}
