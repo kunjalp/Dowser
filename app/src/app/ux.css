@@ -309,3 +309,35 @@ input[type="range"] { accent-color: var(--accent); }
   .field-tabs, .sheet, .field-head, .field-row, .field-btn, .field-nav, .sheet-opt { border-color: var(--text); }
   .muted, .field-gps { color: var(--text); }
 }
+
+/* ===== Rounded look (iOS-style pills and soft corners) =====
+ * Supersedes the square-corner rule in design-system/MASTER.md by team decision.
+ * Pills are fully round; buttons and cards use a soft radius. Lists rows, tab bar and
+ * the map stay flat. Status colours, sizes and contrast are unchanged. */
+:root { --r-pill: 999px; --r-btn: 14px; --r-card: 14px; --r-input: 12px; }
+
+/* pills: chips, badges, tags, sim markers, toggles, small action labels */
+.chip, .badge, .badge.big, .sim, .tag, .tag.sim, .mf-toggle, .live-toast-go, .demo-banner strong, .action { border-radius: var(--r-pill); }
+.chip, .mf-toggle { padding-left: 12px; padding-right: 12px; }
+.badge { padding-left: 8px; padding-right: 8px; }
+.dot { border-radius: 50%; }
+.live-toast { border-radius: 22px; }
+.field-toast { border-radius: var(--r-card); }
+
+/* buttons and cards: soft rounded rectangles */
+.field-btn, .field-nav, .field-photo, .sheet-opt, .undo-bar, .arrive, .reading-card, .map-card, .field-evidence, .map-filters, .priority, .map-control, .legend { border-radius: var(--r-card); }
+.undo-bar { overflow: hidden; }
+.undo-bar button { border-radius: 0; }
+.field-btn, .field-nav, .field-photo { border-radius: var(--r-btn); }
+.field-search, .field-note, .sheet-select { border-radius: var(--r-input); }
+.field-evidence img, .field-evidence .ph, .field-evidence-big { border-radius: 10px; }
+.map-me { border-radius: var(--r-pill); }
+.gauge, .gauge-fill { border-radius: var(--r-pill); }
+.gauge { overflow: hidden; }
+.gauge-mark { border-radius: 2px; }
+
+/* the sort sheet rounds its top corners; its dimmed backdrop stays full screen */
+.sheet { border-radius: 20px 20px 0 0; }
+
+/* the detail panel and the demo banner stay edge-to-edge */
+.detail, .demo-banner { border-radius: 0; }
