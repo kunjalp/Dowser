@@ -536,3 +536,31 @@ body, button, input, textarea, select { font-feature-settings: "tnum" 1, "kern" 
 @media (prefers-reduced-motion: reduce) {
   .pc-gauge-fill, .pc-details-toggle .pc-chev { transition: none; }
 }
+
+/* ===== Simulated pill, sun toggle, outdoor mode ===== */
+.pc-sim { min-height: 32px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: var(--r-pill); background: var(--panel-2); color: var(--text); font: 600 var(--fs-xs) var(--sans); cursor: pointer; }
+.pc-sim::before { content: "ⓘ "; color: var(--accent); }
+.pc-reading-top { flex-wrap: wrap; row-gap: 4px; }
+.pc-sim-copy { margin: 0; font: var(--fs-base) / 1.5 var(--sans); color: var(--text); text-wrap: pretty; }
+.pc-sim-done { min-height: 48px; border: 0; border-radius: var(--r-pill); background: var(--accent); color: var(--on-accent); font: 600 var(--fs-base) var(--sans); cursor: pointer; }
+
+.pc-sun { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--panel); color: var(--text); cursor: pointer; }
+.pc-sun.on { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+/* outdoor: solid surfaces, strong borders, base text +2px, near-black on white */
+.field.outdoor { --bg: #ffffff; --panel: #ffffff; --panel-2: #eeeeee; --line: #000000; --line-strong: #000000; --muted: #1a1a1a; --glass-fill: #ffffff; --glass-fill-sheet: #ffffff; --accent: #3d1f8a; font-size: 18px; }
+.field.outdoor .field-gps, .field.outdoor .small, .field.outdoor .pc-id, .field.outdoor .pc-chip, .field.outdoor .pc-live, .field.outdoor .pc-hint, .field.outdoor .pc-away, .field.outdoor .pc-details-toggle, .field.outdoor .field-row { font-size: calc(var(--fs-base) + 2px); }
+.field.outdoor .pc-gauge-legend, .field.outdoor .pc-state, .field.outdoor .pc-sim, .field.outdoor .field-evidence figcaption { font-size: calc(var(--fs-xs) + 2px); }
+.field.outdoor .pc-title { font-size: calc(var(--fs-md) + 2px); }
+.field.outdoor .pc-where, .field.outdoor .pc-reading, .field.outdoor .pc-details-toggle, .field.outdoor .pc-chip, .field.outdoor .pc-sim, .field.outdoor .field-note, .field.outdoor .field-photo, .field.outdoor .field-evidence img { border: 2px solid #000; }
+.field.outdoor .pc-reading { box-shadow: none; }
+.field.outdoor .pc-reading.leak { background: #fff; border-color: var(--status-leaking); }
+.field.outdoor .pc-gauge { height: 10px; border: 1px solid #000; }
+.field.outdoor .pc-spark-th { stroke: #000; }
+.field.outdoor .field-decide { background: #fff; border-top: 2px solid #000; }
+.field.outdoor .field-decide .field-btn, .field.outdoor .field-decide .out-confirmed_leaking { min-height: 56px; font-size: 16px; border: 2px solid #000; }
+.field.outdoor .field-head, .field.outdoor .field-tabs .seg, .field.outdoor .field-tabs .tab.sort, .field.outdoor .field-far, .field.outdoor .field-hint,
+.field.outdoor .field-map .maplibregl-ctrl-group, .field.outdoor .field-map .maplibregl-ctrl-attrib, .field.outdoor .pc-sun { -webkit-backdrop-filter: none; backdrop-filter: none; background: #fff; border: 2px solid #000; box-shadow: none; }
+.field.outdoor .pc-sun.on { background: var(--accent); color: #fff; }
+.field.outdoor .field-head { border-width: 0 0 2px; }
+.field.outdoor .sheet { -webkit-backdrop-filter: none; backdrop-filter: none; background: #fff; border: 2px solid #000; box-shadow: none; }

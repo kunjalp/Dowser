@@ -121,6 +121,23 @@ export default function FieldView() {
   const [done, setDone] = useState<{ msg: string; id: number } | null>(null);
   const here = useHere();
   const inApp = useInApp();
+  const [outdoor, setOutdoor] = useState(false);
+  useEffect(() => {
+    try {
+      setOutdoor(localStorage.getItem("dowser.outdoor") === "1");
+    } catch {
+      /* storage blocked: stay in the default look */
+    }
+  }, []);
+  function toggleOutdoor() {
+    const next = !outdoor;
+    setOutdoor(next);
+    try {
+      localStorage.setItem("dowser.outdoor", next ? "1" : "0");
+    } catch {
+      /* not persisted, still applies this session */
+    }
+  }
 
   const rows = useQuery(api.candidates.ranked, {
     statuses: ["queued", "candidate"] as Status[],
@@ -192,13 +209,25 @@ export default function FieldView() {
   }
 
   return (
-    <main className="field">
+    <main className={`field ${outdoor ? "outdoor" : ""}`}>
       <header className="field-head">
         <h1>Dowser · Field</h1>
         <span className="field-gps">
           {here ? `GPS ±${Math.round(here.acc ?? 0)} m` : "Locating…"}
         </span>
         {inApp && <span className="field-gps">{hapticsStatus()}</span>}
+        <button
+          className={`pc-sun ${outdoor ? "on" : ""}`}
+          onClick={toggleOutdoor}
+          aria-pressed={outdoor}
+          aria-label="Outdoor mode"
+          title="Outdoor mode: higher contrast for sunlight"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+          </svg>
+        </button>
         {!inApp && (
           <Link href="/" className="link-btn">
             Command Map
@@ -524,6 +553,7 @@ function Paired({
   const [pending, setPending] = useState<{ outcome: Outcome; label: string } | null>(null);
   const [secs, setSecs] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [simInfo, setSimInfo] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -555,6 +585,53 @@ function Paired({
       haptics.warning();
     }
   }, [leaking]);
+
+  // One warning buzz when the latest reading first crosses the trigger (below to above). Shares the
+  // `warned` latch so the auto-confirm buzz above does not fire a second time.
+  const prevAbove = useRef<boolean | null>(null);
+  const latestVal = latest?.value;
+  useEffect(() => {
+    if (latestVal === undefined || !rule) return;
+    const above = latestVal >= rule.threshold;
+    if (prevAbove.current === false && above && !warned.current) {
+      warned.current = true;
+      haptics.warning();
+    }
+    prevAbove.current = above;
+  }, [latestVal, rule]);
+
+  // Keep the screen on while this screen is open; the lock drops when the tab hides, so re-request on return.
+  useEffect(() => {
+    let lock: WakeLockSentinel | null = null;
+    let dead = false;
+    const request = async () => {
+      try {
+        if (!("wakeLock" in navigator) || document.visibilityState !== "visible") return;
+        const l = await navigator.wakeLock.request("screen");
+        if (dead) void l.release().catch(() => {});
+        else lock = l;
+      } catch {
+        /* denied or unsupported: nothing to do */
+      }
+    };
+    void request();
+    const onVis = () => {
+      if (document.visibilityState === "visible") void request();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      dead = true;
+      document.removeEventListener("visibilitychange", onVis);
+      void lock?.release().catch(() => {});
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!simInfo) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSimInfo(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [simInfo]);
 
   // Gauge geometry: the trigger line sits at 2/3 of the bar unless the reading goes past it.
   const val = latest?.value ?? 0;
@@ -685,7 +762,9 @@ function Paired({
           <span className={`pc-state ${stateKind}`} role={leaking ? "alert" : undefined}>
             {latest ? stateWord : gone ? "Status changed" : "Waiting for sensor"}
           </span>
-          {anyReplay && <span className="sim">Simulated</span>}
+          <button className="pc-sim" onClick={() => setSimInfo(true)} aria-haspopup="dialog">
+            Simulated sensor input
+          </button>
           <span className="pc-live" title={latest ? (live ? "Sensor live" : `Last reading ${age}s ago`) : "No readings yet"}>
             <span className={`live-dot ${live ? "on" : ""}`} />
             {latest ? (live ? "Live" : `${age}s ago`) : ""}
@@ -707,6 +786,21 @@ function Paired({
           </p>
         )}
       </div>
+
+      {simInfo && (
+        <div className="sheet-backdrop" onClick={() => setSimInfo(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label="About the simulated sensor" onClick={(e) => e.stopPropagation()}>
+            <h3>Simulated sensor input</h3>
+            <p className="pc-sim-copy">
+              Flammable gas isn&apos;t allowed at this venue, so a knob stands in for the sensor reading. Everything after the
+              reading is the real system.
+            </p>
+            <button className="pc-sim-done" onClick={() => setSimInfo(false)}>
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       <FieldEvidence images={c.evidenceImages} />
 
