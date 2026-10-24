@@ -564,3 +564,15 @@ body, button, input, textarea, select { font-feature-settings: "tnum" 1, "kern" 
 .field.outdoor .pc-sun.on { background: var(--accent); color: #fff; }
 .field.outdoor .field-head { border-width: 0 0 2px; }
 .field.outdoor .sheet { -webkit-backdrop-filter: none; backdrop-filter: none; background: #fff; border: 2px solid #000; box-shadow: none; }
+
+/* ===== Decision bar locked to the bottom of the screen =====
+ * Leaking / Not leaking / No well here / Wrong spot stay pinned in the same place at the bottom
+ * whatever the page length or scroll, so a thumb always finds them. The content above gets
+ * bottom padding so the last block is never hidden behind the bar. */
+.field-paired .field-decide { position: fixed; left: 50%; right: auto; bottom: 0; transform: translateX(-50%); width: min(100%, 560px); z-index: 12; margin: 0; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: var(--glass-fill); border-top: 1px solid var(--line); -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%); backdrop-filter: blur(var(--glass-blur)) saturate(140%); box-shadow: 0 -10px 30px -16px rgba(0, 0, 0, 0.3); }
+.field-paired { padding-bottom: calc(150px + env(safe-area-inset-bottom)); }
+.field.outdoor .field-paired { padding-bottom: calc(180px + env(safe-area-inset-bottom)); }
+.field.outdoor .field-paired .field-decide { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--panel); border-top: 2px solid var(--text); }
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  .field-paired .field-decide { -webkit-backdrop-filter: none; backdrop-filter: none; background: var(--panel); border-top-color: var(--text); }
+}
