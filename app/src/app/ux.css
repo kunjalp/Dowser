@@ -715,3 +715,9 @@ main.field:has(.field-paired) > .field-toast { flex: none; }
 .pc-actions-row { display: flex; gap: 8px; margin-bottom: 8px; }
 .pc-actions-row .pc-details-toggle { flex: 1; margin-bottom: 0; min-width: 0; }
 .pc-actions-row .pc-brief-toggle { flex: 0 0 auto; width: auto; padding: 0 20px; font-weight: 600; }
+
+
+/* iOS-style push: the candidate screen slides in from the right */
+@keyframes pc-push-in { from { transform: translateX(28%); opacity: 0.5; } to { transform: translateX(0); opacity: 1; } }
+.field-paired { animation: pc-push-in 260ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+@media (prefers-reduced-motion: reduce) { .field-paired { animation: none; } }

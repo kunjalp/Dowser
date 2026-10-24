@@ -592,12 +592,21 @@ function Paired({
   const [briefOpen, setBriefOpen] = useState(false);
   // Edge swipe (left edge, rightwards) goes back to the candidate list, like iOS. The back button still works.
   const swipeRef = useRef<HTMLElement | null>(null);
-  const swipeSt = useRef<{ x: number; y: number; on: boolean; dx: number } | null>(null);
+  const swipeSt = useRef<{ x: number; y: number; t: number; on: boolean; dx: number; armed: boolean } | null>(null);
+  const reduceMotion = () => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const swipeReset = () => {
+    const el = swipeRef.current;
+    if (!el) return;
+    el.style.transition = "transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms ease-out";
+    el.style.transform = "";
+    el.style.opacity = "";
+  };
   const swipe = {
     start: (e: React.TouchEvent) => {
       const t0 = e.touches[0];
       const inSheet = (e.target as HTMLElement).closest(".sheet-backdrop");
-      swipeSt.current = t0.clientX <= 28 && !inSheet ? { x: t0.clientX, y: t0.clientY, on: false, dx: 0 } : null;
+      swipeSt.current =
+        t0.clientX <= 28 && !inSheet ? { x: t0.clientX, y: t0.clientY, t: performance.now(), on: false, dx: 0, armed: false } : null;
     },
     move: (e: React.TouchEvent) => {
       const st = swipeSt.current;
@@ -612,33 +621,39 @@ function Paired({
       if (dx > 8) st.on = true;
       if (st.on && swipeRef.current) {
         st.dx = Math.max(0, dx);
+        // Haptic tick the moment the swipe passes the commit point (and again if you pull back under it), like iOS.
+        const past = st.dx > 80;
+        if (past !== st.armed) {
+          st.armed = past;
+          haptics.tick();
+        }
         swipeRef.current.style.transition = "none";
-        swipeRef.current.style.transform = `translateX(${st.dx * 0.6}px)`;
-        swipeRef.current.style.opacity = String(Math.max(0.5, 1 - st.dx / 500));
+        swipeRef.current.style.transform = `translateX(${st.dx}px)`;
+        swipeRef.current.style.opacity = String(Math.max(0.6, 1 - st.dx / 700));
       }
     },
     end: () => {
       const st = swipeSt.current;
       swipeSt.current = null;
       const el = swipeRef.current;
-      if (el) {
-        el.style.transition = "transform 180ms ease-out, opacity 180ms ease-out";
-        el.style.transform = "";
-        el.style.opacity = "";
-      }
-      if (st?.on && st.dx > 90) {
-        haptics.light();
-        onBack();
+      if (!st?.on || !el) return swipeReset();
+      const velocity = st.dx / Math.max(1, performance.now() - st.t); // px per ms
+      if (st.dx > 80 || velocity > 0.5) {
+        if (reduceMotion()) {
+          onBack();
+          return;
+        }
+        el.style.transition = "transform 170ms cubic-bezier(0.3, 0.7, 0.2, 1), opacity 170ms ease-out";
+        el.style.transform = "translateX(100%)";
+        el.style.opacity = "0.6";
+        window.setTimeout(onBack, 150);
+      } else {
+        swipeReset();
       }
     },
     cancel: () => {
       swipeSt.current = null;
-      const el = swipeRef.current;
-      if (el) {
-        el.style.transition = "transform 180ms ease-out, opacity 180ms ease-out";
-        el.style.transform = "";
-        el.style.opacity = "";
-      }
+      swipeReset();
     },
   };
   const fileRef = useRef<HTMLInputElement>(null);
@@ -722,7 +737,7 @@ function Paired({
 
   // Gauge geometry: the trigger line sits at 2/3 of the bar unless the reading goes past it.
   const val = latest?.value ?? 0;
-  const th = rule?.threshold ?? 1200;
+  const th = rule?.threshold ?? 1000;
   const top = Math.max(th * 1.5, val * 1.1, 1);
   const fillPct = Math.min(100, (val / top) * 100);
   const markPct = Math.min(100, (th / top) * 100);
