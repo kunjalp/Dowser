@@ -1,7 +1,8 @@
 # ML status and handoff
 
 Last verified: 2026-10-23, America/Los_Angeles.
-Task branch: `ml/tile-georeferencing`; includes reviewed main `f7e5eeb`.
+Task branch: `ml/tile-georeferencing`; includes reviewed main `7f04aad`
+(`.gitignore` additions only since the `f7e5eeb` implementation review).
 For a new editor/AI session, use [continuation instructions](../CONTINUE.md).
 
 ## Integration handoff

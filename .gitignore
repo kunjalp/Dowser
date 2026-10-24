@@ -6,6 +6,8 @@ data/
 __pycache__/
 *.pyc
 .DS_Store
+.vscode/
+.ipynb_checkpoints/
 
 # Local environments and generated ML artifacts; keep small fixtures in pipeline/fixtures/.
 /.venv/
