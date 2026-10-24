@@ -26,7 +26,7 @@ For Emir's independent Cursor improvement experiment, open the separate
 `/Users/emirtg/Desktop/dowser-cursor` worktree on `ml/cursor-improvements` and
 follow [CURSOR_EXPERIMENT.md](ml/CURSOR_EXPERIMENT.md). It has copied local data
 and environments; leave the original checkout/reference artifacts intact.
-Cursor should produce `docs/ml/CURSOR_RESULTS.md` for the later review.
+Cursor wrote `docs/ml/CURSOR_RESULTS.md`; no candidate beat data_v2 Val F1.
 
 Raw maps, prepared images/ZIPs, and `.venv` are deliberately outside Git. They
 remain available in this local checkout, but do not appear in a fresh clone.

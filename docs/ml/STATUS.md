@@ -1,7 +1,8 @@
 # ML status and handoff
 
 Last verified: 2026-10-24, America/Los_Angeles.
-Branch: `ml/tile-georeferencing`; main `2b4678a` incorporated via `bc3c0ae`.
+This worktree branch: `ml/cursor-improvements`. Parent ML branch remains
+`ml/tile-georeferencing`; main `2b4678a` incorporated via `bc3c0ae`.
 [Draft PR #3](https://github.com/kunjalp/Dowser/pull/3) remains the integration proposal.
 PRs #1/#2 superseded; ML agent has not merged a PR into main.
 Editor entry point: [CONTINUE.md](../CONTINUE.md).
@@ -86,14 +87,17 @@ Do not claim the text-confusion problem is solved or broad per-era accuracy.
 
 ## Next action
 
-User's latest plan: run an independent Cursor improvement attempt, then return
-for review. Dedicated worktree `/Users/emirtg/Desktop/dowser-cursor`, branch
-`ml/cursor-improvements`, task/rules/reference identities in
-[CURSOR_EXPERIMENT.md](CURSOR_EXPERIMENT.md). Code derives from the current ML
-branch because main does not yet contain this pipeline. Local data/environments
-are independent copied files, not writable symlinks. This original branch/model
-remains the review reference. Cursor must return `docs/ml/CURSOR_RESULTS.md`
-and preserve its checkpoints/predictions for inspection; no results exist yet.
+Independent Cursor experiment on this worktree is finished. Results:
+[CURSOR_RESULTS.md](CURSOR_RESULTS.md). **No candidate beat data_v2 Val F1
+.8000**; closest mixed-positive run is .7736 with 3 more FN. Flip raised
+precision by collapsing recall. YOLO11s failed on this tiny set. Selected
+weights/config remain `kern_yolo11n_data_v2` /
+`pipeline/config/inference_selected.json`. Nothing was merged to main.
+
+Reviewer should inspect branch diff, assistant-label overlays under
+`data/ml/cursor_assistant_review_v1/`, paired HTML under
+`data/ml/runs/cursor_*_mps/comparison_to_data_v2/`, and remaining unmatched
+crops. Original human Train/Val/Test identities were rechecked unchanged.
 
 No additional annotation work is required from Emir for the completed data
 experiments. The paired report is ready to inspect. Current model improves
@@ -118,10 +122,10 @@ conversion, Kunjal map UI. User withdrew the zero-cost constraint on 2026-10-23.
 - 54 ML tests pass: geometry/split, source/label integrity, mining guards, mixed
   supervision/negative provenance, actual optimizer progress, native preview,
   per-tile matching, human-Val comparison consistency and Test exclusion.
-  The independent Cursor worktree also passes training preflight and all 54
-  tests. Copied data/environments are not symlinks; reference bytes match with
-  independent file identities. Cross-worktree comparison accepts only matching
-  image bytes when paths differ. No Cursor improvement run has happened yet.
+  The independent Cursor worktree passes training preflight and all 54 tests
+  after the new mixes. Copied data/environments are not symlinks; reference
+  bytes match with independent file identities. Cursor trained several named
+  `cursor_*` runs; none replaced the selected data_v2 checkpoint.
 - Both data runs completed from clean committed code; raw metadata records actual
   progress, versions/times/metrics. Original human Train/Val and manifest hashes
   are verified unchanged. Paired reports use identical human Val images/boxes.

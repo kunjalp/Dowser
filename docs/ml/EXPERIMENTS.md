@@ -555,6 +555,25 @@ Train additions change actual update count, not just supervised examples.
   Final artifact receipt stores source/report/checkpoint hashes. No candidate
   loading, evidence publication, API generation or backend/mobile deployment.
 
+## Cursor independent candidates — 2026-10-24
+
+Worktree `/Users/emirtg/Desktop/dowser-cursor`, branch `ml/cursor-improvements`.
+Full commands, hashes, per-era counts, unsuccessful runs and paths:
+[CURSOR_RESULTS.md](CURSOR_RESULTS.md). Native Val protocol identical to
+data_v2 (IoU .50, Val F1 grid .05..95/.01). Test unused. Human Train/Val
+hashes unchanged. New Train labels are assistant_visual_review only.
+
+| Run | One-factor change | Selected cutoff | TP / FP / FN | F1 |
+| --- | --- | ---: | --- | ---: |
+| kern_yolo11n_data_v2 (unchanged reference) | — | .24 | 44 / 17 / 5 | .8000 |
+| cursor_data_v1_mps | +3 mixed Train positives | .47 | 41 / 16 / 8 | .7736 |
+| cursor_data_v3_mps | +1 1954 mixed positive | .40 | 38 / 17 / 11 | .7308 |
+| cursor_data_v2_mps | mixed positives +2 targeted empties | .91 | 37 / 20 / 12 | .6981 |
+| cursor_fliplr_mps | fliplr=0.5, same mix_v1 | .25 | 27 / 8 / 22 | .6429 |
+| cursor_yolo11s_mps | YOLO11s, same mix_v1 | .95 | 49 / 3023 / 0 | .0314 |
+
+No candidate selected. `inference_selected.json` unchanged. 54 tests pass.
+
 ## Model-run template
 
 ```yaml

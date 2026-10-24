@@ -1,0 +1,16 @@
+{
+  "dataset": "data/ml/kern_1024_v2",
+  "human_import": "data/ml/reviewed_v2",
+  "assistant_annotations": "data/ml/cursor_assistant_review_v1/combined_with_v1.json",
+  "include_ids": [
+    "usgs_102321_x04526_y05289",
+    "usgs_293664_x02138_y05275",
+    "usgs_293664_x03776_y03637",
+    "usgs_102321_x03707_y05289",
+    "usgs_102321_x04526_y04470",
+    "usgs_293664_x03776_y02818",
+    "usgs_293664_x01319_y03637",
+    "usgs_293664_x02138_y03637"
+  ],
+  "output": "data/ml/train_mixed_cursor_v2"
+}
