@@ -46,7 +46,8 @@ def digest(path):
 
 def read_csv(path):
     """Rows with numeric geometry/score fields parsed."""
-    rows = list(csv.DictReader(Path(path).open()))
+    with Path(path).open() as stream:
+        rows = list(csv.DictReader(stream))
     for r in rows:
         for key in ('lat', 'lon', 'confidence', 'x', 'y', 'w', 'h'):
             r[key] = float(r[key])
@@ -96,7 +97,8 @@ def groups_and_candidates(rows, wells_path):
 def known_false_targets(reference_csv, reviews_csv, reference_queue):
     """Boxes of every shipped member of each human-confirmed false candidate group."""
     reference = {r['detectionId']: r for r in read_csv(reference_csv)}
-    false_ids = [r['detectionId'] for r in csv.DictReader(Path(reviews_csv).open())]
+    with Path(reviews_csv).open() as stream:
+        false_ids = [r['detectionId'] for r in csv.DictReader(stream)]
     queue = json.loads(Path(reference_queue).read_text())['rows']
     members_of = {r['detectionId']: r['detectionIds'] for r in queue}
     targets = {}
@@ -153,6 +155,31 @@ def analyse(detections_csv, wells, reference_csv, reviews_csv, reference_queue, 
     return report
 
 
+def render_candidates(report, crops_dir, output, columns=8):
+    """Gallery of every candidate group's top crop, labelled for visual review.
+
+    Tags: K = overlaps a human-confirmed false symbol, T = all member tiles were
+    in the model's Train import, U = at least one member tile was unseen.
+    """
+    from PIL import Image, ImageDraw
+    cells = []
+    for index, g in enumerate(sorted(report['candidates'], key=lambda g: -g['maxConfidence']), 1):
+        crop = Image.open(Path(crops_dir) / f"{g['detectionId']}.png").convert('RGB')
+        tag = ('K' if g['known_false'] else '-') + ('T' if g['all_member_tiles_in_train_import'] else 'U')
+        cells.append((crop, f"{index} {tag} {g['maxConfidence']:.2f} {g['distance_m']:.0f}m"))
+    if not cells:
+        return 0
+    rows = (len(cells) + columns - 1) // columns
+    sheet = Image.new('RGB', (columns * 132, rows * 146), 'white')
+    draw = ImageDraw.Draw(sheet)
+    for k, (crop, text) in enumerate(cells):
+        x, y = (k % columns) * 132, (k // columns) * 146
+        sheet.paste(crop, (x + 2, y + 16))
+        draw.text((x + 2, y + 2), text, fill=(0, 0, 0))
+    sheet.save(output)
+    return len(cells)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--detections', type=Path, required=True)
@@ -170,6 +197,9 @@ def main():
         raise FileExistsError(args.out)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(report, indent=1))
+    crops = args.detections.parent / 'crops'
+    if crops.is_dir():
+        report['gallery_cells'] = render_candidates(report, crops, args.out.with_suffix('.png'))
     print(json.dumps({k: v for k, v in report.items() if k not in ('candidates', 'known_false_detections')}, indent=1))
 
 
