@@ -12,6 +12,49 @@ import { api } from "../lib/convexApi";
 import { STATUS_META, isFake } from "../lib/types";
 import type { Candidate, ScoreParts, Status } from "../lib/types";
 
+// Always-on disclosure: the demo's sensor reading comes from a knob, not real gas.
+function SimInputPill() {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      btnRef.current?.focus();
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="sim-input" ref={wrapRef}>
+      <button
+        ref={btnRef}
+        type="button"
+        className="sim-input-btn"
+        aria-expanded={open}
+        aria-controls="sim-input-pop"
+        onClick={() => setOpen((o) => !o)}
+      >
+        Simulated sensor input
+      </button>
+      <div id="sim-input-pop" className="sim-input-pop" role="region" aria-label="About the simulated sensor" hidden={!open}>
+        Flammable gas isn&apos;t allowed at the venue, so a knob on the handheld simulates the sensor reading. The
+        firmware, data path and live map updates are the same as with a real methane sensor.
+      </div>
+    </div>
+  );
+}
+
 export default function CommandMap() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Status[]>([]); // empty = all statuses
@@ -89,6 +132,7 @@ export default function CommandMap() {
             <strong>Simulated sensor data</strong> / not field readings
           </div>
         )}
+        <SimInputPill />
         {toast && (
           <button
             className={`live-toast ${toast.to === "confirmed_leaking" ? "leak" : ""}`}
