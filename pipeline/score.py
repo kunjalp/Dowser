@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import os
+import sys
 
 import pandas as pd
 
@@ -112,6 +113,14 @@ def main() -> None:
     args = ap.parse_args()
 
     df = pd.read_csv(args.input, dtype={"nearestDocumentedId": str, "detectionId": str})
+    # Leave out candidates a person reviewed and marked as false detections (pipeline/review.py).
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from review import load_false_ids
+    false_ids = load_false_ids()
+    if false_ids:
+        rejected = df["detectionId"].isin(false_ids)
+        print(f"Leaving out {int(rejected.sum())} reviewed false detections (pipeline/review/false_detections.csv)")
+        df = df[~rejected]
     result = score(df)
     result.drop(columns=["scoreParts"]).to_csv(args.out, index=False)
     print(f"Scored {len(result)} candidates. Top 5:")

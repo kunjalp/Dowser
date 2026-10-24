@@ -183,6 +183,10 @@ def main() -> None:
     print(f"Evidence images ready: {n_img} (copied into {os.path.join(args.public_dir, EVIDENCE_SUBDIR)})")
     with open(args.json_out, "w") as fh:
         json.dump(candidates, fh, indent=1)
+    jsonl = os.path.splitext(args.json_out)[0] + ".jsonl"
+    with open(jsonl, "w") as fh:   # for: npx convex import --table candidates --replace
+        for c in candidates:
+            fh.write(json.dumps(c) + "\n")
     print(f"Prepared {len(candidates)} candidates -> {args.json_out}")
     if args.dry_run:
         return
