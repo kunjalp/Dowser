@@ -437,6 +437,45 @@ geographic holdouts. This is a data preparation run, not a model experiment.
   No claim of improved precision/recall before reviewed additions and a controlled
   retrain/comparison. Actual package source/script identity is in proposals.json.
 
+## Authorized assistant annotation and first mixed Train import — 2026-10-24
+
+- User explicitly requested the assistant perform the additional annotations and
+  train the next model. No human annotation/export required for this iteration;
+  this is a recorded workflow change, not permission to call AI labels human GT.
+- Five native Train candidates from hard_negative_review_v2 visually inspected in
+  full. For the two positive images, local OpenCV Hough circle proposals (66/77)
+  were numbered and reviewed in coordinate plots. Only visually accepted target
+  circles were selected, with two explicit missed centers added on 1992 and one
+  recognizable edge-clipped circle on 1954. Proposals alone did not decide labels.
+  All final boxes were plotted and visually inspected at native coordinate scale.
+- `data/ml/assistant_review_v1/annotations.json`: 22 target boxes on
+  usgs_102321_x04526_y05289; 27 on usgs_293664_x02138_y05275; three background
+  tiles reviewed empty. annotation_source=assistant_visual_review,
+  human_verified=false. Tight 14 px boxes plus a visible-part right-edge box.
+  Original PNGs unchanged, no detector confidence column in labels.
+- Blue Well symbols are treated as water features, excluded from oil/gas targets;
+  distinction checked against the official
+  [USGS symbol reference](https://pubs.usgs.gov/gip/TopographicMapSymbols/topomapsymbols.pdf).
+  Historical-map context still matters; this review is not independent field or
+  human semantic verification. Text, contour loops, rectangles and solid tanks
+  were rejected. Review JSON includes rationale and assistant provenance.
+- Annotation SHA:
+  `7730ff0e865fb50f08641ae8db3123c5ae14802949673b8bf9702f59ca0e15b7`.
+  Command `.venv/bin/python -m pipeline.build_train_mix` with
+  pipeline/config/train_mix_v1.json. Output data/ml/train_mixed_v1: five original
+  human images/568 boxes plus two assistant positive images/49 boxes and one
+  assistant negative (usgs_293664_x03776_y03637), total 8 images/617 boxes.
+  Two other reviewed backgrounds remain outside this first experiment.
+- Mixed audit SHA:
+  `e4c6f5595d4497642b5ba85b9bfe4d00031821039b8187ae5e1cc27d9ca5215f`.
+  Frozen manifest, original human image/label files and human Val audit unchanged.
+  Preflight passes, records source-specific counts, enforces >=300 human boxes
+  and rejects assistant Validation labels. Mixed-supervision opt-in required.
+- New config pipeline/config/train_data_v2.json retains baseline model/pretrained
+  start, optimizer, imgsz 1024, nbs=batch=2, augmentation off, up to 50 epochs /
+  patience 10. Only selected Train supervision changes. Actual results pending.
+  50 offline ML tests pass, including provenance/held-out/overwrite guards.
+
 ## Model-run template
 
 ```yaml

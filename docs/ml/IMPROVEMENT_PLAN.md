@@ -4,6 +4,12 @@ Decision/review date: 2026-10-24. Applies Master Plan section 6: complete labels
 diverse map examples, negatives with lookalikes, and held-out precision/recall.
 This is a next-experiment plan, not evidence that a new model is better.
 
+User update: Emir subsequently explicitly requested autonomous assistant annotation
+and training. The first local assistant review/mix is now prepared; see current
+STATUS.md. This supersedes the human-export dependency below for that experiment,
+while preserving its source/provenance restrictions. Assistant annotations remain
+separate from the original human labels and from human Val/Test truth.
+
 ## Evidence and working hypothesis
 
 The baseline has 568 boxes, but only five Train images, no explicitly empty Train

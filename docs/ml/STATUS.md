@@ -73,6 +73,27 @@ negatives only, so its recall is undefined. No claim of accuracy on all maps/era
 
 ## Next action
 
+**User update, 2026-10-24:** Emir explicitly asked the assistant to do the additional
+annotation and training itself. The previous request for a human Roboflow additions
+export is superseded for this experiment. All five candidate images were visually
+reviewed by the assistant; 49 target boxes (22 on 1992, 27 on 1954) and three
+empty-background decisions are stored under `data/ml/assistant_review_v1/`.
+These are assistant-reviewed labels, **not human ground truth**. Enlarged native
+views and final box overlays were inspected; blue water-well symbols, digits,
+letters, rectangular buildings, solid tanks and contour loops were excluded.
+
+`pipeline.build_train_mix` created `data/ml/train_mixed_v1/`: original 568 human
+boxes untouched, plus the two positive additions and one reviewed background tile:
+8 Train images/617 boxes, including 49 assistant boxes and one empty image.
+Two other reviewed backgrounds are retained for a separate data-ratio experiment.
+`train_data_v2.json` keeps baseline settings/pretrained start and explicitly opts
+into assistant-reviewed training. Preflight still requires >=300 human boxes and
+refuses assistant labels in Validation. Next: run and compare this data ablation
+against the same human Val and fixed .70 cutoff; Test unchanged. No further
+annotation work is currently required from Emir.
+
+The paragraphs below retain the preceding error-analysis/mining context.
+
 Emir reported letters/digits being detected as wells. Native error-neighborhood
 inspection confirms O, 9, 4, 8, e and rectangular/contour lookalikes among unmatched
 predictions. Main hypothesis: too little Train variety/context, with possible
@@ -108,11 +129,13 @@ pre-training assessment. YOLO11n is an architecture name, not eleven trained run
 
 ## Verification and collaboration
 
-- 44 ML tests pass, including fixed-cutoff one-to-one matching, Train exclusion,
+- 50 ML tests pass, including fixed-cutoff one-to-one matching, Train exclusion,
   undefined negative-only recall, native preview coordinates and progress/failure
   records. Baseline/saved prediction artifacts and threshold-grid replay checked.
   Four mining checks cover held-out/reviewed/padded exclusions, dense-batch
   filtering and cross-era overlap. Five-image ZIP/native hashes checked; no labels.
+  New mix/provenance cases reject held-out additions, human-label overwrites,
+  unreviewed predictions, false human-review claims and assistant Validation.
 - First diagnostic and baseline finished; previews contain 20 exact audited
   Train/Val inputs and no Test. Native-image links resolve, source ZIPs preserved.
 - Main through 2b4678a integrated; app/Convex/mobile/backend team code unchanged.

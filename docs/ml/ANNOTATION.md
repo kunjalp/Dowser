@@ -3,6 +3,22 @@
 Owner: Emir. Labeling helpers: Ryann and Kunjal, per Master Plan. Scripts do not
 trigger paid labeling jobs or upload anything externally.
 
+## Explicitly authorized assistant annotation
+
+On 2026-10-24 Emir asked the assistant to perform the additional annotation and
+train autonomously. Local visual review is permitted for this training iteration;
+it does not become human ground truth or replace the original 568 human boxes.
+Records use annotation_source=assistant_visual_review, human_verified=false,
+explicit whole-image review status and image/annotation hashes. Ambiguous signs
+must be resolved or excluded, not blindly copied from model proposals. Negative
+labels require actual whole-image visual inspection, not missing annotations.
+
+`pipeline.build_train_mix` creates a separate versioned import preserving original
+human labels byte-for-byte. The training config must explicitly opt into mixed
+supervision, still require the minimum human-labeled symbols, and keep Val/Test
+independently human-supplied. Preview colors distinguish user labels (green),
+assistant labels (purple) and model predictions (orange).
+
 ## Active Validation handoff
 
 This handoff is completed: the supplied 15-image export was audited, and the first

@@ -37,12 +37,15 @@ def render(output, records, minimum, initial, filename="preview.html"):
         def rect(b, kind):
             score=b.get("confidence")
             attr='' if score is None else f' data-score="{score}"'
-            label="Human label" if score is None else f'Model score {score:.3f}'
+            assistant=r.get("annotation_source")=="assistant_visual_review"
+            if score is None and assistant:
+                kind+=" assistant"
+            label=("Assistant visual label; not human verified" if assistant else "Human label") if score is None else f'Model score {score:.3f}'
             return (f'<rect class="{kind}"{attr} x="{b["x"]}" y="{b["y"]}" '
                     f'width="{b["w"]}" height="{b["h"]}"><title>{label}</title></rect>')
         panels.append(f'<section data-split="{r["split"]}"><h2>{html.escape(r["tileId"])} '
                       f'· {r["mapYear"]} · {r["split"]}</h2>'
-                      f'<p>Ручных рамок: {len(r["ground_truth"])}. '
+                      f'<p>Рамок разметки: {len(r["ground_truth"])}. '
                       '<span class="count"></span></p>'
                       '<svg viewBox="0 0 1024 1024">'
                       f'<image href="{source}" width="1024" height="1024"/>'+
@@ -57,10 +60,11 @@ header{position:sticky;top:0;background:#fff;padding:16px;z-index:1;border:1px s
 h1{font-size:22px;margin:0 0 8px}h2{font-size:17px}section{margin:24px 0}
 svg{display:block;width:100%;max-width:1024px;background:white}
 rect{fill:none;stroke-width:1.5;vector-effect:non-scaling-stroke}
-.truth{stroke:#00834b}.prediction{stroke:#e15c00}label{display:inline-block;margin:8px 16px 0 0}
+.truth{stroke:#00834b}.truth.assistant{stroke:#8844cc}.prediction{stroke:#e15c00}label{display:inline-block;margin:8px 16px 0 0}
 body.hide-truth .truth,body.hide-prediction .prediction{display:none}
 </style><header><h1>Dowser — результат обучения</h1>
-<p>Зелёные рамки — твоя разметка. Оранжевые — предсказания модели.</p>
+<p>Зелёные рамки — твоя разметка. Фиолетовые — разметка, проверенная ИИ.
+Оранжевые — предсказания модели.</p>
 <p>Validation не использовался для обучения весов. Train — уже виденные картинки.
 Эта страница помогает разбирать ошибки; положение ползунка не пересчитывает метрики.</p>
 <label>Набор <select id="split"><option value="val">Validation</option>
@@ -108,6 +112,7 @@ def preview(run_dir, output, minimum=.05, initial=.4):
         folder=ROOT/config[key]
         for r in json.loads((folder/"audit.json").read_text())["images"]:
             records.append({"tileId":r["tileId"],"mapYear":r["mapYear"],"split":split,
+                            "annotation_source":r.get("annotation_source","human_reported"),
                             "ground_truth":r["boxes"],"image_path":str(folder/"images"/split/(r["tileId"]+".png"))})
     model=local_sdk()(str(weights))
     started=time.perf_counter()

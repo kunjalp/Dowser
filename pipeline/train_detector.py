@@ -32,6 +32,7 @@ def read_import(folder, expected_split, manifest):
     if not records or (folder/"INCOMPLETE").exists():
         raise ValueError("Annotation import is empty or incomplete")
     seen, boxes = set(), 0
+    images_by_source, boxes_by_source = {}, {}
     for record in records:
         tile_id = record["tileId"]
         if tile_id in seen or tile_id not in manifest:
@@ -51,12 +52,16 @@ def read_import(folder, expected_split, manifest):
             abs(a[k]-b[k]) > 1e-6 for a,b in zip(parsed,record["boxes"]) for k in ["x","y","w","h"]):
             raise ValueError(f"Labels differ from audited import: {tile_id}")
         boxes += len(parsed)
+        source = record.get("annotation_source","human_reported")
+        images_by_source[source] = images_by_source.get(source,0)+1
+        boxes_by_source[source] = boxes_by_source.get(source,0)+len(parsed)
     image_names = {p.name for p in (folder/"images"/expected_split).iterdir()
                    if p.is_file() and p.suffix.lower() in {".png",".jpg",".jpeg",".webp",".bmp"}}
     label_names = {p.name for p in (folder/"labels"/expected_split).glob("*.txt")}
     if image_names != {k+".png" for k in seen} or label_names != {k+".txt" for k in seen}:
         raise ValueError("Unexpected unaudited images or labels in the import directory")
     return {"ids":seen,"images":len(seen),"boxes":boxes,
+            "images_by_source":images_by_source,"boxes_by_source":boxes_by_source,
             "audit_sha256":hashlib.sha256(report_path.read_bytes()).hexdigest()}
 
 
@@ -66,8 +71,14 @@ def check_inputs(config, root=ROOT):
     manifest = {t["tileId"]:t for t in map(json.loads,manifest_path.read_text().splitlines())}
     train = read_import(root/config["train_import"],"train",manifest)
     val = read_import(root/config["validation_import"],"val",manifest)
-    if train["boxes"] < config["minimum_training_boxes"]:
-        raise ValueError("Not enough training symbols")
+    if set(val["images_by_source"])-{"human_reported"}:
+        raise ValueError("Validation must retain the independently supplied human labels")
+    assistant_sources = set(train["images_by_source"])-{"human_reported"}
+    if assistant_sources and (assistant_sources!={"assistant_visual_review"}
+                              or not config.get("allow_assistant_reviewed_training",False)):
+        raise ValueError("Assistant-reviewed training requires explicit config opt-in and provenance")
+    if train["boxes_by_source"].get("human_reported",0) < config["minimum_training_boxes"]:
+        raise ValueError("Not enough human-reported training symbols")
     if not val["boxes"] and not config.get("allow_negative_only_validation",False):
         raise ValueError("Positive validation examples required for this run")
     if config["require_all_validation_tiles"] and val["ids"] != {k for k,v in manifest.items() if v["split"]=="val"}:
@@ -85,6 +96,8 @@ def check_inputs(config, root=ROOT):
         raise ValueError("Pretrained weights checksum mismatch")
     return {"state":"ready_for_training","train_images":train["images"],"train_boxes":train["boxes"],
             "validation_images":val["images"],"validation_boxes":val["boxes"],
+            "train_images_by_source":train["images_by_source"],
+            "train_boxes_by_source":train["boxes_by_source"],
             "train_audit_sha256":train["audit_sha256"],"validation_audit_sha256":val["audit_sha256"],
             "manifest_sha256":hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
             "validation_has_positives":bool(val["boxes"]),

@@ -84,6 +84,33 @@ class TrainingPreflightTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError,"checksum"):
             check_inputs(self.config,self.root)
 
+    def test_assistant_training_requires_opt_in_but_keeps_human_minimum(self):
+        tile_id='usgs_1_x04000_y00000'
+        self.manifest.append({'tileId':tile_id,'split':'train','split_bounds_m':[40,0,50,10]})
+        (self.root/'manifest.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in self.manifest))
+        image=self.root/'train/images/train'/(tile_id+'.png')
+        Image.new('RGB',(1024,1024),'white').save(image)
+        (self.root/'train/labels/train'/(tile_id+'.txt')).write_text('')
+        path=self.root/'train/audit.json';report=json.loads(path.read_text())
+        report['images'].append({'tileId':tile_id,'split':'train','boxes':[],
+            'original_png_sha256':hashlib.sha256(image.read_bytes()).hexdigest(),
+            'annotation_source':'assistant_visual_review'})
+        path.write_text(json.dumps(report))
+        with self.assertRaisesRegex(ValueError,'opt-in'):
+            check_inputs(self.config,self.root)
+        opted=dict(self.config,allow_assistant_reviewed_training=True)
+        result=check_inputs(opted,self.root)
+        self.assertEqual(result['train_boxes_by_source']['human_reported'],1)
+        report['images'][0]['annotation_source']='assistant_visual_review';path.write_text(json.dumps(report))
+        with self.assertRaisesRegex(ValueError,'human-reported'):
+            check_inputs(opted,self.root)
+
+    def test_assistant_labels_cannot_replace_validation(self):
+        path=self.root/'val/audit.json';report=json.loads(path.read_text())
+        report['images'][0]['annotation_source']='assistant_visual_review';path.write_text(json.dumps(report))
+        with self.assertRaisesRegex(ValueError,'human labels'):
+            check_inputs(dict(self.config,allow_assistant_reviewed_training=True),self.root)
+
 
 if __name__ == "__main__":
     unittest.main()
