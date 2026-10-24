@@ -7,6 +7,21 @@ This worktree branch: `ml/cursor-improvements`. Parent ML branch remains
 PRs #1/#2 superseded; ML agent has not merged a PR into main.
 Editor entry point: [CONTINUE.md](../CONTINUE.md).
 
+## In progress: repair_v2 (complete-frame annotation + retraining)
+
+Updated 2026-10-24. Details: [EXPERIMENTS.md](EXPERIMENTS.md) "repair_v2".
+
+- Done: all 20 queued error-source Train frames fully reviewed by the
+  assistant (156 boxes on 6 frames, 14 reviewed empty; `human_verified=false`)
+  in `data/ml/repair_annotation_v2/`. Two Train mixes built, preflight passed.
+- Seed 42 Val: `full` (17/30 empty) 33/0/16 at .05, rejected on recall;
+  `mixed` 43/0/6 at .67, F1 .9348 vs reference .9293 — not yet a claim.
+  Seeds 43/7 and the post-CalGEM candidate regression are running.
+- Test: 27/30 audited human tiles present, no conflicts; 3 missing tiles block
+  the final run. `pipeline/evaluate_final_test.py` exists; Test untouched.
+- Reference pins (`inference_cursor_translate.json`, `inference_selected.json`)
+  and delivered archives are unchanged.
+
 ## Rollout quality issue: investigate final candidates before promotion
 
 User initially reported 11/15; the expanded Ryann CSV confirms **62 false

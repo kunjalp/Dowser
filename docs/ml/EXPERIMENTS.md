@@ -602,6 +602,55 @@ installed or cloud compute used. Commands, hashes, coverage, package and exact
 next action: [RYANN_HANDOFF.md](RYANN_HANDOFF.md). Prior review of candidate and
 the two erroneous extra Train annotations: [CODEX_REVIEW.md](CODEX_REVIEW.md).
 
+## 2026-10-24: repair_v2 complete-frame annotation and first trainings
+
+Master Plan section 6 (lookalike negatives, complete labels). Worktree
+`dowser-cursor`, branch `ml/cursor-improvements`. Test unused for training,
+mining, thresholds or selection.
+
+Annotation (`pipeline/propose_full_frame_review.py`): all 20 frames marked
+`needs_complete_image_annotation` in `train_error_sources_human_confirmed.json`
+were reviewed in full. Proposals = pinned cursor_translate YOLO at conf .05 +
+synthetic hollow-ring NCC (94% of the 568 human Train symbols get a ring peak).
+1,121 evidence crops were accepted/rejected visually, then every frame got a
+whole-frame completeness pass (1x grid, 2x quadrants on dense frames, zooms).
+Result `data/ml/repair_annotation_v2/annotations.json`: **156 boxes on 6
+frames, 14 frames reviewed empty**, `assistant_visual_review`,
+`human_verified=false`, no exclusions; per-tile notes and ambiguous cases in
+`decisions.json`. Class rule kept: hollow circle only; squares/diamonds,
+solid tank dots (incl. rayed), dotted landmark/radio circles, blue water wells,
+letters/digits, cul-de-sacs and contours are background. Clipped rings at a
+frame edge were labelled only when about half or more is visible. Box padding
+(3.5 px beyond fitted ring ink) was calibrated on human Train boxes only
+(median 3.9/3.2 px); final boxes median 18x18 vs human Val 18.1x17.8. Overlap
+consistency checked between neighbouring frames (x03776 y04456/y05275 and
+x02957/x03776 y02818). Older `assistant_review_v1` boxes stay 14x14 unchanged.
+
+Mixes (`build_train_mix` now accepts a list of annotation files):
+`train_repair_v2_full` = mix_v1 + 2 rollout negatives + 20 new = 30 images,
+773 boxes (568 human / 205 assistant), 17 empty; `train_repair_v2_mixed` =
+mix_v1 + the 6 new frames with symbols = 14 images, 773 boxes, 1 empty.
+Configs reuse `train_cursor_translate.json` exactly except `train_import`.
+
+| Run (seed 42, commit c8d75ee clean) | Epochs / updates / s | Val cutoff | TP/FP/FN | P / R / F1 | at .71 |
+| --- | --- | ---: | --- | --- | --- |
+| cursor_translate_mps (reference) | 34 / 136 / 80.9 | .71 | 46/4/3 | .920/.939/.9293 | 46/4/3 |
+| kern_repair_v2_full_s42 | 27 / 405 / 107.2 | .05 | 33/0/16 | 1.000/.673/.8049 | 0/0/49 |
+| kern_repair_v2_mixed_s42 | 37 / 259 / 95.1 | .67 | 43/0/6 | 1.000/.878/.9348 | 33/0/16 |
+
+The full mix collapses confidence (cutoff at the grid floor) and loses recall.
+The mixed variant removes all four Val FP at three extra FN; its F1 gain is
+within the reference's seed spread (.30-.93), so seeds 43/7 and the
+post-CalGEM regression (`pipeline/candidate_regression.py`, reproduces the
+shipped 1,657 groups / 64 candidates / 62 known false exactly) decide.
+
+Test intake: `audit_annotations --split test` imported
+`reviewed_test_emir_v1` (12 images, 407 boxes) and `reviewed_test_teammate_v1`
+(15 images, 318 boxes, 3 empty). No overlap/conflict; **27/30 covered**,
+missing `usgs_293661_x02149_y01182`, `usgs_293661_x04606_y00363`,
+`usgs_293664_x04595_y00361`. New `pipeline/evaluate_final_test.py` refuses to
+run until all 30 are present; no Test inference was performed.
+
 ## Model-run template
 
 Latest recorded work before final Test: [ROLLOUT_REPAIR.md](ROLLOUT_REPAIR.md)
