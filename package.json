@@ -1,0 +1,19 @@
+{
+  "name": "dowser",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dowser: find undocumented orphaned wells on historical USGS maps (Cal Hacks 13.0)",
+  "scripts": {
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy",
+    "load:calgem": "python3 scripts/load_calgem.py",
+    "test:calgem": "python3 scripts/test_load_calgem.py"
+  },
+  "dependencies": {
+    "convex": "^1.48.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.6.0"
+  }
+}
