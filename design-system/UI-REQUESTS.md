@@ -118,3 +118,46 @@ candidate status badge is rendered)
 **Why:** MASTER §1.5. Candidate badges and primary action buttons are both amber.
 Showing the score keeps the badge reading as data, while the buttons keep their
 uppercase verb labels.
+
+---
+
+## R7. `ux.css`: raise 10px text to the 11px minimum (for Kunjal)
+
+**File:** `app/src/app/ux.css` (added on `main`, imported after `globals.css` in `layout.tsx`)
+
+**Change:** font size only, no layout change:
+| Line | Rule | Was | Change to |
+|---|---|---|---|
+| 16 | `.live-toast-go` | `font-size: 10px` | `font-size: var(--fs-xs)` (12px, a button label) |
+| 29 | `.fold > summary` | `font-size: 10px` | `font-size: var(--fs-xs)` (12px, matches `.detail-body h3`) |
+| 43 | `.field-section` | `font: 700 10px var(--mono)` | `font: 700 var(--fs-xs) var(--mono)` |
+
+**Why:** MASTER §3. Nothing goes below 11px. The P0 pass raised every 9px and 10px
+size in `globals.css`, and these three new rules bring 10px text back, two of them
+in the projector-facing detail panel and toast.
+
+---
+
+## R8. `ux.css`: use the shared color variables instead of redefining them (for Kunjal)
+
+**File:** `app/src/app/ux.css:8-10` (`:root` block), plus `globals.css:262`
+
+**Change:**
+1. Delete `--leak: #e5484d;` and change its one use (`.live-toast.leak`, line 15)
+   to `var(--status-leaking)`.
+2. Delete `--ok: #3fa76a;`. `globals.css` already defines `--ok` with the same value.
+3. Keep `--here: #3b82f6` (the "you are here" blue is a new color and belongs in
+   one place). Move it into `globals.css` `:root` next to `--ok`, and change
+   `.map-me { border: 2px solid #3b82f6 }` (globals.css:262) to `var(--here)`.
+   The `#3b82f6` values in `MapView.tsx:228,234` can't read CSS variables
+   (MapLibre paint). Keep them, with a comment pointing at `--here`.
+
+**Why:** MASTER §1.4 and §1.6. Status colors live in one place. Because
+`ux.css` loads after `globals.css`, its `--ok` silently wins: when R2 lightens
+the status colors, the green would stay old in every rule (`globals.css` included)
+and `--leak` would stay the old red, so two reds would show on screen. Today the
+values happen to match, so nothing looks wrong yet.
+
+Also worth knowing: `--here` (`#3b82f6`) and `--status-queued` (`#4a9fd4`) are
+both blue. They're far enough apart in context (one is a GPS marker, the other a
+status dot with a label) that this is a note, not a request.
