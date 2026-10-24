@@ -15,6 +15,7 @@ For a quick progress check, read [ML status](ml/STATUS.md).
 | [ML status](ml/STATUS.md) | Current state and next action | Meaningful task completion or handoff |
 | [ML contract](ml/CONTRACT.md) | Proposed tile/detection boundary with backend | Jointly agreed interface change |
 | [Experiments](ml/EXPERIMENTS.md) | Reproducible preparation, training and evaluation records | Each meaningful run |
+| [First training plan](ml/TRAINING_PLAN.md) | Selected model, local GPU, run settings, remaining data prerequisites | Training decision or measured result |
 | [Annotation handoff](ml/ANNOTATION.md) | Local dataset commands, frozen partitions, labeling policy | Preparation/annotation change |
 | [Contribution guide](../CONTRIBUTING.md) | Branches, review, ownership, integration | Team workflow change |
 | [Agent instructions](../AGENTS.md) | Persistent instructions for AI sessions | Engineering policy change |

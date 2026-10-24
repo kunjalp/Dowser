@@ -159,7 +159,24 @@ geographic holdouts. This is a data preparation run, not a model experiment.
   first training setup; preserve the global holdouts rather than random-splitting
   these five overlapping training images.
 
-## Run template
+## Training hardware probe — 2026-10-24
+
+- Purpose: choose the first training location; no dataset/model training.
+- Hardware: Apple M5, 25,769,803,776 bytes (24 GiB) unified memory.
+- Separate ignored `pipeline/.venv/`, Python 3.12.14, PyTorch 2.14.1, NumPy 2.0.2.
+  The existing preparation/audit environment is unchanged.
+- Setup: `uv venv --python /Users/emirtg/.local/bin/python3.12 pipeline/.venv`,
+  then `uv pip install --python pipeline/.venv/bin/python torch==2.14.1 numpy==2.0.2`.
+- Check: MPS built/available; Conv2d(3,8,3,padding=1) on input
+  `(1,3,128,128)` on `mps`, squared-mean loss `.backward()`, synchronize, assert
+  finite input gradient and finite NumPy round-trip. All passed on `mps:0`.
+- Output: `data/ml/training_environment_probe.json`. First cold computation
+  took approximately 0.521 s; this is not YOLO training latency or a benchmark.
+- Decision: first model candidate YOLO11n on local MPS, per
+  [training plan](TRAINING_PLAN.md). Full SDK/weights and Validation labels still
+  pending. No detector weights trained, no accuracy measured, no cloud compute.
+
+## Model-run template
 
 ```yaml
 run_id: pending

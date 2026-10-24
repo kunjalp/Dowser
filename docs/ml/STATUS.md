@@ -127,9 +127,17 @@ preliminary; use the active path above.
 
 ## Next action
 
-Prepare the first pretrained YOLO training setup at imgsz 1024 using
-`data/ml/reviewed_v2/`, after inspecting/integrating pending upstream changes.
-Record model/version/hardware, exact commands, label/archive identity and limits.
+Follow [TRAINING_PLAN.md](TRAINING_PLAN.md): selected baseline is pretrained
+YOLO11n at imgsz 1024 on the local Apple M5 (24 GiB), using MPS. A small GPU
+forward/backward and NumPy transfer passed with Python 3.12.14 / PyTorch 2.14.1
+in ignored `pipeline/.venv/`. The full YOLO SDK/runner/weights are not installed
+or tested yet, and no detector training has started.
+
+Inspect pending main, finish the training environment/runner, and import reviewed
+annotations for the 13 frozen Validation images before the normal training run.
+Then do 5 diagnostic epochs and a baseline of up to 50 epochs with patience 10,
+recording actual config, weights, timing, device and data identities. Test remains
+30 protected images for final evaluation; its independent labels are also pending.
 All 15 requested boundary corrections have been checked; do not ask Emir to
 repeat the same corrections based on the obsolete v1 figures.
 
@@ -137,7 +145,8 @@ Only training labels have been supplied: validation/test directories referenced
 by the exported YAML are absent. Annotate the frozen validation/test images
 independently before reporting metrics; no re-splitting these five images or
 using the 79 unreviewed Train images as negatives. The audit writes a YAML
-template only. Training setup/weights selection and the first run remain pending.
+template only. Model family/size is selected; weights acquisition, full-model
+compatibility, validation annotations and the first run remain pending.
 
 The assisted pilot remains available if more training examples are needed;
 keep its unreviewed proposals separate from these human-drawn labels. Use future

@@ -36,6 +36,8 @@ existing annotations and manifests; a Git clone cannot restore ignored labels.
 5. [Requirements](ml/REQUIREMENTS.md) and [backend contract](ml/CONTRACT.md).
 6. [Annotation instructions](ml/ANNOTATION.md) and the latest record in
    [experiments](ml/EXPERIMENTS.md).
+7. [Training plan](ml/TRAINING_PLAN.md): selected model/device and missing
+   prerequisites. Backend availability is not a completed model-training run.
 
 For the regional decision and source evidence, read
 [region research](research/REGION_SELECTION.md) and
