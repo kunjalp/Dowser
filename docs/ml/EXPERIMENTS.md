@@ -476,6 +476,85 @@ geographic holdouts. This is a data preparation run, not a model experiment.
   patience 10. Only selected Train supervision changes. Actual results pending.
   50 offline ML tests pass, including provenance/held-out/overwrite guards.
 
+## Authorized data ablations: data_v2 / data_v3 — 2026-10-24
+
+Same original pinned pretrained YOLO11n, Python 3.12.14 / torch 2.14.1 /
+torchvision 0.29.1 / ultralytics 8.4.185 / numpy 2.5.4 on Apple M5/MPS, 24 GiB.
+Native 1024, batch=nbs=2, AdamW/lr0 .001, warmup 3, no augmentation, max 50
+epochs/patience 10, seed 42. No cloud compute. MPS nondeterministic-operation
+warnings still apply; one seed/tiny Val is not a robust generalization study.
+Train additions change actual update count, not just supervised examples.
+
+### kern_yolo11n_data_v2 (selected)
+
+- Command: `pipeline/.venv/bin/python -u -m pipeline.train_detector --config pipeline/config/train_data_v2.json --name kern_yolo11n_data_v2`.
+  Clean code `84023a453d240d7756ffe40393b5595ea62c29d5`.
+- Data: train_mixed_v1, 8 images, 568 unchanged human +49 assistant-visual boxes,
+  one assistant-reviewed empty image. Human Val audit still
+  `1a88c5c0d2d38e96c87ff7ad395e93d0c2cae52a80ccfa7437a39170201fcc2e`;
+  15 Val images/49 positive instances, Test unused. Source-specific counts in run.
+- Started `2026-10-24T12:43:06.886984Z`, finished `12:43:59.587453Z`,
+  elapsed **52.689 s**, stopped after **24 epochs /96 actual updates**,
+  best CSV mAP50-95 epoch **14**. Preserved log: data/ml/kern_yolo11n_data_v2.log.
+- SDK selected-checkpoint metrics: P .6950220920195809, R .8367346938775511,
+  mAP50 .7883901349603604, mAP50-95 .3620443946172088. This confidence-sweep
+  evaluation path is distinct from the native fixed-cutoff report below.
+- Best.pt SHA `a409254df3769cb119b0b2396e44df5038a669dc748d22a28a4fdf173095f5df`.
+  run.json SHA `493660cfc2cd38dfe94ef820d13722327aaaa08cfc67c307a202b3975b4f3785`.
+  Preview predictions SHA `5d348127a2f83cd6a5936d27b1fbcae3a124ea5addb4c376eead45d324518545`.
+- Native preview evaluation at common .70: no Val detections, precision undefined,
+  recall 0. Classifier scores changed scale after retraining. Do not silently
+  compare baseline .70 quality with candidate .24 as one fixed operating point.
+- Same Val F1 sweep (.05..95/.01, IoU .50, confidence-first one-to-one per tile)
+  selects **.24**: **TP44/FP17/FN5**, P .7213114754098361,
+  R .8979591836734694, F1 .8000. On 1954: TP44/FP14/FN5, P .7586/R .8980.
+  On four all-negative 1992 images: FP3, recall undefined; baseline FP2 there.
+
+### kern_yolo11n_data_v3 (background-ratio comparison)
+
+- Command: builder with train_mix_v2.json, then same runner with
+  `--config pipeline/config/train_data_v3.json --name kern_yolo11n_data_v3`.
+  Clean code `7658cb23c61520f4168f206332019b2b33f71267`.
+- Data: train_mixed_v2, all 10 images/617 boxes, 568 human +49 assistant boxes,
+  three assistant-reviewed background tiles. Same frozen human Val/Test.
+- Started `2026-10-24T12:48:33.620174Z`, finished `12:49:35.641551Z`,
+  elapsed **62.010 s**, stopped after **27 epochs/135 updates**, best CSV epoch 17.
+- SDK P .7851091156924394 /R .7457263431164363 /mAP50 .7945620780470405 /
+  mAP50-95 .3726978818439048. Best.pt SHA
+  `749bc0da71d68d6cf284b80942e2ad40feca8c6788aea8f9a1fed26decdb4309`;
+  run.json `e8c26b5ee14d895516571a78fe05dcbfecec3a21684ad159f7e65dd6e4cb612d`.
+  Predictions SHA `3927af317ad662886b04618a16c8647e24afda151333600d76861bf4556d8585`.
+- Common .70: TP7/FP0/FN42 (P1/R.1429). Val-selected **.27**:
+  **TP43/FP17/FN6**, P .7166666666666667 /R .8775510204081632 /F1 .7889908.
+  Two FP on 1992 negatives; its positive recall remains undefined.
+
+### Comparison and selection
+
+- Both completed runs, raw curves, checkpoints and selected-cutoff previews are
+  preserved. Chose **data_v2 by declared Val F1**, .8000 vs .7890, baseline .6019.
+  This does not prove one background ratio generally better: one instance differs
+  on a small, overlapping Val slice. No more runs were needed for this bounded
+  data experiment; final Test still must be independent.
+- Baseline vs selected at their separately Val-selected cutoffs: TP31→44,
+  FP23→17, FN18→5. Same human Val labels, but different confidence values .70→.24.
+  Current diagnostic inference config pipeline/config/inference_selected.json pins
+  selected checkpoint/cutoff and these limits. Do not claim calibrated scores.
+- `pipeline.compare_previews` creates paired Validation-only overlays and a JSON
+  report containing both common-.70 and individually selected metrics, refusing
+  changed human GT/years/IDs/image paths, duplicates or Test. Output:
+  data/ml/runs/kern_yolo11n_data_v2/comparison_to_baseline/.
+  Preview source provenance is explicit; human GT green, assistant Train labels
+  purple, model orange. Threshold sliders do not recalculate displayed metrics.
+- Inspected remaining unmatched native Val neighborhoods in
+  preview/remaining_unmatched.png: digit 9/0, rectangles, tanks and structures
+  remain. Improvement is real on aggregate human-Val counts, not a claim that
+  text confusion is solved or 1992/general-map accuracy improved. No Val label
+  corrections were made from predictions; all 53 ML tests pass.
+- Human source ZIPs/PNG-label copies, Val audit and frozen manifest rechecked
+  unchanged. Annotation JSON/review figures retain assistant-only provenance.
+  Final artifact receipt stores source/report/checkpoint hashes. No candidate
+  loading, evidence publication, API generation or backend/mobile deployment.
+
 ## Model-run template
 
 ```yaml

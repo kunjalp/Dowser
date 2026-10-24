@@ -140,6 +140,52 @@ Moving its slider is a visual diagnostic, not a recomputed metric report.
 Quality helpers exclude Train and reject Test inputs; Val-only threshold tuning
 does not replace the Master Plan's final held-out acceptance or real geo checks.
 
+## Authorized mixed-supervision experiments and comparison
+
+Emir explicitly asked the assistant to finish annotations/training autonomously.
+Current results are in STATUS.md; assistant supervision remains distinct from
+human labels. `build_train_mix` preserves the 568 original human boxes, checks
+native source hashes/Train IDs and requires explicit assistant visual-review
+records. Train configs opt in; preflight still requires >=300 human boxes and
+rejects assistant labels in Val. The frozen 15-image human Val is unchanged.
+
+Actual additional runs (outputs already exist; choose fresh names for replay):
+
+```sh
+.venv/bin/python -m pipeline.build_train_mix --config pipeline/config/train_mix_v1.json
+pipeline/.venv/bin/python -m pipeline.train_detector \
+  --config pipeline/config/train_data_v2.json --name kern_yolo11n_data_v2
+.venv/bin/python -m pipeline.build_train_mix --config pipeline/config/train_mix_v2.json
+pipeline/.venv/bin/python -m pipeline.train_detector \
+  --config pipeline/config/train_data_v3.json --name kern_yolo11n_data_v3
+```
+
+Data_v2 is selected by human-Val F1: 8 Train images, 568 human +49 assistant
+boxes, one assistant-reviewed empty image, 24 epochs/96 optimizer updates.
+Data_v3 adds two more reviewed backgrounds and is preserved as a comparison.
+Architecture, pretrained start and settings stay the same, but larger data gives
+different optimizer-update counts; do not claim an equal-compute causal study.
+
+For each run, generate native predictions and select its threshold using the
+same evaluate_preview --sweep procedure. Selected data_v2 cutoff is .24 rather
+than baseline .70; classifier score scale changed after training. At common .70,
+data_v2 emits no Val boxes. Thus report both common and separately selected
+operating points, never present the Val-selected improvement as fixed-.70 quality.
+All model/threshold selection remains tuning, not final held-out Test.
+
+```sh
+pipeline/.venv/bin/python -m pipeline.compare_previews \
+  data/ml/runs/kern_yolo11n_baseline_v1/preview/predictions.json \
+  data/ml/runs/kern_yolo11n_data_v2/preview/predictions.json \
+  --output data/ml/runs/kern_yolo11n_data_v2/comparison_to_baseline
+```
+
+The comparison refuses changed human-Val IDs/years/boxes/image paths, duplicates
+and Test inputs. Default paired overlays show selected cutoffs; button offers
+common .70. Preview metadata/legend distinguishes human (green), assistant
+(purple, Train only) and model (orange). Current inference settings are pinned in
+`pipeline/config/inference_selected.json`; geospatial/Test acceptance is pending.
+
 ## Primary references
 
 - [Ultralytics YOLO11](https://docs.ultralytics.com/models/yolo11/).

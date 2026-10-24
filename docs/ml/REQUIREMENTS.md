@@ -9,13 +9,13 @@ It supersedes the original PRD. Legacy FR identifiers are cross-references only.
 | 1024 px tiles, about 20% overlap, own ID/year/transform | Emir: implemented | `pipeline.prepare_dataset`; 819 px stride, source hash, WKT, native offset |
 | Corner reconstruction <=1 source pixel | Emir: numerically verified | Tests/summary; not absolute map-accuracy evidence |
 | Test about 20%, >=30 tiles before training | Emir: partition implemented | Active v2 preserves all original 30 Test IDs; 72 Train / 15 Val / 30 Test / 72 buffer, zero cross-split overlap; Test labels needed before evaluation |
-| >=300 human-labeled symbols, lookalike negatives, multiple eras | Count/eras verified; evaluation pending | Train retains 568 boxes across both eras; Val imported with 49 boxes (1954 only) and 11 reviewed empty images. Train has no empty negative tiles yet |
-| Fine-tune pretrained YOLO, imgsz 1024 | First baseline completed | 29 epochs/87 optimizer updates on MPS, best checkpoint at epoch 19, saved config/weights identities; no final Test claim |
+| >=300 human-labeled symbols, lookalike negatives, multiple eras | Human count/eras retained; assistant additions explicit | Original 568 human boxes unchanged; selected 8-image Train adds 49 assistant boxes and one assistant-reviewed empty tile. Val remains 49 human boxes/11 negatives; assistant labels are not human GT |
+| Fine-tune pretrained YOLO, imgsz 1024 | Baseline and two data experiments completed | Selected data_v2: 24 epochs/96 updates, best epoch 14, same original pretrained start; configs/checksums recorded |
 | Box, confidence, class, tile ID, year, crop | Train/Val diagnostic predictions ready; geographic/crop export pending | Native-box JSON and interactive preview available; no candidate load or published crops |
 | Pixel-to-WGS84 with native tile transform | Emir: unit checked | `pipeline.geo`, edge convention and rotated-affine checks |
 | >=3 control points on actual maps | Emir: pending | Synthetic projection tests do not satisfy independent map-control acceptance |
 | >=10 known CalGEM wells, median offset <50 m target | Emir + Ryann: pending | Needs reviewed symbols and reference matches |
-| Precision/recall on untouched test; target >=0.60 | Final Test pending | Val-tuned cutoff .70: P .5741 / R .6327, not final Test. Precision target not met; 1992 Val has no positives |
+| Precision/recall on untouched test; target >=0.60 | Final Test pending | Selected data_v2 Val at .24: P .7213 / R .8980, not final Test. Val-only threshold/model selection; no positive 1992 Val labels, three FP on its negatives |
 | Model/manual-ground-truth fallback | Emir: pending export | Main now uses explicit ground_truth with numeric 1.0 and a hand-labeled UI tag; audit outputs remain label files, not candidate loads |
 | Dedup 20 m across tiles and editions | Ryann | Master Plan supersedes original 15 m |
 | Match 100 m, OSM homes/schools/water, scoring, load | Ryann | Existing backend loading API is not ML's task |

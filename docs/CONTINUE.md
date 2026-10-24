@@ -31,8 +31,11 @@ There are two Python environments: root `.venv/` for preparation/auditing and
 `pipeline/.venv/` for YOLO/MPS training. Their NumPy pins differ intentionally;
 see [training setup](ml/TRAINING_PLAN.md). Active splits are in `kern_1024_v2`,
 while human Train labels are in `reviewed_v2`. Preserve original v1 artifacts.
-The 15-image Validation export has now been imported and the first baseline
-trained. Current preview, checkpoint, counts, metric limitations and next action
+The 15-image Validation export is imported. The baseline and two subsequent
+assistant-authorized data experiments are trained; data_v2 is currently selected.
+Keep assistant training annotations distinct from human GT; preflight requires
+explicit mixed-supervision opt-in and always retains human Validation labels.
+Current paired preview, checkpoint, counts, metric limitations and next action
 are in ML status; do not ask the user to repeat finished annotations. Additional
 runs must still pass `pipeline.train_detector --check-only`.
 

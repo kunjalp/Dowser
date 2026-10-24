@@ -5,8 +5,9 @@ diverse map examples, negatives with lookalikes, and held-out precision/recall.
 This is a next-experiment plan, not evidence that a new model is better.
 
 User update: Emir subsequently explicitly requested autonomous assistant annotation
-and training. The first local assistant review/mix is now prepared; see current
-STATUS.md. This supersedes the human-export dependency below for that experiment,
+and training. Assistant review and two mixed-supervision data experiments are now
+completed; data_v2 is selected on Val F1. See current STATUS.md and EXPERIMENTS.md.
+This supersedes the human-export dependency below for those experiments,
 while preserving its source/provenance restrictions. Assistant annotations remain
 separate from the original human labels and from human Val/Test truth.
 
