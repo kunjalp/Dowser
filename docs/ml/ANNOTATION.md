@@ -168,6 +168,33 @@ YOLO rows are `0 center_x center_y width height`, normalized to 1024. They conta
 no confidence score. Keep full exports outside Git, recording actual counts
 per split/era and the source/split manifest identity.
 
+## Preserve and export reviewed work
+
+Emir's screenshot shows 271 `well_symbol` boxes on
+`usgs_102321_x01250_y03651.png`, which our manifest assigns to Train / 1992.
+He reports this image complete. Preserve that manual work; it is distinct from
+the 1954 published proposals, and must not be replaced by their import archive.
+The screenshot count alone does not verify correctness, completeness or export.
+
+For the next handoff, save/reopen the image to confirm annotations persist,
+then add only fully reviewed images to Dataset, keeping their original Train
+membership. Leave unfinished images out; do not mark them empty for export.
+Export reviewed work as a YOLO ZIP through Versions/Export, with original 1024 px
+geometry and no augmentations, resize, cropping, or split rebalancing. Export
+does not require starting cloud training. Do not activate any paid resource.
+See [Roboflow's export procedure](https://docs.roboflow.com/datasets/exporting-data).
+
+Save the ZIP under ignored `data/ml/reviewed_exports/`; preserve the downloaded
+archive unchanged. Before building a training dataset, verify exported class
+names, label rows, normalized bounds, image dimensions, filename-to-manifest
+mapping (Roboflow may add filename suffixes), and full-image annotation quality.
+Use original PNGs if version export recompresses images but preserves geometry.
+Record verified counts separately from screenshot/user-reported counts.
+
+271 boxes on one image is progress toward the symbol-count requirement, not
+evidence of coverage across eras or unseen geography. More varied reviewed
+training examples, negatives, validation and test labels are still required.
+
 ## Completion
 
 - >=300 human-reviewed symbols overall; report the training count separately.

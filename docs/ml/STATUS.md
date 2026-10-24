@@ -61,12 +61,16 @@ Geometry pass: **189 windows; 84 train / 13 validation / 30 test / 62 buffer**.
 Test is 23.6% of 127 retained images because at least 30 are required. Both
 1954 and 1992 appear in each retained partition.
 
-**Latest verified local human labels: 0 tiles, 0 boxes.** Remote annotation
-progress is not verified. No Dowser model trained or ran.
+**Latest verified local human-label files: 0 tiles, 0 boxes.** Emir reports one
+completed manual image. His screenshot shows 271 `well_symbol` annotations on
+`usgs_102321_x01250_y03651.png`; the frozen manifest confirms Train / 1992.
+The screenshot verifies the displayed count/class, not full-image completeness,
+box accuracy, saved/exported contents, or independently reviewed quality.
+No Dowser model trained or ran.
 Emir created the Roboflow project `dowser-kern-well-symbols`; its Object Detection
-type is confirmed by his screenshot. Class creation and annotation have not yet
-been verified. This agent has no logged-in Roboflow access and has not uploaded
-images. Local import archives are ready; human annotation remains next.
+type and class creation are confirmed by his screenshots. This agent has no
+logged-in Roboflow access and has not uploaded images. Preserve the original
+project and manual work; export/import verification is the immediate next step.
 No precision/recall or known-well accuracy is claimed. Published outputs remain
 attributed research, not labels. An earlier local `data/ml/labeling_v1/` run is
 preliminary; use the active path above.
@@ -92,8 +96,14 @@ preliminary; use the active path above.
 
 ## Next action
 
-Follow [ANNOTATION.md](ANNOTATION.md): the assisted pilot can replace drawing
-every box from scratch. Preview its four train images, then review/correct them
+First preserve/export Emir's manually annotated 1992 tile per
+[ANNOTATION.md](ANNOTATION.md#preserve-and-export-reviewed-work). Save the ZIP in
+`data/ml/reviewed_exports/`. Then inspect class names, file IDs, normalized box
+geometry, sizes/completeness, and frozen Train membership before counting the
+annotations as ready for training. Do not include 83 unreviewed images as negatives.
+
+The assisted pilot can replace drawing every box from scratch for 1954 examples.
+Preview its four train images, then review/correct them
 in a separate annotation project without overwriting Emir's current work.
 Retain original splits; use only fully reviewed images for training. Agree on
 symbol/box policy before splitting work across helpers. Add examples from 1992
