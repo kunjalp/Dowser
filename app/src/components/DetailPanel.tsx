@@ -9,12 +9,19 @@ import type { Candidate, Reading, ScoreParts, Status } from "../lib/types";
 const fmtM = (m?: number) =>
   m === undefined ? "n/a" : m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
 
-function ScoreBars({ parts }: { parts: ScoreParts }) {
+function ScoreBars({ parts, handLabeled }: { parts: ScoreParts; handLabeled?: boolean }) {
   return (
     <div className="parts">
       {(Object.keys(PART_LABELS) as (keyof ScoreParts)[]).map((k) => (
         <div key={k} className="part">
-          <span className="part-label">{PART_LABELS[k]}</span>
+          <span className="part-label">
+            {PART_LABELS[k]}
+            {k === "confidence" && handLabeled && (
+              <em className="tag" title="Hand-labeled symbol. Its detection confidence is fixed at 1.0, so this bar is not a model score; it also reflects how many map editions show the symbol.">
+                hand-labeled
+              </em>
+            )}
+          </span>
           <span className="bar">
             <span style={{ width: `${Math.round(parts[k] * 100)}%` }} />
           </span>
@@ -108,7 +115,7 @@ export default function DetailPanel({
 
             <section>
               <h3>Score {c.score.toFixed(2)}</h3>
-              <ScoreBars parts={c.scoreParts} />
+              <ScoreBars parts={c.scoreParts} handLabeled={c.source === "ground_truth"} />
               <p className="muted small">Candidate undocumented well, not a verified well.</p>
             </section>
 

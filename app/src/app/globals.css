@@ -147,3 +147,6 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .demo-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 4; background: #0c1117e6; border: 1px solid var(--accent); color: var(--text); border-radius: 999px; padding: 6px 14px; font-size: 12px; white-space: nowrap; backdrop-filter: blur(6px); pointer-events: none; }
 .demo-banner strong { color: var(--accent); }
 @media (max-width: 800px) { .demo-banner { top: auto; bottom: 12px; } }
+
+.tag { display: inline-block; margin-left: 6px; font-style: normal; font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; padding: 0 6px; border: 1px solid var(--muted); border-radius: 4px; color: var(--muted); vertical-align: middle; }
+.part { grid-template-columns: 150px 1fr 36px; }
