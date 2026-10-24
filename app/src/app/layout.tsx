@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import ConvexClientProvider from "./ConvexClientProvider";
 import "./globals.css";
+import "./ux.css";
 
 export const metadata: Metadata = {
   title: "Dowser · Command Map",

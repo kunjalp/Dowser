@@ -10,17 +10,21 @@ import { STATUS_META, dotColor, isFake, reasonLine } from "../../lib/types";
 import type { Candidate, Reading, Status } from "../../lib/types";
 
 type Outcome = "confirmed_leaking" | "confirmed_not_leaking" | "no_well" | "mislocated";
-const OUTCOMES: { key: Outcome; label: string }[] = [
-  { key: "confirmed_leaking", label: "Leaking" },
-  { key: "confirmed_not_leaking", label: "Not leaking" },
-  { key: "no_well", label: "No well here" },
-  { key: "mislocated", label: "Wrong spot" },
-];
+const OUTCOMES: Record<Outcome, string> = {
+  confirmed_leaking: "Leaking",
+  confirmed_not_leaking: "Not leaking",
+  no_well: "No well here",
+  mislocated: "Wrong spot",
+};
 
 /** Seconds a tapped decision waits before it is saved, so a mis-tap can be undone. */
 const UNDO_SECS = 4;
+/** Within this many meters the app treats you as at the site. */
+const ARRIVED_M = 50;
+/** Beyond this the direction arrow is noise; show only "N km away". */
+const FAR_M = 5000;
 
-type Pos = { lat: number; lon: number };
+type Pos = { lat: number; lon: number; acc?: number };
 
 const fmtM = (m?: number) =>
   m === undefined ? "n/a" : m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
@@ -36,21 +40,36 @@ function distM(a: Pos, b: Pos): number {
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
-/** Compass direction (N, NE, ...) you would walk from a toward b. */
-function compass(a: Pos, b: Pos): string {
+/** Compass bearing in degrees (0 = north) you would walk from a toward b. */
+function bearing(a: Pos, b: Pos): number {
   const y = Math.sin(toRad(b.lon - a.lon)) * Math.cos(toRad(b.lat));
   const x =
     Math.cos(toRad(a.lat)) * Math.sin(toRad(b.lat)) -
     Math.sin(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.cos(toRad(b.lon - a.lon));
-  const deg = ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
-  return ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(deg / 45) % 8];
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}
+const compass = (deg: number) => ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][Math.round(deg / 45) % 8];
+
+/** How far away and which way, in a form that stays readable from 300 km down to the pad. */
+function awayText(d: number, deg: number): string {
+  if (d >= FAR_M) return `${Math.round(d / 1000)} km away`;
+  if (d < ARRIVED_M) return "You're here";
+  return `${fmtM(d)} ${compass(deg)}`;
+}
+
+/** The one fact worth reading at a glance: closest person-related risk first. */
+function urgentFact(c: Candidate): string {
+  if (c.distToHomeM !== undefined && c.distToHomeM <= 500) return `${fmtM(c.distToHomeM)} from a home`;
+  if (c.distToSchoolM !== undefined && c.distToSchoolM <= 1000) return `${fmtM(c.distToSchoolM)} from a school`;
+  if (c.distToWaterM !== undefined && c.distToWaterM <= 500) return `${fmtM(c.distToWaterM)} from water`;
+  return reasonLine(c).split(" · ")[0] ?? "";
 }
 
 function getPosition(): Promise<Pos | undefined> {
   return new Promise((resolve) => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return resolve(undefined);
     navigator.geolocation.getCurrentPosition(
-      (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      (p) => resolve({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }),
       () => resolve(undefined),
       { enableHighAccuracy: true, timeout: 6000, maximumAge: 15000 },
     );
@@ -63,7 +82,7 @@ function useHere(): Pos | undefined {
   useEffect(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return;
     const id = navigator.geolocation.watchPosition(
-      (p) => setHere({ lat: p.coords.latitude, lon: p.coords.longitude }),
+      (p) => setHere({ lat: p.coords.latitude, lon: p.coords.longitude, acc: p.coords.accuracy }),
       () => {},
       { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 },
     );
@@ -84,17 +103,18 @@ function useInApp(): boolean {
   return inApp;
 }
 
-type Mode = "near" | "queued" | "rank";
-const MODES: { key: Mode; label: string }[] = [
-  { key: "near", label: "Nearest" },
-  { key: "queued", label: "Queued" },
-  { key: "rank", label: "Top ranked" },
+type Sort = "queue" | "near" | "rank";
+const SORTS: { key: Sort; label: string; hint: string }[] = [
+  { key: "queue", label: "Queued first", hint: "Work list on top, then nearest" },
+  { key: "near", label: "Nearest", hint: "Closest to you, any status" },
+  { key: "rank", label: "Top ranked", hint: "Highest priority first" },
 ];
 
 export default function FieldView() {
   const [paired, setPaired] = useState<Candidate | null>(null);
   const [query, setQuery] = useState("");
-  const [mode, setMode] = useState<Mode>("near");
+  const [sort, setSort] = useState<Sort>("queue");
+  const [sheet, setSheet] = useState(false);
   const [view, setView] = useState<"list" | "map">("list");
   const [mapSel, setMapSel] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -113,23 +133,25 @@ export default function FieldView() {
   const pairMut = useMutation(api.pairing.set);
   const clearMut = useMutation(api.pairing.clear);
 
-  // Distance and direction from the phone; the list order follows the chosen mode.
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const items = (rows ?? [])
+    type Item = { c: Candidate; d?: number; deg?: number };
+    const items: Item[] = (rows ?? [])
       .filter((c) => !q || c.id.toLowerCase().includes(q) || c.quadName.toLowerCase().includes(q))
-      .filter((c) => mode !== "queued" || c.status === "queued")
-      .map((c) => ({
-        c,
-        d: here ? distM(here, c) : undefined,
-        dir: here ? compass(here, c) : undefined,
-      }));
-    const byRank = (a: (typeof items)[number], b: (typeof items)[number]) =>
-      Number(b.c.status === "queued") - Number(a.c.status === "queued") || a.c.rank - b.c.rank;
-    const byDist = (a: (typeof items)[number], b: (typeof items)[number]) =>
-      a.d !== undefined && b.d !== undefined ? a.d - b.d : byRank(a, b);
-    return items.sort(mode === "rank" ? byRank : byDist);
-  }, [rows, query, mode, here]);
+      .map((c) => ({ c, d: here ? distM(here, c) : undefined, deg: here ? bearing(here, c) : undefined }));
+    const byRank = (a: Item, b: Item) => a.c.rank - b.c.rank;
+    const byDist = (a: Item, b: Item) => (a.d !== undefined && b.d !== undefined ? a.d - b.d : byRank(a, b));
+    const queuedFirst = (a: Item, b: Item) =>
+      Number(b.c.status === "queued") - Number(a.c.status === "queued") || byDist(a, b);
+    return items.sort(sort === "rank" ? byRank : sort === "near" ? byDist : queuedFirst);
+  }, [rows, query, sort, here]);
+
+  const nearest = list.reduce<number | undefined>(
+    (m, it) => (it.d === undefined ? m : m === undefined ? it.d : Math.min(m, it.d)),
+    undefined,
+  );
+  const farAway = nearest !== undefined && nearest > 100000;
+  const queuedCount = list.filter((it) => it.c.status === "queued").length;
 
   async function pair(c: Candidate) {
     setDone(null);
@@ -146,6 +168,9 @@ export default function FieldView() {
     <main className="field">
       <header className="field-head">
         <h1>Dowser · Field</h1>
+        <span className="field-gps">
+          {here ? `GPS ±${Math.round(here.acc ?? 0)} m` : "Locating…"}
+        </span>
         {!inApp && (
           <Link href="/" className="link-btn">
             Command Map
@@ -165,18 +190,6 @@ export default function FieldView() {
         />
       ) : (
         <>
-          <div className="chips" role="group" aria-label="View">
-            {(["list", "map"] as const).map((v) => (
-              <button
-                key={v}
-                className={`chip ${view === v ? "on" : ""}`}
-                onClick={() => setView(v)}
-                aria-pressed={view === v}
-              >
-                {v === "list" ? "List" : "Map"}
-              </button>
-            ))}
-          </div>
           {view === "map" ? (
             <>
               <div className="field-map">
@@ -193,12 +206,12 @@ export default function FieldView() {
                     </span>
                   </div>
                   <p className="muted small">
-                    {here ? `${fmtM(distM(here, mapPick))} ${compass(here, mapPick)} · ` : ""}
-                    {reasonLine(mapPick)}
+                    {here ? `${awayText(distM(here, mapPick), bearing(here, mapPick))} · ` : ""}
+                    {urgentFact(mapPick)}
                   </p>
                   <div className="map-card-actions">
                     {(mapPick.status === "candidate" || mapPick.status === "queued") && (
-                      <button className="field-btn" style={{ ["--c" as string]: "#f59e0b" }} onClick={() => pair(mapPick)}>
+                      <button className="field-btn" onClick={() => pair(mapPick)}>
                         Check this one
                       </button>
                     )}
@@ -218,58 +231,98 @@ export default function FieldView() {
             </>
           ) : (
             <>
-          <div className="chips" role="group" aria-label="Sort and filter">
-            {MODES.map((m) => (
-              <button
-                key={m.key}
-                className={`chip ${mode === m.key ? "on" : ""}`}
-                onClick={() => setMode(m.key)}
-                aria-pressed={mode === m.key}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
-          <p className="muted small field-hint">
-            {mode === "near" && !here
-              ? "Finding your location… showing top ranked until we have it."
-              : mode === "rank"
-                ? "Highest priority first."
-                : here
-                  ? "Closest to you first. Tap the one you are standing at."
-                  : "Queued candidates first."}
-          </p>
-          <input
-            className="field-search"
-            placeholder="Filter by quad (e.g. Lost Hills)"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          <ul className="field-list">
-            {rows === undefined && <li className="muted">Loading…</li>}
-            {rows && list.length === 0 && <li className="muted">No open candidates match.</li>}
-            {list.map(({ c, d, dir }) => (
-              <li key={c._id}>
-                <button className="field-row" onClick={() => pair(c)}>
-                  <span className="dot" style={{ background: dotColor(c) }} />
-                  <span className="field-row-main">
-                    <strong className="field-dist">{d !== undefined ? `${fmtM(d)} ${dir}` : `#${c.rank}`}</strong>
-                    <span className="muted small">
-                      {c.quadName} · {c.id}
-                      {isFake(c) ? " · sim" : ""}
-                    </span>
-                    {reasonLine(c) && <span className="reason">{reasonLine(c)}</span>}
-                  </span>
-                  {c.status === "queued" && (
-                    <span className="badge" style={{ ["--c" as string]: STATUS_META.queued.color }}>
-                      Queued
-                    </span>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
+              {farAway && (
+                <p className="field-far" role="status">
+                  Nearest candidate is {Math.round((nearest ?? 0) / 1000)} km from you. Distances become useful once
+                  you are in the field.
+                </p>
+              )}
+              <p className="field-section">
+                {sort === "queue" ? `Queued (${queuedCount}) then nearby` : sort === "near" ? "Nearest first" : "Top ranked"}
+              </p>
+              <ul className="field-list">
+                {rows === undefined && <li className="muted">Loading…</li>}
+                {rows && list.length === 0 && <li className="muted">No open candidates match.</li>}
+                {list.map(({ c, d, deg }) => {
+                  const arrived = d !== undefined && d < ARRIVED_M;
+                  return (
+                    <li key={c._id}>
+                      <button className={`field-row ${arrived ? "here" : ""}`} onClick={() => pair(c)}>
+                        <span className="dot" style={{ background: dotColor(c) }} />
+                        <span className="field-row-main">
+                          <strong className="field-dist">
+                            {d !== undefined && deg !== undefined ? (
+                              <>
+                                {d >= ARRIVED_M && d < FAR_M && (
+                                  <span className="field-arrow" style={{ transform: `rotate(${deg}deg)` }} aria-hidden>
+                                    ↑
+                                  </span>
+                                )}
+                                {awayText(d, deg)}
+                              </>
+                            ) : (
+                              `#${c.rank}`
+                            )}
+                          </strong>
+                          <span className="muted small">
+                            {c.quadName} · {c.id}
+                            {isFake(c) ? " · sim" : ""}
+                          </span>
+                          {urgentFact(c) && <span className="reason">{urgentFact(c)}</span>}
+                        </span>
+                        {c.status === "queued" && (
+                          <span className="badge" style={{ ["--c" as string]: STATUS_META.queued.color }}>
+                            Queued
+                          </span>
+                        )}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             </>
+          )}
+
+          <nav className="field-tabs" aria-label="Field View">
+            <button className={`tab ${view === "list" ? "on" : ""}`} onClick={() => setView("list")}>
+              List
+            </button>
+            <button className={`tab ${view === "map" ? "on" : ""}`} onClick={() => setView("map")}>
+              Map
+            </button>
+            {view === "list" && (
+              <button className="tab sort" onClick={() => setSheet(true)}>
+                Sort
+              </button>
+            )}
+          </nav>
+
+          {sheet && (
+            <div className="sheet-backdrop" onClick={() => setSheet(false)}>
+              <div className="sheet" role="dialog" aria-label="Sort and filter" onClick={(e) => e.stopPropagation()}>
+                <h3>Sort</h3>
+                {SORTS.map((s) => (
+                  <button
+                    key={s.key}
+                    className={`sheet-opt ${sort === s.key ? "on" : ""}`}
+                    onClick={() => setSort(s.key)}
+                    aria-pressed={sort === s.key}
+                  >
+                    <strong>{s.label}</strong>
+                    <span className="muted small">{s.hint}</span>
+                  </button>
+                ))}
+                <input
+                  className="field-search"
+                  placeholder="Filter by quad (e.g. Lost Hills)"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+                <button className="field-btn" onClick={() => setSheet(false)}>
+                  Done
+                </button>
+              </div>
+            </div>
           )}
         </>
       )}
@@ -340,7 +393,9 @@ function Paired({
             : "Below the trigger line.";
 
   const target: Pos = { lat: c.lat, lon: c.lon };
-  const toTarget = here ? `${fmtM(distM(here, target))} ${compass(here, target)}` : null;
+  const dist = here ? distM(here, target) : undefined;
+  const arrived = dist !== undefined && dist < ARRIVED_M;
+  const weakGps = here?.acc !== undefined && here.acc > 25;
 
   async function onPhoto(file: File | undefined) {
     if (!file) return;
@@ -378,9 +433,9 @@ function Paired({
   }
 
   // A tapped decision counts down, then saves; Undo cancels it before anything is written.
-  function choose(outcome: Outcome, label: string) {
+  function choose(outcome: Outcome) {
     setError(null);
-    setPending({ outcome, label });
+    setPending({ outcome, label: OUTCOMES[outcome] });
     setSecs(UNDO_SECS);
   }
   useEffect(() => {
@@ -396,6 +451,19 @@ function Paired({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending, secs]);
 
+  const decideDisabled = busy || photoState === "uploading";
+  const btn = (o: Outcome) => (
+    <button
+      key={o}
+      className={`field-btn out-${o}`}
+      style={{ ["--c" as string]: STATUS_META[o].color }}
+      disabled={decideDisabled}
+      onClick={() => choose(o)}
+    >
+      {OUTCOMES[o]}
+    </button>
+  );
+
   return (
     <section className="field-paired">
       <button className="link-btn" onClick={onBack}>
@@ -408,15 +476,24 @@ function Paired({
         {fmtM(c.distToHomeM)} to nearest home · {fmtM(c.distToWaterM)} to water
       </p>
 
-      <a
-        className="field-nav"
-        href={`https://maps.apple.com/?daddr=${c.lat},${c.lon}&dirflg=d&q=${encodeURIComponent(c.id)}`}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <span>Navigate</span>
-        <span className="field-nav-dist">{toTarget ?? "in Maps"}</span>
-      </a>
+      {arrived ? (
+        <div className="arrive on" role="status">
+          <strong>You&apos;re here</strong>
+          <span className="small">{weakGps ? `GPS ±${Math.round(here?.acc ?? 0)} m, look for the pad` : "Readings are attached to this site"}</span>
+        </div>
+      ) : (
+        <a
+          className="field-nav"
+          href={`https://maps.apple.com/?daddr=${c.lat},${c.lon}&dirflg=d&q=${encodeURIComponent(c.id)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>Navigate</span>
+          <span className="field-nav-dist">
+            {here && dist !== undefined ? awayText(dist, bearing(here, target)) : "in Maps"}
+          </span>
+        </a>
+      )}
 
       <div className={`reading-card ${leaking ? "leak" : ""}`}>
         <div className="reading-top">
@@ -438,29 +515,6 @@ function Paired({
         <Sparkline values={chrono.map((r) => r.value)} />
         {gaugeText && <p className="small muted">{gaugeText}</p>}
       </div>
-
-      {pending ? (
-        <div className="undo-bar" role="status">
-          <span>
-            Marking <strong>{pending.label}</strong> in {secs}s
-          </span>
-          <button onClick={() => setPending(null)}>Undo</button>
-        </div>
-      ) : (
-        <div className="field-actions">
-          {OUTCOMES.map((o) => (
-            <button
-              key={o.key}
-              className="field-btn"
-              style={{ ["--c" as string]: STATUS_META[o.key].color }}
-              disabled={busy || photoState === "uploading"}
-              onClick={() => choose(o.key, o.label)}
-            >
-              {o.label}
-            </button>
-          ))}
-        </div>
-      )}
 
       <textarea
         className="field-note"
@@ -487,6 +541,26 @@ function Paired({
               : "Add photo"}
       </button>
       {error && <p className="field-error">{error}</p>}
+
+      <div className="field-decide">
+        {pending ? (
+          <div className="undo-bar" role="status">
+            <span>
+              Marking <strong>{pending.label}</strong> in {secs}s
+            </span>
+            <button onClick={() => setPending(null)}>Undo</button>
+          </div>
+        ) : (
+          <>
+            {btn("confirmed_leaking")}
+            {btn("confirmed_not_leaking")}
+            <div className="field-decide-row">
+              {btn("no_well")}
+              {btn("mislocated")}
+            </div>
+          </>
+        )}
+      </div>
     </section>
   );
 }

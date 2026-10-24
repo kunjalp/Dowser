@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { STATUSES, STATUS_META, dotColor, reasonLine } from "../lib/types";
 import type { Candidate, Status } from "../lib/types";
@@ -14,9 +14,11 @@ type Props = {
   onFilter: (s: Status[]) => void;
   extra?: ReactNode;
   reranked?: boolean;
+  /** Candidates whose status just changed live; their rows flash briefly. */
+  changedIds?: string[];
 };
 
-export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, extra, reranked }: Props) {
+export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, extra, reranked, changedIds }: Props) {
   // Rank movement since the previous ordering, shown briefly after sliders move.
   const prevRanks = useRef<Map<string, number>>(new Map());
   const [moves, setMoves] = useState<Map<string, number>>(new Map());
@@ -32,6 +34,28 @@ export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, 
     if (m.size === 0) return;
     const t = setTimeout(() => setMoves(new Map()), 1800);
     return () => clearTimeout(t);
+  }, [rows]);
+
+  // Slide rows to their new position when the live ordering changes (a field reading moved a well).
+  const liRefs = useRef(new Map<string, HTMLLIElement>());
+  const prevTops = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    const reduce = typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const next = new Map<string, number>();
+    liRefs.current.forEach((el, id) => next.set(id, el.offsetTop));
+    if (!reduce) {
+      liRefs.current.forEach((el, id) => {
+        const before = prevTops.current.get(id);
+        const after = next.get(id);
+        if (before === undefined || after === undefined || before === after) return;
+        el.style.transition = "none";
+        el.style.transform = `translateY(${before - after}px)`;
+        void el.offsetHeight; // flush so the next change animates
+        el.style.transition = "transform 420ms ease";
+        el.style.transform = "";
+      });
+    }
+    prevTops.current = next;
   }, [rows]);
 
   const toggle = (s: Status) =>
@@ -80,11 +104,17 @@ export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, 
           </li>
         )}
         {rows?.map((c) => (
-          <li key={c._id}>
+          <li
+            key={c._id}
+            ref={(el) => {
+              if (el) liRefs.current.set(c.id, el);
+              else liRefs.current.delete(c.id);
+            }}
+          >
             <button
               className={`row ${c.id === selectedId ? "sel" : ""} ${
                 c.status === "confirmed_leaking" ? "leak" : ""
-              }`}
+              } ${changedIds?.includes(c.id) ? "flash" : ""}`}
               onClick={() => onSelect(c.id)}
             >
               <span className="rank">
