@@ -1,0 +1,21 @@
+{
+  "dataset": "data/ml/kern_1024_v2",
+  "human_import": "data/ml/reviewed_v2",
+  "assistant_annotations": [
+    "data/ml/rollout_repair_labels_v1/annotations.json",
+    "data/ml/repair_annotation_v2/annotations.json"
+  ],
+  "purpose": "mix_v1 + only the 6 newly reviewed error-source frames that contain true well symbols among false lookalikes",
+  "include_ids": [
+    "usgs_102321_x04526_y05289",
+    "usgs_293664_x02138_y05275",
+    "usgs_293664_x03776_y03637",
+    "usgs_293664_x03776_y05275",
+    "usgs_293664_x02957_y02818",
+    "usgs_293661_x02968_y04458",
+    "usgs_293664_x03776_y04456",
+    "usgs_293664_x05414_y03637",
+    "usgs_293664_x03776_y02818"
+  ],
+  "output": "data/ml/train_repair_v2_mixed"
+}

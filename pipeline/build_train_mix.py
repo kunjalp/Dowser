@@ -49,10 +49,19 @@ def build(config_path):
     verified=read_import(base,'train',manifest)
     if set(verified['images_by_source'])!={'human_reported'}:
         raise ValueError('Base import must preserve the original human labels')
-    additions_path=ROOT/config['assistant_annotations']
-    payload=json.loads(additions_path.read_text())
-    by_id={r['tileId']:r for r in payload['images']}
-    if len(by_id)!=len(payload['images']) or len(set(config['include_ids']))!=len(config['include_ids']):
+    # One file (historical configs) or a list of files; a tile may appear in only
+    # one file so each record keeps the hash of the review file it came from.
+    sources_cfg=config['assistant_annotations']
+    addition_paths=[ROOT/p for p in ([sources_cfg] if isinstance(sources_cfg,str) else sources_cfg)]
+    by_id,file_of={},{}
+    for additions_path in addition_paths:
+        payload=json.loads(additions_path.read_text())
+        for r in payload['images']:
+            if r['tileId'] in by_id:
+                raise ValueError(f'Duplicate annotation/addition IDs: {r["tileId"]}')
+            by_id[r['tileId']]=r
+            file_of[r['tileId']]=additions_path
+    if len(set(config['include_ids']))!=len(config['include_ids']):
         raise ValueError('Duplicate annotation/addition IDs')
     records=copy.deepcopy(original['images'])
     sources={r['tileId']:base/'images/train'/(r['tileId']+'.png') for r in records}
@@ -66,7 +75,7 @@ def build(config_path):
         if hashlib.sha256(image.read_bytes()).hexdigest()!=r['original_png_sha256']:
             raise ValueError('Assistant annotation/source pixel identity mismatch')
         records.append({**r,'mapYear':manifest[tile_id]['mapYear'],'split':'train','boxes':boxes,
-                        'source_annotation_sha256':hashlib.sha256(additions_path.read_bytes()).hexdigest(),
+                        'source_annotation_sha256':hashlib.sha256(file_of[tile_id].read_bytes()).hexdigest(),
                         'semantic_review':'assistant visual only; not independently human verified'})
         sources[tile_id]=image
     output.mkdir(parents=True)
@@ -89,7 +98,10 @@ def build(config_path):
              'assistant_boxes':sum(len(r['boxes']) for r in records if r['annotation_source']=='assistant_visual_review'),
              'empty_images':sum(not r['boxes'] for r in records),
              'base_audit_sha256':verified['audit_sha256'],
-             'assistant_annotations_sha256':hashlib.sha256(additions_path.read_bytes()).hexdigest(),
+             'assistant_annotations_sha256':(hashlib.sha256(addition_paths[0].read_bytes()).hexdigest()
+                                             if isinstance(sources_cfg,str) else
+                                             {str(p.relative_to(ROOT)):hashlib.sha256(p.read_bytes()).hexdigest()
+                                              for p in addition_paths}),
              'validation_or_test_changed':False}
     (output/'audit.json').write_text(json.dumps({'summary':summary,'images':records},indent=2))
     (output/'INCOMPLETE').unlink()
