@@ -11,3 +11,10 @@ Convex agent skills for common tasks can be installed by running
 `npx convex ai-files install`.
 
 <!-- convex-ai-end -->
+
+## Team documentation
+
+Read `AGENTS.md` and `CONTRIBUTING.md` for shared contributor instructions.
+For ML work, also read `ml/AGENTS.md` and start from `docs/ml/STATUS.md`.
+Use `docs/ml/REQUIREMENTS.md` for PRD acceptance checks and
+`docs/ml/CONTRACT.md` for the existing schema and unresolved interface decisions.

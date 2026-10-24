@@ -4,6 +4,16 @@ Finds candidate undocumented orphaned oil and gas wells on historical USGS maps,
 
 > Detections are **candidates**, not verified wells. The sensor demo is **simulated**. The MQ-4 is a demo-grade indicator, not a calibrated instrument.
 
+## Team and ML documentation
+
+Start with the [documentation index](docs/README.md) and
+[ML status and next action](docs/ml/STATUS.md). The
+[contribution guide](CONTRIBUTING.md) describes task branches and PR review;
+[ML requirements](docs/ml/REQUIREMENTS.md) track PRD acceptance evidence.
+The [ML/backend contract](docs/ml/CONTRACT.md) distinguishes the existing schema
+from interface decisions that still need backend agreement. The full
+[October 23 PRD](docs/prd/source.txt) is preserved as supplied.
+
 ## Region (FR-1.1)
 
 TODO at check-in: pick `kern` or `la_basin` and record the final bounding box here.

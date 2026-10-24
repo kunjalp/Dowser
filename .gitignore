@@ -6,3 +6,12 @@ convex/_generated/
 data/
 __pycache__/
 *.pyc
+
+# Local environments and generated ML artifacts; keep small fixtures in ml/fixtures/.
+/.venv/
+/ml/.venv/
+/ml/data/
+/ml/artifacts/
+/ml/runs/
+/artifacts/
+/runs/
