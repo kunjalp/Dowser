@@ -644,6 +644,35 @@ within the reference's seed spread (.30-.93), so seeds 43/7 and the
 post-CalGEM regression (`pipeline/candidate_regression.py`, reproduces the
 shipped 1,657 groups / 64 candidates / 62 known false exactly) decide.
 
+Seed repeats (same recipe; Val-selected cutoff): mixed s43 .577 (early stop at
+epoch 15), s7 .905 (all 50 epochs); full s43 .717. Reference s43 .811, s7 .303
+(stop at epoch 12). Both collapses are early stops from `patience=10` on the
+15-image Val fitness, so seed spread is largely a stopping artefact.
+
+Post-CalGEM regression, seed 42 (`data/ml/repair_v2_regression/`):
+
+| Export | Raw | Groups | CalGEM-matched groups | Candidates | Known-false still candidates |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| shipped cursor_translate .71 | 3,116 | 1,657 | 1,593 | 64 | 62/62 |
+| repair_v2_mixed_s42 .67 | 3,414 | 1,722 | 1,695 | 27 | 17/62 |
+| repair_v2_full_s42 .05 | 2,754 | 1,442 | 1,423 | 19 | 5/62 |
+
+Visual review of the 27 mixed_s42 candidates: 10 blue water wells, 5 dotted
+radio/landmark circles, 10 squares/diamonds, 1 letter, 1 plausible plain
+circle. Candidate precision is still low; matched groups rose (+102), full
+lost 170 matched groups (recall). Next data factor: `repair_v2_targeted` =
+mixed + five fully reviewed empty frames with blue wells / radio circles /
+urban squares (19 images, 6 empty), seeds 42/43/7.
+
+**Selection rule fixed before seeing targeted results.** A mix qualifies only
+if (a) its Val F1 median over seeds 42/43/7 is at least the reference median
+(.811) and (b) for the chosen seed (highest Val F1 within the mix, as for the
+reference), Val recall >= .85, CalGEM-matched groups >= 1,561 (reference
+1,593 minus 2%) and both candidate groups and known-false candidates are below
+the shipped 64/62. Among qualifying mixes prefer fewer candidate groups, then
+higher Val F1. The known-false count is a training-feedback regression check,
+not independent accuracy. If nothing qualifies, nothing is promoted.
+
 Test intake: `audit_annotations --split test` imported
 `reviewed_test_emir_v1` (12 images, 407 boxes) and `reviewed_test_teammate_v1`
 (15 images, 318 boxes, 3 empty). No overlap/conflict; **27/30 covered**,
