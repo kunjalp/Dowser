@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Smoke-test the ingest endpoint (what the ESP32 will do).
-#   export CONVEX_SITE_URL=https://<deployment>.convex.site   # note: .site, not .cloud
+# Smoke-test the ingest endpoint (what the ESP32 does).
+#   export CONVEX_SITE_URL=https://<deployment>.convex.site   # .site, not .cloud
 #   export INGEST_TOKEN=...
-#   scripts/post_reading.sh [raw] [corrected] [wellId]
+#   scripts/post_reading.sh [value] [raw]
 set -euo pipefail
 : "${CONVEX_SITE_URL:?set CONVEX_SITE_URL (https://<name>.convex.site)}"
 : "${INGEST_TOKEN:?set INGEST_TOKEN}"
@@ -12,7 +12,7 @@ echo "reading:"
 curl -sS -X POST "$CONVEX_SITE_URL/ingest/reading" \
   -H "Content-Type: application/json" \
   -H "X-Dowser-Token: $INGEST_TOKEN" \
-  -d "{\"deviceId\":\"esp32-test\",\"raw\":${1:-512},\"corrected\":${2:-12},\"wellId\":\"${3:-cand-001}\",\"isReplay\":true,\"ts\":$(($(date +%s) * 1000))}"
+  -d "{\"deviceId\":\"esp32-test\",\"value\":${1:-12},\"raw\":${2:-512},\"isReplay\":true,\"timestamp\":$(($(date +%s) * 1000))}"
 echo
 echo "bad token (expect 401):"
 curl -sS -o /dev/null -w "%{http_code}\n" -X POST "$CONVEX_SITE_URL/ingest/reading" \
