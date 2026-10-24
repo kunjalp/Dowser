@@ -45,6 +45,42 @@ geographic holdouts. This is a data preparation run, not a model experiment.
   Next action: human annotation per [ANNOTATION.md](ANNOTATION.md), then actual
   map/control-point checks and a recorded YOLO baseline.
 
+## Proposal pilot: proposals_pilot_v2 — 2026-10-23
+
+- Purpose: reduce drawing from scratch while preserving human review; Master
+  Plan symbol-labeling acceptance remains pending. This is not training/evaluation.
+- Command: `.venv/bin/python -m pipeline.propose_annotations`.
+- Code base: `97cb53abf68bf07d1fa23ebe56bcbf8646753605` with uncommitted proposal
+  implementation in this PR; exact script hash is recorded in the output summary.
+- Input manifest: the `kern_1024_v1` manifest above, unchanged.
+- Attributed input: [Ciulla et al. EDX outputs](https://doi.org/10.18141/2452768),
+  `CA_OilCenter_293661_1954_24000_geo_detected.json`, SHA-256
+  `87c2ec22f1b38068be568fb58425c5ed769c11cc16ef640637af50f6863dc6d5`.
+  The source README describes CC BY 4.0. No external weights/code were executed.
+- Method: convert published WGS84 centers into native pixels using each exact
+  raster/tile transform, then clip heuristic 16 px boxes at image boundaries.
+  Deterministic greedy selection maximizes additional published IDs in four
+  training examples; validation/test/buffer and other rasters are rejected.
+- Output: `data/ml/proposals_pilot_v2/`, ignored. Four Oil Center 1954 training
+  images, 973 proposals, 889 distinct published IDs because images overlap.
+  Images are byte-identical to preparation outputs; no original labels changed.
+- Preview: `preview.html`; optional import: `roboflow_proposals_train.zip`.
+  The import includes `darknet.labels` for the class name. Earlier local v1 is
+  retained as preliminary; use v2, which adds the label map and dirty-tree record.
+  The preview toggles generated SVG rectangles over original PNGs, preserving
+  the original image pixels. No active training config was generated.
+- Validation: 15 ML unit tests passed; 973 YOLO rows checked for counts,
+  normalization and clipping; all four copied image hashes and ZIP integrity
+  checked. Original preparation directory still has no label files.
+- Software/hardware: same local preparation environment recorded above, CPU;
+  no new dependency install, external upload, account login, API or GPU cost.
+- Human review: zero verified locally. No precision/recall, actual well count,
+  completeness, geographic accuracy, or time-saving claim. Known risks: source
+  false predictions/omissions, coordinate shifts, approximate box sizes, and
+  absent 1992 coverage. Review the whole image, not only proposed boxes.
+- Next: correct/complete pilot annotations, record reviewer/tile IDs, add the
+  other era and negatives, then prepare a reviewed YOLO training subset.
+
 ## Run template
 
 ```yaml

@@ -88,6 +88,52 @@ Button placement can vary; preserving our existing split is required regardless
 of the UI layout. No workspace/project or external upload was performed by this
 documentation update.
 
+## Assisted alternative: review proposals instead of drawing every box
+
+Drawing every box from scratch is not mandatory. Automatically proposed boxes
+may be corrected and completed by humans, with their origin preserved. Only
+fully reviewed images may enter supervised training. Four images is an initial
+review batch, not a requirement to label all 84 train images before a baseline.
+Use only the explicitly selected, fully reviewed subset for training; exclude
+unreviewed images instead of creating empty labels. Keep original split IDs.
+
+An offline pilot now reuses **published point predictions**, with attribution,
+for the exact pinned Oil Center 293661 raster. It does not run the external
+U-Net or replace the planned YOLO detector. These proposals cover 1954 only;
+reviewed examples from 1992, hard negatives, validation, and test remain needed.
+
+```sh
+# If the small attributed EDX files are absent in a fresh clone:
+.venv/bin/python pipeline/research/region_sources.py edx
+# Local conversion only; refuses existing output:
+.venv/bin/python -m pipeline.propose_annotations
+```
+
+Active output is separate: `data/ml/proposals_pilot_v2/`. The earlier local v1
+pilot lacks the import label map; retain it as preliminary and use v2.
+
+- Open `preview.html` in a browser to toggle proposed boxes over unchanged
+  original images. This is a preview, not an annotation editor.
+- `proposals.json` retains published IDs, unreviewed status, and nearest-record
+  distance. That distance is never treated as confidence.
+- `roboflow_proposals_train.zip` contains four images and YOLO text proposals
+  with `darknet.labels` mapping class 0 to `well_symbol`. There is no active
+  training YAML. See the [Roboflow Darknet format](https://roboflow.com/formats/yolo-darknet-txt).
+- Import for editing into a separate Object Detection review project, for
+  example `dowser-kern-proposals-review`, retaining Train for all four images.
+  Do not replace existing annotations in the original project. Imported boxes
+  must still be reviewed even if the platform immediately adds them to Dataset.
+- Inspect the whole image: delete false boxes, add missing symbols, adjust box
+  centers and sizes, and record the reviewed tile IDs/reviewer. Export reviewed
+  results and reconcile original tile IDs before creating any training subset.
+
+Pilot box dimensions are a fixed 16 px heuristic, not measured symbol outlines.
+There may be systematic coordinate/box-size errors and false predictions. No
+accuracy or labeling-time saving has been measured. The four images overlap:
+proposal counts are not counts of independent wells or reviewed symbols.
+Published proposals are rejected for validation/test/buffer tiles in code.
+Keep the final test annotation independent of this prelabeling source.
+
 ## What to label
 
 Single class: `well_symbol`, YOLO ID `0`. Mark the map symbol, not a physical
@@ -106,6 +152,9 @@ Each symbol gets its own rectangle, never one rectangle around an entire cluster
   features, buildings, and tanks.
 - For recognizable edge-clipped symbols, box their visible portion. If unsure,
   flag the tile for review instead of forcing a label.
+- Boxes for separate nearby symbols may overlap; use one tight box per symbol,
+  never a combined box around a distinguishable group. Unresolvable merged or
+  faint signs require review rather than guessing or silently treating as absent.
 - Review the whole tile. A few example boxes do not make a complete annotation.
 
 A negative sample requires someone to verify no well symbols exist. Do not
