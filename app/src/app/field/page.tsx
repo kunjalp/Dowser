@@ -330,6 +330,41 @@ export default function FieldView() {
   );
 }
 
+function FieldEvidence({ images }: { images: Candidate["evidenceImages"] }) {
+  const [failed, setFailed] = useState<Record<string, boolean>>({});
+  const [big, setBig] = useState<string | null>(null);
+  if (images.length === 0) return null;
+  const sorted = [...images].sort((a, b) => a.year - b.year);
+  const shown = sorted.length > 2 ? [sorted[0], sorted[sorted.length - 1]] : sorted;
+  return (
+    <div className="field-evidence">
+      <h3>What you are looking for</h3>
+      <div className="field-evidence-row">
+        {shown.map((im) => (
+          <figure key={`${im.year}-${im.url}`}>
+            {failed[im.url] ? (
+              <div className="ph">no image yet</div>
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={im.url}
+                alt={`Symbol on the ${im.year} map`}
+                onClick={() => setBig(big === im.url ? null : im.url)}
+                onError={() => setFailed((f) => ({ ...f, [im.url]: true }))}
+              />
+            )}
+            <figcaption>{im.year} map</figcaption>
+          </figure>
+        ))}
+      </div>
+      {big && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img className="field-evidence-big" src={big} alt="Enlarged map crop" onClick={() => setBig(null)} />
+      )}
+    </div>
+  );
+}
+
 function Paired({
   candidate: c,
   here,
@@ -376,7 +411,7 @@ function Paired({
 
   // Gauge geometry: the trigger line sits at 2/3 of the bar unless the reading goes past it.
   const val = latest?.value ?? 0;
-  const th = rule?.threshold ?? 1000;
+  const th = rule?.threshold ?? 1200;
   const top = Math.max(th * 1.5, val * 1.1, 1);
   const fillPct = Math.min(100, (val / top) * 100);
   const markPct = Math.min(100, (th / top) * 100);
@@ -515,6 +550,8 @@ function Paired({
         <Sparkline values={chrono.map((r) => r.value)} />
         {gaugeText && <p className="small muted">{gaugeText}</p>}
       </div>
+
+      <FieldEvidence images={c.evidenceImages} />
 
       <textarea
         className="field-note"
