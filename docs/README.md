@@ -19,6 +19,10 @@ For a quick progress check, read [ML status](ml/STATUS.md).
 | [Team update and PR review](ml/INTEGRATION_REVIEW.md) | GeoTIFF/inference coordination, verified gaps, bounded merge recommendation | New integration evidence |
 | [Detector improvement plan](ml/IMPROVEMENT_PLAN.md) | Text/lookalike errors, Train-only review batch and controlled comparison | Error analysis or new experiment |
 | [Independent Cursor experiment](ml/CURSOR_EXPERIMENT.md) | Separate workspace, frozen reference, comparison protocol and return report | Cursor handoff/review |
+| [Cursor results review](ml/CODEX_REVIEW.md) | Independent hashes/inference/metrics checks and annotation findings | Candidate review |
+| [Ryann geographic handoff](ml/RYANN_HANDOFF.md) | Ready CSV/crops archive, sanity result, source coverage and receiving instructions | Geographic export/integration |
+| [Final Test protocol](ml/FINAL_TEST.md) | Frozen candidate/settings, 30-image labeling ZIP and pending independent evaluation | Test preparation/evaluation |
+| [False-candidate repair](ml/ROLLOUT_REPAIR.md) | Reproduced post-CalGEM failure, crop triage and bounded repair trials | Rollout error report/repair |
 | [Annotation handoff](ml/ANNOTATION.md) | Local dataset commands, frozen partitions, labeling policy | Preparation/annotation change |
 | [Contribution guide](../CONTRIBUTING.md) | Branches, review, ownership, integration | Team workflow change |
 | [Agent instructions](../AGENTS.md) | Persistent instructions for AI sessions | Engineering policy change |
@@ -38,4 +42,5 @@ The ML branch incorporates main `2b4678a`. The contract reflects the inspected
 backend interfaces; deployment was not validated by ML. Raw artifacts are ignored:
 maps/tiling are reproducible, but preserve human label ZIPs separately because Git
 cannot restore them. Current annotation, split and training readiness are in
-[ML status](ml/STATUS.md); no trained detector quality is claimed.
+[ML status](ml/STATUS.md). Reported detector quality is Validation-only until
+independent Test evaluation; geographic exports are not accuracy evaluations.

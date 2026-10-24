@@ -7,10 +7,64 @@ This worktree branch: `ml/cursor-improvements`. Parent ML branch remains
 PRs #1/#2 superseded; ML agent has not merged a PR into main.
 Editor entry point: [CONTINUE.md](../CONTINUE.md).
 
+## Rollout quality issue: investigate final candidates before promotion
+
+User initially reported 11/15; the expanded Ryann CSV confirms **62 false
+symbols among the 64 original unmatched candidates** (58 Train / 4 Val).
+The unchanged .71 CSV reproduces 1,657 dedup groups / 796 multi-era / 64 unmatched
+candidates. This is a post-CalGEM quality failure; Val P=.92 is not final-candidate
+precision. All 64 crops were inspected and the human IDs reconciled. Three new
+YOLO fits were worse and rejected. A second-stage verifier prototype improves
+Val to 46/2/3 at YOLO .71 + verifier .059, but still leaves 22 known false groups
+among 24 unmatched candidates; it is **not promoted**. Original files/model pins
+and production statuses are unchanged. [ROLLOUT_REPAIR.md](ROLLOUT_REPAIR.md)
+records failures, code, weights and exact evidence. 67 software tests pass; Test
+is unused. Do not present the earlier package's candidate list as verified wells.
+
+### Incoming Test annotation and next-agent brief
+
+Latest user screenshot: 12 of 30 Test tiles annotated in Roboflow, 18 pending.
+No new Test ZIP is present locally. Export completed images as **100% Test**,
+native 1024, no preprocessing/augmentation, YOLOv8 ZIP. Prepared intake folders:
+`data/ml/reviewed_exports/test_emir_v1/` and `test_teammate_v1/`. Combine by
+original ID and require all 30 unique reviewed tiles; assignments overlap.
+Test is evaluation-only. Training repair uses the separate frozen Train images.
+See [FINAL_TEST.md](FINAL_TEST.md) and
+[NEXT_AGENT_TRAINING.md](NEXT_AGENT_TRAINING.md) for exact continuation.
+
+## Ready for Ryann: geographic integration package
+
+[RYANN_HANDOFF.md](RYANN_HANDOFF.md):
+Latest user-requested minimal delivery is `/Users/emirtg/Desktop/Dowser_Ryann.zip`:
+exactly `detections.csv`, `crops/` (3,116 PNGs), and the reviewed `best.pt`.
+Send sanity output / qualified Val metrics as message text. The earlier detailed
+archive `data/ml/handoffs/dowser_ryann_cursor_translate_v1.zip` is preserved with
+metadata/provenance. Actual model is the explicit
+Cursor translate pin at .71; canonical `inference_selected.json` remains data_v2.
+87 Train/Val tiles across three source editions were processed; Test/buffer
+were excluded. Raw counts retain overlap duplicates, not distinct/unknown wells.
+
+Sanity: 97.6% within 100 m of a usable CalGEM location, median nearest distance
+15.4 m, PLAUSIBLE. This is proximity plausibility, not independent map accuracy.
+GeoTIFF source pixels/offsets/affines were verified; actual geographic controls
+remain pending. The package itself was produced with 61 checks; current software
+has 67 passing tests. Ryann reports using its unchanged CSV; it is not evidence
+that ML verified a deployed application. Original
+checkout remains unchanged. No dependencies were added.
+
 ## Current selected model
 
+Independent Codex review of Cursor commit `0d476cf` is complete:
+[CODEX_REVIEW.md](CODEX_REVIEW.md). All candidate metrics reproduce exactly in
+fresh MPS inference; 54 tests pass. Two errors were found in the additional
+Cursor assistant labels (a filled-circle positive and a missed hollow circle),
+which are **not used by the winning translate candidate**. Repair them in a new
+annotation version before using `train_mixed_cursor_v1/v2` again. Original
+reference pin remains unchanged. The review records seed instability and the
+limits of repeatedly tuned, narrowly covered Val results.
+
 Pinned diagnostic config is still `kern_yolo11n_data_v2` /
-`pipeline/config/inference_selected.json` until review. Cursor's best
+`pipeline/config/inference_selected.json` pending a separate promotion decision. Cursor's best
 challenger is **`cursor_translate_mps`** (translate=0.1, same mix_v1, seed 42):
 Val-selected .71, **TP46 / FP4 / FN3**, P=.9200 / R=.9388 / F1=.9293 vs data_v2
 .8000. Pair: `data/ml/runs/cursor_translate_mps/comparison_to_data_v2/comparison.html`.
@@ -93,12 +147,37 @@ Do not claim the text-confusion problem is solved or broad per-era accuracy.
 
 ## Next action
 
-Cursor round 2 found a better Val candidate: translate=0.1
-(`cursor_translate_mps`). Full table, failed methods, and seed checks:
-[CURSOR_RESULTS.md](CURSOR_RESULTS.md). Reviewer should inspect the paired
-HTML and remaining 4 FP / 3 FN crops, then decide whether to point
-`inference_selected.json` at `inference_cursor_translate.json`. Do not merge
-to main. Test still unlabeled.
+Current priority is detector/candidate repair: complete mixed-context Train
+annotations in the 24 human-error source frames (20 not yet fully annotated),
+preserving original positives, then compare both native Val and the post-CalGEM
+candidate slice. Use `train_error_sources_human_confirmed.json` in
+`data/ml/rollout_diagnosis_v1/`. Feedback crop negatives are not empty full images.
+Keep the unpromoted verifier as a documented experiment, not a new best.pt.
+
+Start the independent [final-Test labeling handoff](FINAL_TEST.md):
+`data/ml/final_test_cursor_v1/test_images.zip` has 30 original Test PNGs, verified
+against the active manifest (19 dated 1954, 11 dated 1992). Model/threshold/
+scoring/IDs are frozen in `pipeline/config/final_test_cursor_translate_v1.json`.
+Human labels and the Test-specific evaluation path/report are still pending;
+no model Test inference was run. Keep predictions hidden while labeling.
+For teammate help, `/Users/emirtg/Desktop/Dowser_Test_second_half_16-30.zip`
+contains original-ZIP positions 16–30 (15 images); Emir retains positions 1–15.
+Original 30-image ZIP is unchanged. Exact filenames for each half are in
+`data/ml/final_test_cursor_v1/second_half_16-30_receipt.json` and the Test guide.
+Latest custom request: `/Users/emirtg/Desktop/Dowser_Test_selected_15.zip` contains
+the 15 filenames from Emir's screenshots; this selection overlaps both earlier
+halves. Its exact membership is in `selected_15_screenshots_receipt.json` under
+the same local Test folder. Combine future exports by IDs, not archive order.
+English website instructions for the teammate are in
+[TEAMMATE_LABELING.md](TEAMMATE_LABELING.md); annotation and final Test results
+are still pending.
+
+The ready [Ryann handoff](RYANN_HANDOFF.md) can be sent in parallel, noting partial
+coverage, duplicates and Val-only accuracy. Ryann owns dedup/matching/enrichment/
+scoring/loading/publication. Do actual-map controls and 10+ reviewed CalGEM
+matches. Preserve data_v2 as reference and correct separate Cursor annotations
+before reusing those mixes. No further training is needed for the fixed-model
+evaluation or the integration package.
 
 No additional annotation work is required from Emir for the completed data
 experiments. The paired report is ready to inspect. Current model improves
@@ -112,19 +191,21 @@ coverage. Assistant training labels are not independently verified evaluation GT
 Do actual-map control points and 10+ known CalGEM offsets before asserting
 geographic accuracy; pixel-to-WGS84 primitives already exist.
 
-Then implement model/fallback CSV/crops for Ryann and publish evidence paths.
-No backend candidate load, crop publication or final inference-sheet handoff yet.
-The teammate's described detect_sheet.py/labels_to_detections.py files remain
-absent. Master Plan ownership: Emir ML, Ryann matching/dedup/scoring and overlay
+Model CSV/crops export is now implemented and packaged; a human-ground-truth
+fallback command and full-region inference remain separate unfinished work.
+No backend candidate load or crop publication yet. Ryann's supplied scripts
+were preserved and adapted under pipeline/; commands are in the handoff doc.
+Master Plan ownership: Emir ML, Ryann matching/dedup/scoring and overlay
 conversion, Kunjal map UI. User withdrew the zero-cost constraint on 2026-10-23.
 
 ## Verification and collaboration
 
-- 54 ML tests pass: geometry/split, source/label integrity, mining guards, mixed
+- 67 ML tests pass: geometry/split, source/label integrity, mining guards, mixed
   supervision/negative provenance, actual optimizer progress, native preview,
   per-tile matching, human-Val comparison consistency and Test exclusion.
   The independent Cursor worktree passes training preflight and all 54 tests
-  after the new mixes. Copied data/environments are not symlinks; reference
+  after the new mixes; 67 now pass with geographic handoff and verifier guards.
+  Copied data/environments are not symlinks; reference
   bytes match with independent file identities. Cursor trained several named
   `cursor_*` runs; none replaced the selected data_v2 checkpoint.
 - Both data runs completed from clean committed code; raw metadata records actual

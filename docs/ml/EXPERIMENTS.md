@@ -580,7 +580,36 @@ translate seeds: s43 F1 .8113, s7 collapsed. Candidate pin
 `pipeline/config/inference_cursor_translate.json`; `inference_selected.json`
 unchanged pending review. 54 tests pass.
 
+## 2026-10-24: reviewed Cursor checkpoint to geographic handoff
+
+Master Plan sections 3/5/6. No retraining or model/threshold tuning. Explicit
+`inference_cursor_translate.json` / `cursor_translate_mps` at .71, native 1024,
+NMS .70/max_det 1000/MPS. Canonical data_v2 pin remains unchanged.
+
+The supplied detect_sheet.py and labels_to_detections.py were read, retained
+with hashes, and adapted for the frozen JSONL manifest and source validation.
+Inference produced 3,116 model boxes on all 87 Train/Val tiles; Test and buffer
+were excluded. Geographic export verified exact native pixels/offsets/affines
+against the three pinned GeoTIFFs, wrote 3,116 crops and receiver-compatible
+CSV/metadata, and kept overlap duplicates for Ryann. No backend load or evidence
+publication. Independent actual-map controls remain pending.
+
+CalGEM query used the configured buffered bbox: 28,072 records, 28,060 usable
+locations and 12 uncertain excluded. Sanity PLAUSIBLE: .9759306804 within 100 m,
+median nearest distance 15.44466047 m; dense-field proximity is not independent
+map accuracy. 61 tests pass. Existing environments/pins retained, no dependencies
+installed or cloud compute used. Commands, hashes, coverage, package and exact
+next action: [RYANN_HANDOFF.md](RYANN_HANDOFF.md). Prior review of candidate and
+the two erroneous extra Train annotations: [CODEX_REVIEW.md](CODEX_REVIEW.md).
+
 ## Model-run template
+
+Latest recorded work before final Test: [ROLLOUT_REPAIR.md](ROLLOUT_REPAIR.md)
+contains three failed YOLO repair fits and three crop-verifier prototypes.
+The best prototype has native Val TP46/FP2/FN3 at base .71/verifier .059, but
+retains 22 known false post-CalGEM candidate groups and is not promoted. Human
+review reconciles 62 false IDs (58 Train/4 Val). All labels/settings/artifacts,
+unsuccessful results, timing and pending Train work are recorded there.
 
 ```yaml
 run_id: pending

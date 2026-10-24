@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "experimental_not_promoted_remaining_known_false_candidates",
+  "base_inference_config": "pipeline/config/inference_cursor_translate.json",
+  "base_weights_sha256": "d417cf36430485eb534fd1197be6cf15b4cad11c967083654fc3388e5a226b2e",
+  "base_confidence": 0.71,
+  "verifier_weights": "data/ml/runs/kern_symbol_verifier_v3/verifier.pt",
+  "verifier_weights_sha256": "32e93ccf0ef478255cfae4e53f679e43f25efd9134432ba7e005e668793badba",
+  "verifier_cutoff": 0.059,
+  "crop_size": 48,
+  "native_context_factor": 1.6,
+  "positive_class": "target_oil_gas_well_symbol",
+  "confidence_semantics": "Keep original YOLO confidence; add verifier_score separately. Neither score is a calibrated probability.",
+  "val_metrics_at_operating_point": {
+    "verifier_cutoff": 0.059,
+    "tp": 46,
+    "fp": 2,
+    "fn": 3,
+    "precision": 0.9583333333333334,
+    "recall": 0.9387755102040817,
+    "f1": 0.9484536082474226
+  },
+  "selection": "Repeated Val-only checkpoint/cutoff calibration; not independent Test",
+  "negative_supervision": "58 human-confirmed false crops from frozen Train only; four Val cases excluded from learning",
+  "known_feedback_effect": "40/62 human false representatives rejected; 22 known false groups remain among 24 unmatched groups",
+  "production_and_canonical_pins_changed": false,
+  "final_test_used": false,
+  "requires_both_models_for_fresh_inference": true
+}

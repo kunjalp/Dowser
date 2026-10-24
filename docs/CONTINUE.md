@@ -4,11 +4,24 @@ Use this entry point when moving from this chat to Cursor or another agent.
 The chat is not required project memory. Current outcomes and next actions live
 in [ML status](ml/STATUS.md); update that file after meaningful work.
 
+Current training repair / incoming Test export instructions for the next agent:
+[NEXT_AGENT_TRAINING.md](ml/NEXT_AGENT_TRAINING.md). Test annotation is in progress;
+it remains separate from training. Read the rollout failure and rejected repair
+results before choosing a new experiment.
+
+The geographic CSV/crops package is ready in the Cursor checkout:
+[Ryann handoff](ml/RYANN_HANDOFF.md). It uses the reviewed translate candidate
+at .71 on 87 Train/Val tiles. Test is excluded; the canonical data_v2 pin and
+original checkout were not changed. Send the archive and qualified Val metrics,
+then continue coordinate controls and independent Test evaluation.
+
 ## Open the correct checkout
 
-On Emir's current machine, open `/Users/emirtg/Desktop/dowser`. Inspect the branch
-and working tree before changing files. Opening the same directory preserves
-local ignored data and the Python environment; do not recreate or overwrite them.
+For current ML review, geographic delivery and final-Test work, open
+`/Users/emirtg/Desktop/dowser-cursor`, branch `ml/cursor-improvements`. Original
+`/Users/emirtg/Desktop/dowser` is a separate reference checkout; the user asked
+not to modify it. Inspect status before editing and preserve the local ignored
+datasets/environments. Do not recreate or overwrite them.
 
 ```sh
 git status --short --branch
@@ -28,6 +41,10 @@ follow [CURSOR_EXPERIMENT.md](ml/CURSOR_EXPERIMENT.md). It has copied local data
 and environments; leave the original checkout/reference artifacts intact.
 Cursor wrote `docs/ml/CURSOR_RESULTS.md`. Best challenger is
 `cursor_translate_mps` (Val F1 .9293 vs data_v2 .8000); seed-sensitive.
+The independent check is in [CODEX_REVIEW.md](ml/CODEX_REVIEW.md): fresh
+inference confirms the metrics, but two additional Cursor annotation errors
+must be fixed before those new mixes are reused. The winning candidate uses
+the unchanged earlier Train import. Follow ML status for the next action.
 
 Raw maps, prepared images/ZIPs, and `.venv` are deliberately outside Git. They
 remain available in this local checkout, but do not appear in a fresh clone.

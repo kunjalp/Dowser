@@ -46,7 +46,12 @@ with a tooltip explaining that it is not a model score. Future fallback exports
 must explicitly carry `source=ground_truth` and this convention. Model exports
 must contain their actual score and `source=model`; never rely on the dedup
 script's missing-confidence default. The imported label dataset has no confidence
-column; no detections or candidate load were performed by the audit task.
+column. The later [Ryann handoff](RYANN_HANDOFF.md) now supplies 3,116 raw model
+rows/crops from Train/Val tiles, with actual scores and explicit source. Test and
+buffer are excluded. CSV includes the required columns plus native x/y/w/h,
+className and mapYear; crop paths are receiver-repo-relative local files, not
+published URLs. Its JSONL adds local `cropPath` metadata and is not a direct
+Convex import. No candidate load or evidence publication was performed.
 
 Ryann's current offline entry point is `pipeline/dedup.py --detections ...`.
 It accepts CSV with `lat`, `lon`, `confidence`, `year` (alias `mapYear`), and

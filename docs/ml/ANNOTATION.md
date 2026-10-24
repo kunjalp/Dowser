@@ -21,6 +21,11 @@ assistant labels (purple) and model predictions (orange).
 
 ## Active Validation handoff
 
+The current new labeling request is the separate protected **30-image Test**
+package, not a repeat of Validation. See [FINAL_TEST.md](FINAL_TEST.md) for the
+ZIP, frozen protocol and pending evaluation. Validation instructions below
+are retained for historical reproduction.
+
 This handoff is completed: the supplied 15-image export was audited, and the first
 baseline trained. Counts/checkpoint/preview/next action are in [STATUS.md](STATUS.md).
 Retain the instructions below for reproducing the annotation workflow; no redraw

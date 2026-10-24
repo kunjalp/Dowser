@@ -11,12 +11,12 @@ It supersedes the original PRD. Legacy FR identifiers are cross-references only.
 | Test about 20%, >=30 tiles before training | Emir: partition implemented | Active v2 preserves all original 30 Test IDs; 72 Train / 15 Val / 30 Test / 72 buffer, zero cross-split overlap; Test labels needed before evaluation |
 | >=300 human-labeled symbols, lookalike negatives, multiple eras | Human count/eras retained; assistant additions explicit | Original 568 human boxes unchanged; selected 8-image Train adds 49 assistant boxes and one assistant-reviewed empty tile. Val remains 49 human boxes/11 negatives; assistant labels are not human GT |
 | Fine-tune pretrained YOLO, imgsz 1024 | Baseline and two data experiments completed | Selected data_v2: 24 epochs/96 updates, best epoch 14, same original pretrained start; configs/checksums recorded |
-| Box, confidence, class, tile ID, year, crop | Train/Val diagnostic predictions ready; geographic/crop export pending | Native-box JSON and interactive preview available; no candidate load or published crops |
-| Pixel-to-WGS84 with native tile transform | Emir: unit checked | `pipeline.geo`, edge convention and rotated-affine checks |
+| Box, confidence, class, tile ID, year, crop | Partial-region model handoff packaged | [RYANN_HANDOFF.md](RYANN_HANDOFF.md): 3,116 raw detections/crops on 87 Train/Val tiles; Test/buffer excluded; no candidate load or published crops |
+| Pixel-to-WGS84 with native tile transform | Emir: implemented and export checked | `pipeline.geo`; all exported source pixels/affines reconstructed, numeric corner residual <1 px; independent geographic controls still pending |
 | >=3 control points on actual maps | Emir: pending | Synthetic projection tests do not satisfy independent map-control acceptance |
 | >=10 known CalGEM wells, median offset <50 m target | Emir + Ryann: pending | Needs reviewed symbols and reference matches |
 | Precision/recall on untouched test; target >=0.60 | Final Test pending | Selected data_v2 Val at .24: P .7213 / R .8980, not final Test. Val-only threshold/model selection; no positive 1992 Val labels, three FP on its negatives |
-| Model/manual-ground-truth fallback | Emir: pending export | Main now uses explicit ground_truth with numeric 1.0 and a hand-labeled UI tag; audit outputs remain label files, not candidate loads |
+| Model/manual-ground-truth fallback | Model handoff ready / human fallback command pending | Model CSV has actual confidence and explicit source; future human fallback must retain ground_truth, numeric 1.0 convention and UI tag |
 | Dedup 20 m across tiles and editions | Ryann | Master Plan supersedes original 15 m |
 | Match 100 m, OSM homes/schools/water, scoring, load | Ryann | Existing backend loading API is not ML's task |
 | Command Map and Field View | Kunjal | Ryann prepares overlay; ML supplies source/crops |

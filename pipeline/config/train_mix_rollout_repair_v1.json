@@ -1,0 +1,13 @@
+{
+  "dataset": "data/ml/kern_1024_v2",
+  "human_import": "data/ml/reviewed_v2",
+  "assistant_annotations": "data/ml/rollout_repair_labels_v1/annotations.json",
+  "include_ids": [
+    "usgs_102321_x04526_y05289",
+    "usgs_293664_x02138_y05275",
+    "usgs_293664_x03776_y03637",
+    "usgs_293664_x04595_y05275",
+    "usgs_293664_x02138_y03637"
+  ],
+  "output": "data/ml/train_rollout_repair_v1"
+}

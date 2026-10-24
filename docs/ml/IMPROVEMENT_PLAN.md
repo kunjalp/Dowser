@@ -4,6 +4,14 @@ Decision/review date: 2026-10-24. Applies Master Plan section 6: complete labels
 diverse map examples, negatives with lookalikes, and held-out precision/recall.
 This is a next-experiment plan, not evidence that a new model is better.
 
+Latest rollout failure, all human-confirmed false candidates and completed
+repair trials are in [ROLLOUT_REPAIR.md](ROLLOUT_REPAIR.md). The old candidate
+was used by Ryann: 62 of 64 unmatched candidates were rejected by human review.
+Three new YOLO fits did not improve Val; a crop verifier is a partial,
+unpromoted prototype. Current work is full mixed-context Train labeling and
+post-matching QA; Test remains protected. Older baseline instructions below
+are retained as historical context, not the current result.
+
 User update: Emir subsequently explicitly requested autonomous assistant annotation
 and training. Assistant review and two mixed-supervision data experiments are now
 completed; data_v2 is selected on Val F1. See current STATUS.md and EXPERIMENTS.md.
