@@ -128,9 +128,9 @@ export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, 
               </span>
               <span className="dot" style={{ background: dotColor(c) }} />
               <span className="row-main">
-                <span className="row-title">
-                  {c.id}
-                  <span className="muted"> · {c.quadName}</span>
+                <span className="row-title" title={`${c.quadName} · ${c.id}`}>
+                  <span className="row-quad">{c.quadName}</span>
+                  <span className="row-id">{c.id.length > 8 ? `…${c.id.slice(-6)}` : c.id}</span>
                 </span>
                 <span className="bar">
                   <span style={{ width: `${Math.round(c.rankScore * 100)}%`, background: dotColor(c) }} />
