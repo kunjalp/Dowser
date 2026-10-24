@@ -1,92 +1,106 @@
 # First detector training plan
 
-Decision date: 2026-10-24, America/Los_Angeles. This is a selected baseline and
-execution plan, not a completed detector run. See [status](STATUS.md) for progress.
+Decision date: 2026-10-24, America/Los_Angeles. Current outcomes/next action are
+in [STATUS.md](STATUS.md). No detector epochs have run.
 
-## Location and environment
+## Environment and model
 
-First run: locally on Emir's Apple M5 Mac, 24 GiB unified memory, using PyTorch
-MPS (Apple GPU). A small convolution forward/backward and NumPy transfer passed
-on `mps:0`; MPS is available. This is a backend check, not a YOLO benchmark.
+Train locally on the Apple M5, 24 GiB unified memory, using PyTorch MPS.
+Use separate ignored `pipeline/.venv/`, Python 3.12.14. Installed dependencies:
+[direct requirements](../../pipeline/requirements-train.txt),
+[full macOS lock](../../pipeline/requirements-train.lock.txt).
+Preserve root `.venv/` for map preparation/auditing. Do not install preparation's
+NumPy 2.0.2 pin into training: the current SDK/macOS dependencies exclude 2.0.x;
+the resolved training version is 2.5.4.
 
-Use ignored `pipeline/.venv/` with Python 3.12.14. Currently installed/probed:
-PyTorch 2.14.1 and NumPy 2.0.2. Preserve the existing root `.venv/` (Python 3.9.6)
-for map preparation/auditing. The training SDK, full dependency lock, weights,
-and runner still need setup; PyPI listed Ultralytics 8.4.185 during this check.
-Do not call the full training environment ready based only on the backend probe.
+On another compatible Mac with Python 3.12.14 and uv, if the environment is absent:
 
-Probe output: ignored `data/ml/training_environment_probe.json`. No cloud
-instance, hosted training session, or paid compute was started by this check.
+```sh
+uv venv --python 3.12.14 pipeline/.venv
+uv pip install --python pipeline/.venv/bin/python -r pipeline/requirements-train.lock.txt
+```
 
-## Selected model and planned settings
+Do not recreate an existing environment or apply the ARM64/MPS config unchanged
+to CUDA/Linux. Record a different environment/config as a separate run.
+Task-local SDK settings disable external logger sync. This is an implementation
+choice; the user withdrew the earlier project-wide zero-cost restriction.
 
-Start with pretrained **YOLO11n** (`yolo11n.pt`), ordinary object detection,
-one class `well_symbol`. Its small size is useful for a quick first run on this
-machine. It has not been shown to outperform other models on our well symbols.
-The earlier YOLOv8 export selected the label format, not a training architecture.
+Start with pretrained **YOLO11n**, one class `well_symbol`. YOLOv8 ZIP export
+selects a label format, not an architecture. The small model is a practical
+candidate, not proven superior for these symbols. Weights stay outside Git at
+`data/ml/weights/yolo11n.pt`; source URL and checksum are pinned in the config.
+On another machine fetch that exact URL and verify the checksum before use.
 
-| Setting | Planned first value | Reason |
-| --- | --- | --- |
-| Transfer learning | Pretrained yolo11n.pt | Learn from existing features rather than train from scratch |
-| imgsz | 1024 | Master Plan; preserve tiny scanned symbols |
-| device | mps | Available local Apple GPU |
-| batch | 2 | Conservative initial memory use; check on full model |
-| workers | 0 | Simple first macOS process setup |
-| amp | false | Start with float32 and fewer mixed-precision variables |
-| seed | 42 | Record repeatable inputs; no cross-device bit-identity claim |
-| First diagnostic run | 5 epochs | Verify loading, loss, checkpoints, and prediction rendering |
-| First baseline | Up to 50 epochs, patience 10 | Select checkpoint on independent validation, record actual stopping |
-| Initial augmentation | Off for diagnostic run | Establish data/box correctness before extra transformations |
-| max_det | 1000 for prediction/evaluation | Avoid a low detection cap on dense symbol maps |
+The full native-1024 model loss/backward probe passed on one real Train image,
+without optimizer updates or trained weights. This verifies those operations,
+not the complete batch-2 training/validation/checkpoint/rendering path.
+See [experiment records](EXPERIMENTS.md) for raw probe results and versions.
 
-The actual config will be committed with the runner and exact installed versions
-before training. Weights stay outside Git, with source and SHA-256 recorded.
-Measure memory and per-epoch time in the first run before estimating wall time.
-MPS backend success alone does not guarantee every YOLO operation will work.
+## Data and settings
 
-## Data and readiness
+Active frozen manifest: `data/ml/kern_1024_v2/manifest.jsonl`: 72 Train, 15 Val,
+30 Test, 72 buffer. Original v1 is preserved. Two full-content Val tiles were
+added to the padded edge strips before fitting, preserving human Train/Test
+and excluding overlapping neighbors from Train.
 
-Training input: `data/ml/reviewed_v2/`, 5 user-annotated images and 568 boxes:
-297 from 1954, 271 from 1992. Use original PNG pixels and audited label files.
-V2 resolves the requested loose-boundary examples; full completeness is not
-independently established. No further redraw of these same examples is requested.
+Fit only `data/ml/reviewed_v2/`: 5 user-reviewed images, 568 boxes, both eras,
+native PNGs. All other unreviewed Train images are excluded.
+Reviewed Validation must be imported to `data/ml/reviewed_validation_v1/`
+and audited against the active manifest. Its labels are still missing.
+Never fabricate negatives, re-split the five Train images or tune against Test.
+Final Test labels are needed for evaluation, not the first training diagnostic.
 
-**Missing prerequisite for the normal training/validation run:** reviewed labels
-for the 13 frozen Validation images. The 30 frozen Test images must remain
-excluded from fitting and tuning; label them independently for final evaluation.
-Current exports contain training labels only. The exported YAML is not runnable
-as-is because its validation/test paths do not exist in that export.
+[Diagnostic config](../../pipeline/config/train_smoke.json): 5 epochs,
+imgsz 1024, batch 2, mps, workers 0, amp false, seed 42, AdamW/lr0 0.001,
+warmup 0, augmentation off, max_det 1000, plots/checkpoints enabled.
+Measure actual memory and epoch timing in that run.
 
-Do not randomly split the five overlapping training images, reuse them as
-independent validation, or turn unreviewed images into empty negative labels.
-Include verified negatives in the expanding training dataset. Team labeling
-help is already part of the Master Plan; no labeling assignment was sent here.
+If all reviewed Val images are negative, the diagnostic explicitly permits it
+but records quality metrics as unavailable. Raw framework zeros are not measured
+recall/mAP. The full baseline requires independent positives before quality-based
+checkpoint selection. Any further split change needs an explicit version and
+contamination review; do not silently change it after examining model results.
 
-## Execution sequence
+## Commands and sequence
 
-1. Inspect and integrate pending upstream main changes before adding the runner.
-2. Install/pin the training SDK in the separate environment, fetch pinned-source
-   pretrained weights, and check full-model compatibility on the local GPU.
-3. Import/audit independent Validation annotations, preserving the frozen
-   geography. Keep Test protected. The existing five-image Train set stays Train.
-4. Commit the exact run config and execute the 5-epoch diagnostic run. Inspect
-   loss/checkpoints and render predictions. Debug previews on seen Train images
-   are marked as seen data and do not establish quality on unseen territory.
-5. Run the baseline, up to 50 epochs. Use Validation for checkpoint/threshold
-   selection. Record actual metrics, per-era counts, errors, code/environment,
-   weight hashes, duration and device in [experiments](EXPERIMENTS.md).
-6. Freeze the selected model/threshold, then evaluate on the independently labeled
-   30-image Test set. Report held-out precision/recall and representative mistakes.
-7. Convert reviewed model detections to WGS84, preserve tile/year/crop provenance,
-   check known-well offsets, and hand the agreed detection export to Ryann.
+After independent review/export of all 15 Validation images (see
+[annotation handoff](ANNOTATION.md#active-validation-handoff)):
 
-The first visible model artifact will be a prediction preview with boxes and
-scores from our fine-tuned model. The existing proposal preview reuses published
-predictions and must remain distinguishable from this future result.
+```sh
+# Replace the placeholder with the actual preserved export filename.
+.venv/bin/python -m pipeline.audit_annotations \
+  data/ml/reviewed_exports/VALIDATION_EXPORT.yolov8.zip \
+  --dataset data/ml/kern_1024_v2 --split val \
+  --output data/ml/reviewed_validation_v1
+pipeline/.venv/bin/python -m pipeline.train_detector --check-only
+# Only after preflight passes; refuses existing run/output names:
+pipeline/.venv/bin/python -m pipeline.train_detector --name kern_yolo11n_smoke_v1
+```
+
+The audit requires explicit empty TXT files for reviewed negatives, reconciles
+IDs/partitions and restores native PNGs. It never moves labels between folds.
+Default preflight refuses fitting while Validation is missing.
+
+The runner records audit/manifest hashes, config/versions, commit/dirty state,
+status and metrics under `data/ml/runs/<name>/run.json`. SDK checkpoints/curves
+live in its `training/` subdirectory. Preserve failed/interrupted runs and use
+fresh names for retries. Commit final code/config before fitting; record actual
+parameters, timing and checkpoint checksums in the experiment log.
+
+Inspect the diagnostic's data loading, losses, memory/device, saved weights and
+predictions. The first visible model result will be a prediction preview from
+our fine-tuned detector. Seen-Train previews are marked as such and do not
+establish unseen quality. Existing published-proposal HTML is distinct.
+
+After diagnostics and positive independent Val, commit a separate baseline
+config: up to 50 epochs, patience 10, `allow_negative_only_validation=false`.
+Start from pinned pretrained weights, select checkpoint/threshold on Val, record
+actual stopping and per-era errors. Freeze choices, evaluate on independently
+labeled 30-image Test, then export WGS84 detections/crops and check well offsets.
 
 ## Primary references
 
-- [Ultralytics YOLO11 models and pretrained detection weights](https://docs.ultralytics.com/models/yolo11/).
-- [Ultralytics training and Apple MPS configuration](https://docs.ultralytics.com/modes/train/).
-- [PyTorch 2.14 MPS backend](https://docs.pytorch.org/docs/2.14/notes/mps.html).
-- [Current Master Plan](../master-plan/source.txt), ingestion/detector acceptance.
+- [Ultralytics YOLO11](https://docs.ultralytics.com/models/yolo11/).
+- [Training and Apple MPS](https://docs.ultralytics.com/modes/train/).
+- [PyTorch MPS](https://docs.pytorch.org/docs/2.14/notes/mps.html).
+- [Master Plan](../master-plan/source.txt), ingestion/detector acceptance.

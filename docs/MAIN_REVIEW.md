@@ -1,4 +1,4 @@
-# Main branch review: 2026-10-23
+# Main branch review: baseline 2026-10-23, incremental review 2026-10-24
 
 Historical baseline below is `15f7c8f`, not current main. ML preparation now
 includes `f7e5eeb`: candidates/status/field-check/pairing functions were added,
@@ -145,3 +145,30 @@ Follow [the contribution guide](../CONTRIBUTING.md#synchronizing-with-main).
 Treat this review as evidence for the recorded SHA, not a claim that future main
 commits are already reviewed. Re-read changed files and their consumers before
 updating the snapshot; preserve explicit open decisions until jointly resolved.
+
+## Incremental integration through 558a00b — 2026-10-24
+
+This supplements the original full-file baseline; it does not claim a new full
+repository audit. Main through `84335ce` was previously incorporated, including
+dedup/matching/enrichment/loading, fallback provenance/UI and field-state
+preservation. Main `558a00b` was merged into the ML branch by `e1a4b4c`.
+
+Source inspection focused on incoming contracts and consumers: brief generation
+in `convex/briefPrompt.ts`, `convex/briefs.ts`, `pipeline/briefs.py`; evidence URL
+handling in `pipeline/load_candidates.py`; `pipeline/export_calgem_points.py`,
+`impact.py`, `replay.py`; and corresponding UI types, detail/map/page changes.
+Styles/generated fixtures were reviewed as incoming changes, not visually
+validated as an application. Tile/detection schema remains compatible with the
+documented ML handoff. New brief/replay tools do not need to run for ML training.
+
+These team files are preserved unchanged. No live Convex deployment, candidate
+load, Claude generation, sensor replay or UI end-to-end validation was performed.
+ML verification covers its offline Python data/geometry/audit/training guards;
+it is not certification of the incoming app or external services.
+
+During final fetch, main advanced to `b0bd0bc` with Capacitor/iOS wrapper,
+installable web manifest/icons, safe-area styling and Codemagic signing/build
+configuration. Targeted diff inspection found no ML/Convex contract changes.
+The mobile configuration and dependency changes are integration context, not a
+full iOS/build/signing review. Do not execute signing, publishing or TestFlight
+commands as part of this ML setup. Incorporate after saving current ML work.

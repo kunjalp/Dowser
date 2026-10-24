@@ -176,6 +176,82 @@ geographic holdouts. This is a data preparation run, not a model experiment.
   [training plan](TRAINING_PLAN.md). Full SDK/weights and Validation labels still
   pending. No detector weights trained, no accuracy measured, no cloud compute.
 
+## Validation split revision — 2026-10-24
+
+- Purpose: improve held-out content before fitting, without moving human Train
+  or original Test; Master Plan tiling/frozen-holdout acceptance and independent
+  validation discipline. Inspection found original 13 Val tiles mostly contain
+  padded edge strips. No trained-model errors or Test labels were used to select
+  the new tiles; positive well presence is not established until human review.
+- Command: `.venv/bin/python -m pipeline.reserve_validation`.
+  Config: `pipeline/config/validation_revision.json`; base manifest hash remains
+  `fdc01146873c0d5e5e0c6c4c95e7eae51998f872fd1746dc8c6919151f4d19af`.
+- Code base: `e1a4b4cc1ab01257b177dc51711bc57cf713d40b` with uncommitted
+  implementation. Script SHA-256:
+  `7424be94a944375579a5b8aa85a493b25732c033fb2494e06ee7fdf472e8874e`.
+- Reserved full-content images: `usgs_293661_x03787_y02820` (1954) and
+  `usgs_102321_x03707_y02832` (1992). Kept old 13 Val; ten other overlapping
+  Train neighbors across editions became buffer. All five human Train tiles and
+  original 30 Test IDs stay unchanged. This was done before any optimizer step.
+- New output `data/ml/kern_1024_v2/`: 189 rows, 72 Train / 15 Val / 30 Test /
+  72 buffer; 117 native PNGs. Original v1 is preserved. New manifest SHA-256:
+  `ebb2f8a4fdfefabf7dcdd9f3e4339f4c5912d4b2b2ecbb448b3f6da06c0ef572`.
+- New `annotation_import/val.zip`: 15 PNGs, images only, SHA-256
+  `fe518b3af93be4973e0971b155bb6cde3cae3ca992f038a21c0fd46712af69a9`.
+  ZIP integrity and every image's byte identity checked; all 117 retained PNGs
+  equal original preparation outputs. Zero cross-split metric-envelope overlap.
+  No labels, negatives, geographic accuracy, or detector metrics inferred.
+- Source v1/v2 Roboflow ZIP hashes and 568 Train boxes reverified unchanged.
+  New Validation uses a separate Roboflow project to avoid duplicate skipping of
+  two tiles already present in the original project's unreviewed Train queue.
+  Original remaining queue is obsolete as a split list: 67 still Train, 2 Val,
+  10 buffer. None of those unreviewed files enters fitting.
+
+## YOLO environment and full-model compatibility — 2026-10-24
+
+- Purpose: prepare the first local detector run, not fit/evaluate a detector.
+  Hardware/OS: Apple M5, 24 GiB, macOS 26.6.2 ARM64. Separate Python 3.12.14
+  environment `pipeline/.venv/`; root preparation environment unchanged.
+- Installation with `ultralytics==8.4.185 numpy==2.0.2` failed dependency
+  resolution because current macOS SDK dependencies exclude NumPy 2.0.x.
+  Resolved with `uv pip install --python pipeline/.venv/bin/python
+  ultralytics==8.4.185 'numpy>=2.3.5,<3'`. Actual NumPy 2.5.4, torch 2.14.1,
+  torchvision 0.29.1. Direct requirements and all 41 installed package pins are
+  committed; each pin checked against installed metadata. No cloud compute.
+- Pretrained weights: official
+  [yolo11n.pt release](https://github.com/ultralytics/assets/releases/download/v8.3.0/yolo11n.pt),
+  5,613,764 bytes, SHA-256
+  `0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1`.
+  Local ignored weights/metadata under `data/ml/weights/`. No external model
+  architecture source was substituted for the planned YOLO detector.
+- Command: `pipeline/.venv/bin/python -m pipeline.probe_training`.
+  Code base `e1a4b4c` plus uncommitted implementation, script SHA-256
+  `8b8c674d41c9ab36d21bf36a9b33163f9db5455ba3216bb24a38383abb39d752`.
+  Single-class DetectionModel transfers compatible pretrained features; input
+  `usgs_102321_x01250_y03651`, 271 actual human Train boxes, batch 1, 1024 px,
+  MPS, float32. Detection loss and backward pass, no optimizer creation/step.
+- Result `data/ml/yolo11n_backend_probe.json`: finite gradients, loss
+  9.857385635375977 (box 3.723721742630005, cls 4.3629584312438965,
+  DFL 1.7707054615020752), approximately 5.976 s. This probe was not seeded for
+  identical loss replay; its purpose is operator compatibility. No epochs,
+  optimizer updates, trained checkpoints, Val/Test reads or quality measurements.
+  No complete training latency, batch-2 capacity or successful rendering claim.
+- Runner/config: `pipeline.train_detector`, `pipeline/config/train_smoke.json`;
+  pinned pretrained weights, 5 epochs, native 1024, batch 2, mps, workers 0,
+  amp false, seed 42, AdamW/lr0 0.001, warmup 0, augmentation off, max_det 1000.
+  Five human Train images only; all 15 Val must be independently reviewed.
+  Negative-only Val is explicitly diagnostic: recall/mAP unavailable. A later
+  quality baseline requires positive independent Val and a separate config.
+- `pipeline/.venv/bin/python -m pipeline.train_detector --check-only` exits 2
+  with `Missing reviewed val import`, expected. It creates no training run.
+  33 ML unit tests passed, covering added archive/negative/split/preflight cases.
+- Setup receipt `data/ml/training_setup_receipt.json`, recorded at
+  `2026-10-24T10:30:23Z`, preserves code/config/lock/artifact hashes and dirty
+  state. Full-lock SHA-256:
+  `5794c25ad8f342769da318955f4ec130e57d0f21ced409c00df79a15c9ced9f7`.
+  No hosted session, API call, account upload or paid compute started by setup.
+  Installed SDK/pretrained checks do not establish detector accuracy.
+
 ## Model-run template
 
 ```yaml

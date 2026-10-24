@@ -1,7 +1,8 @@
 # ML/backend contract
 
 Source of truth: [Master Plan sections 4–6](../master-plan/source.txt).
-Backend/schema inspected through `84335ce`, incorporated into the ML branch.
+Schema baseline `84335ce`; incoming interfaces inspected through `558a00b`,
+incorporated into the ML branch. Schema fields below remain unchanged.
 The original PRD and the old `15f7c8f` schema are superseded.
 
 ## Ownership and delivery
@@ -64,6 +65,10 @@ matching/enrichment/provenance fields. See the current schema for full fields.
 no candidate loading path exists is obsolete.
 Current upsert preserves an existing non-candidate status and field score part,
 and keeps an existing brief when the incoming load has none.
+Main `558a00b` additionally supports evidence URL publication in the loader,
+batch brief generation and sensor replay. These do not change the ML detection
+boundary or authorize ML to overwrite field decisions or generate live briefs.
+Local crop paths still require publication before they are usable evidence URLs.
 
 Exact statuses: `candidate`, `queued`, `confirmed_leaking`,
 `confirmed_not_leaking`, `no_well`, `mislocated`. Manual field logging is P0;

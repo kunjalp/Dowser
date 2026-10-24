@@ -3,6 +3,57 @@
 Owner: Emir. Labeling helpers: Ryann and Kunjal, per Master Plan. Scripts do not
 trigger paid labeling jobs or upload anything externally.
 
+## Active Validation handoff
+
+The five-image Train export is complete and imported as `data/ml/reviewed_v2/`
+(568 boxes). Do not redraw it. Current split revision is `kern_1024_v2`, made
+before any model fitting because the original Val images are mostly padded edge
+strips. Active counts: **72 Train / 15 Val / 30 Test / 72 buffer**.
+Original v1 data and all five human Train images are preserved. See
+[status](STATUS.md) and [revision record](EXPERIMENTS.md#validation-split-revision--2026-10-24).
+
+1. Create a separate **Object Detection** project `dowser-kern-validation`.
+   Upload `data/ml/kern_1024_v2/annotation_import/val.zip` (15 native PNGs),
+   batch name `kern_1024_v2_val`. The two new full-content Val images already
+   exist unannotated in the original project's Train queue; a separate project
+   avoids duplicate skipping and preserves existing work.
+2. Keep the only class `well_symbol`. Independently inspect each whole image
+   and draw tight boxes using the policy below. White padding is not a target.
+   Use **Mark Null** only after confirming there are no symbols; uncertain
+   images remain unfinished. Do not prelabel these held-outs with EDX/model
+   predictions. The presence/count of positives is not known before review.
+3. Add reviewed images to Dataset as **Validation/Valid**, with no random split.
+   Export YOLOv8 ZIP with original 1024 px geometry and no resizing/augmentation.
+   Preserve the archive under `data/ml/reviewed_exports/`. If the UI forces a
+   different partition, stop at that screen and reconcile explicitly rather
+   than silently moving Val into Train.
+
+Use the new **15-image** ZIP, not v1's 13-image ZIP. Do not label all remaining
+79 images in the old Train queue: only 67 still belong to active Train; two are
+Val and ten overlap Val and are now buffer. Only the five reviewed Train images
+are currently selected for fitting. Extra Train labels are not the next step.
+
+Audit the downloaded Validation export (replace the placeholder filename):
+
+```sh
+.venv/bin/python -m pipeline.audit_annotations \
+  data/ml/reviewed_exports/VALIDATION_EXPORT.yolov8.zip \
+  --dataset data/ml/kern_1024_v2 --split val \
+  --output data/ml/reviewed_validation_v1
+```
+
+The auditor selects the requested folder from a mixed export and verifies every
+selected ID belongs to the frozen Val manifest. Reviewed negatives require
+explicit empty TXT labels; missing files are not accepted as proof of review.
+No full training run starts until this reviewed import passes preflight.
+If Val contains only negatives, diagnostic false positives can be inspected,
+but positive independent examples are needed for recall/mAP and the full baseline.
+
+## Original preparation and first Train session
+
+The following v1 preparation/first-session steps describe the original import.
+For the current next action, use the active Validation handoff above.
+
 ## Prepare locally
 
 ```sh
@@ -14,10 +65,11 @@ python3 -m venv .venv
 ```
 
 Preparation refuses to overwrite output. For a deliberate rerun use a new
-`--output data/ml/kern_1024_v2` and preserve prior manifests. Downloads use
+`--output data/ml/kern_1024_rerun` and preserve prior manifests. Do not use
+`kern_1024_v2`, which is reserved for the documented split revision. Downloads use
 public USGS/PROJ URLs; tiling is offline.
 
-Active package: `data/ml/kern_1024_v1/`:
+Original package (preserved): `data/ml/kern_1024_v1/`:
 
 | Artifact | Meaning |
 | --- | --- |
@@ -72,9 +124,9 @@ from another year must stay in the same partition.
    annotator before dividing the larger batch. Save changes and confirm that
    reopening an image retains its boxes. Do not mark partial work complete.
 
-When reviewed images are added to Dataset, keep this entire batch in **Train**.
-Do not randomly repartition it. Later import `val.zip` and `test.zip` as separate
-batches and retain Validation/Valid and Test respectively. Validation is for
+The initial reviewed five-image subset stays in **Train**. Reconcile all later
+IDs against the active v2 manifest; do not label/repartition the old queue blindly.
+Use the active Validation handoff above and preserve Test separately. Validation is for
 tuning; protected test labels are for final evaluation. Images are still 1024 px;
 do not generate a resized/augmented version during the first annotation session.
 
@@ -239,7 +291,8 @@ Format validation and the figure inspection do not prove full label completeness
 
 - >=300 human-reviewed symbols overall; report the training count separately.
 - All included train/val images reviewed, including negatives.
-- >=30 test images labeled without tuning against them.
+- >=30 test images protected before fitting; label independently before final
+  evaluation (Test labeling need not block the initial training diagnostic).
 - No geography/year leakage or automatic random repartitioning.
 - Ambiguous decisions consistent across annotators.
 - Actual-map control points and ten-known-well offsets still checked; affine

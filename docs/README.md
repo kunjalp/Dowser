@@ -31,6 +31,8 @@ Documentation is stored with code and reviewed in the same PR. Prefer English fo
 shared technical files and code identifiers; chat can remain in Russian. Do not
 copy mutable statuses across several documents. Link to evidence instead.
 
-The ML preparation branch includes main `84335ce`. The contract reflects its
-current backend schema. Raw maps and labeling images are ignored and reproducible
-locally. Prepared images remain unlabeled; no detector result is claimed.
+The ML branch incorporates main `558a00b`. The contract reflects the inspected
+backend interfaces; deployment was not validated by ML. Raw artifacts are ignored:
+maps/tiling are reproducible, but preserve human label ZIPs separately because Git
+cannot restore them. Current annotation, split and training readiness are in
+[ML status](ml/STATUS.md); no trained detector quality is claimed.

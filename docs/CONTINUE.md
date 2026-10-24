@@ -27,6 +27,14 @@ remain available in this local checkout, but do not appear in a fresh clone.
 For another machine, follow [annotation setup](ml/ANNOTATION.md). Preserve any
 existing annotations and manifests; a Git clone cannot restore ignored labels.
 
+There are two Python environments: root `.venv/` for preparation/auditing and
+`pipeline/.venv/` for YOLO/MPS training. Their NumPy pins differ intentionally;
+see [training setup](ml/TRAINING_PLAN.md). Active splits are in `kern_1024_v2`,
+while human Train labels are in `reviewed_v2`. Preserve original v1 artifacts.
+The next human task is the new 15-image Validation package, not the old 13-image
+ZIP or the original remaining Train queue. Do not run epochs before the reviewed
+Validation import passes `pipeline.train_detector --check-only`.
+
 ## Read before editing
 
 1. [Root agent instructions](../AGENTS.md) and [contribution guide](../CONTRIBUTING.md).

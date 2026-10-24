@@ -8,9 +8,9 @@ It supersedes the original PRD. Legacy FR identifiers are cross-references only.
 | Kern, 1947–1992 editions; >=3 sheets and >=2 eras | Emir: acquired | Three editions in [region config](../../pipeline/config/region.json), native 1954/1992 eras |
 | 1024 px tiles, about 20% overlap, own ID/year/transform | Emir: implemented | `pipeline.prepare_dataset`; 819 px stride, source hash, WKT, native offset |
 | Corner reconstruction <=1 source pixel | Emir: numerically verified | Tests/summary; not absolute map-accuracy evidence |
-| Test about 20%, >=30 tiles before training | Emir: partition implemented | Shared geography across years; crossing tiles quarantined; annotate protected tiles before evaluation |
+| Test about 20%, >=30 tiles before training | Emir: partition implemented | Active v2 preserves all original 30 Test IDs; 72 Train / 15 Val / 30 Test / 72 buffer, zero cross-split overlap; Test labels needed before evaluation |
 | >=300 human-labeled symbols, lookalike negatives, multiple eras | Count/eras verified; evaluation pending | V2 retains 568 boxes on 5 Train images (297 from 1954, 271 from 1992); 15 previously flagged boundaries corrected/visually checked; no reviewed empty negatives |
-| Fine-tune pretrained YOLO, imgsz 1024 | Emir: pending | No training/weights; no replacement with published U-Net |
+| Fine-tune pretrained YOLO, imgsz 1024 | Environment/runner ready; fitting pending | Pinned YOLO11n weights and full MPS loss/backward pass; zero optimizer updates/epochs; reviewed Val still missing |
 | Box, confidence, class, tile ID, year, crop | Emir: pending inference | Current contract documented; no fabricated detections |
 | Pixel-to-WGS84 with native tile transform | Emir: unit checked | `pipeline.geo`, edge convention and rotated-affine checks |
 | >=3 control points on actual maps | Emir: pending | Synthetic projection tests do not satisfy independent map-control acceptance |

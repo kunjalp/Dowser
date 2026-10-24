@@ -2,7 +2,13 @@
 
 import tempfile
 import unittest
+import hashlib
+import io
+import json
+import zipfile
 from pathlib import Path
+
+from PIL import Image
 
 from pipeline.audit_annotations import audit, match_tile, parse_labels
 
@@ -45,6 +51,37 @@ class LabelAuditTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             with self.assertRaises(FileExistsError):
                 audit(Path("absent.zip"),Path("absent"),Path(folder))
+
+    def test_explicit_validation_import_accepts_only_frozen_validation_ids(self):
+        name="usgs_1_x00000_y00000"
+        filename=name+"_png.rf.abcdef.jpg"
+        tile={"tileId":name,"split":"val"}
+        self.assertEqual(match_tile(filename,{name:tile},"val"),tile)
+        with self.assertRaises(ValueError):
+            match_tile(filename,{name:dict(tile,split="train")},"val")
+
+    def test_mixed_archive_imports_requested_split_and_preserves_explicit_empty_label(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root=Path(folder); dataset=root/"source"; dataset.mkdir()
+            stream=io.BytesIO(); Image.new("RGB",(1024,1024),"white").save(stream,format="PNG")
+            data=stream.getvalue(); manifest=[]
+            for split,identifier in [("train","usgs_1_x00000_y00000"),("val","usgs_1_x02000_y00000")]:
+                relative=Path("images")/split/(identifier+".png")
+                (dataset/relative).parent.mkdir(parents=True,exist_ok=True)
+                (dataset/relative).write_bytes(data)
+                manifest.append({"tileId":identifier,"split":split,"image_path":str(relative),"mapYear":1954})
+            (dataset/"manifest.jsonl").write_text("".join(json.dumps(r)+"\n" for r in manifest))
+            archive=root/"export.zip"
+            with zipfile.ZipFile(archive,"w") as z:
+                z.writestr("data.yaml","nc: 1\nnames: [well_symbol]\n")
+                for split,row in zip(["train","valid"],manifest):
+                    z.writestr(f'{split}/images/{row["tileId"]}.png',data)
+                    z.writestr(f'{split}/labels/{row["tileId"]}.txt',"")
+            summary=audit(archive,dataset,root/"import","val")
+            self.assertEqual(summary["image_count"],1)
+            self.assertEqual(summary["split"],"val")
+            self.assertEqual(summary["empty_label_images"],1)
+            self.assertFalse((root/"import/images/train").exists())
 
 
 if __name__ == "__main__":

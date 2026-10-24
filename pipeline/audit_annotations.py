@@ -21,7 +21,7 @@ import numpy as np
 import yaml
 from PIL import Image
 
-from pipeline.prepare_dataset import ROOT
+ROOT = Path(__file__).resolve().parents[1]
 
 
 ROUNDING_TOLERANCE_PX = 0.02
@@ -61,14 +61,16 @@ def parse_labels(text, width=1024, height=1024):
     return boxes, corrections
 
 
-def match_tile(filename, manifest):
-    """Resolve a Roboflow filename to one frozen Train tile; reject other splits."""
+def match_tile(filename, manifest, expected_split="train"):
+    """Resolve a filename to its declared frozen split; never reassign geography."""
+    if expected_split not in {"train","val","test"}:
+        raise ValueError("Expected train, val or test")
     match = re.fullmatch(r"(usgs_\d+_x\d+_y\d+)(?:_png\.rf\.[0-9a-f]+)?\.(?:jpg|jpeg|png)",filename)
     if not match or match[1] not in manifest:
         raise ValueError(f"Unknown exported tile: {filename}")
     tile = manifest[match[1]]
-    if tile["split"] != "train":
-        raise ValueError(f"Unexpected held-out/buffer image in Train export: {filename}")
+    if tile["split"] != expected_split:
+        raise ValueError(f"Image is not in frozen {expected_split}: {filename}")
     return tile
 
 
@@ -85,7 +87,7 @@ def review_figure(output, records):
     rows = math.ceil(len(flagged)/5)
     fig, axes = plt.subplots(rows,5,figsize=(15,3*rows),layout="constrained",squeeze=False)
     for ax,(record,box) in zip(axes.flat,flagged):
-        image = np.asarray(Image.open(output/"images/train"/(record["tileId"]+".png")))
+        image = np.asarray(Image.open(output/"images"/record["split"]/(record["tileId"]+".png")))
         # Matplotlib's image origin is a pixel center; our rectangles use edges.
         ax.imshow(image,extent=(0,1024,1024,0))
         ax.add_patch(Rectangle((box["x"],box["y"]),box["w"],box["h"],fill=False,
@@ -102,7 +104,7 @@ def review_figure(output, records):
     plt.close(fig)
 
 
-def audit(archive_path, dataset, output):
+def audit(archive_path, dataset, output, expected_split="train"):
     """Produce an auditable import/review package; refuse existing output.
 
     No ZIP extraction is performed: read recognized members and write fixed
@@ -111,6 +113,11 @@ def audit(archive_path, dataset, output):
     """
     if output.exists():
         raise FileExistsError(f"Refusing to overwrite: {output}")
+    if expected_split not in {"train","val","test"}:
+        raise ValueError("Expected train, val or test")
+    # A project export may contain already reviewed Train plus newly labeled Val.
+    # Import the explicitly requested folder, checking each ID against our split.
+    source_folders = {"train":["train"],"val":["valid","val"],"test":["test"]}[expected_split]
     manifest_path = dataset/"manifest.jsonl"
     manifest = {t["tileId"]:t for t in map(json.loads,manifest_path.read_text().splitlines())}
     records, seen = [], set()
@@ -120,16 +127,14 @@ def audit(archive_path, dataset, output):
         config = yaml.safe_load(z.read("data.yaml"))
         if config.get("nc") != 1 or config.get("names") not in (["well_symbol"],{0:"well_symbol"}):
             raise ValueError("Expected only class 0: well_symbol")
-        images = sorted(n for n in z.namelist() if n.startswith("train/images/")
+        images = sorted(n for n in z.namelist() if any(n.startswith(f+"/images/") for f in source_folders)
                         and Path(n).suffix.lower() in [".png",".jpg",".jpeg"])
-        labels = {n for n in z.namelist() if n.startswith("train/labels/") and n.endswith(".txt")}
+        labels = {n for n in z.namelist() if any(n.startswith(f+"/labels/") for f in source_folders) and n.endswith(".txt")}
         expected = {n.replace("/images/","/labels/").rsplit(".",1)[0]+".txt" for n in images}
         if not images or labels != expected:
             raise ValueError("Missing images/labels or orphan annotation files")
-        if any(n.startswith(("valid/images/","test/images/")) and not n.endswith("/") for n in z.namelist()):
-            raise ValueError("This importer expects the reviewed Train-only export")
         for name in images:
-            tile = match_tile(Path(name).name,manifest)
+            tile = match_tile(Path(name).name,manifest,expected_split)
             if tile["tileId"] in seen:
                 raise ValueError("Multiple augmented/duplicate copies of one tile")
             seen.add(tile["tileId"])
@@ -149,7 +154,7 @@ def audit(archive_path, dataset, output):
                 raise ValueError("Export does not align with original tile")
             label_path = name.replace("/images/","/labels/").rsplit(".",1)[0]+".txt"
             boxes, corrections = parse_labels(z.read(label_path).decode())
-            records.append({"tileId":tile["tileId"],"mapYear":tile["mapYear"],"split":"train",
+            records.append({"tileId":tile["tileId"],"mapYear":tile["mapYear"],"split":expected_split,
                             "export_image":name,"source_image":tile["image_path"],
                             "original_png_sha256":hashlib.sha256(original_path.read_bytes()).hexdigest(),
                             "export_mae":mae,"shifted_mae":shifted,"boxes":boxes,
@@ -157,19 +162,19 @@ def audit(archive_path, dataset, output):
                             "semantic_review":"pending; annotator reports complete"})
     output.mkdir(parents=True)
     (output/"INCOMPLETE").write_text("Audit/import not complete.\n")
-    for folder in ["images/train","labels/train"]:
+    for folder in ["images/"+expected_split,"labels/"+expected_split]:
         (output/folder).mkdir(parents=True)
     panels = []
     for record in records:
         tile_id = record["tileId"]
-        shutil.copyfile(dataset/record["source_image"],output/"images/train"/(tile_id+".png"))
+        shutil.copyfile(dataset/record["source_image"],output/"images"/expected_split/(tile_id+".png"))
         rows = [f'0 {(b["x"]+b["w"]/2)/1024:.12f} {(b["y"]+b["h"]/2)/1024:.12f} '
                 f'{b["w"]/1024:.12f} {b["h"]/1024:.12f}' for b in record["boxes"]]
-        (output/"labels/train"/(tile_id+".txt")).write_text("\n".join(rows)+("\n" if rows else ""))
+        (output/"labels"/expected_split/(tile_id+".txt")).write_text("\n".join(rows)+("\n" if rows else ""))
         rects = "".join(f'<rect x="{b["x"]}" y="{b["y"]}" width="{b["w"]}" height="{b["h"]}">'
                         f'<title>YOLO row {b["row"]}</title></rect>' for b in record["boxes"])
         panels.append(f'<h2>{html.escape(tile_id)} — {len(rows)} boxes</h2>'
-                      f'<svg viewBox="0 0 1024 1024"><image href="images/train/{tile_id}.png" '
+                      f'<svg viewBox="0 0 1024 1024"><image href="images/{expected_split}/{tile_id}.png" '
                       f'width="1024" height="1024"/><g class="boxes">{rects}</g></svg>')
     (output/"review.html").write_text('''<!doctype html><meta charset="utf-8"><title>Dowser manual-label audit</title>
 <style>body{font:16px system-ui;margin:24px}header{position:sticky;top:0;background:white;padding:12px;z-index:1}
@@ -179,6 +184,7 @@ body.hide .boxes{display:none}</style><header><b>Human-drawn labels — semantic
 <label><input type="checkbox" checked onchange="document.body.classList.toggle('hide',!this.checked)">
 Show boxes (hover for original YOLO row number)</label></header>'''+"".join(panels))
     summary = {"state":"structurally_valid_semantic_review_required",
+               "split":expected_split,
                "archive_sha256":hashlib.sha256(archive_path.read_bytes()).hexdigest(),
                "manifest_sha256":hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
                "image_count":len(records),"box_count":sum(len(r["boxes"]) for r in records),
@@ -190,15 +196,19 @@ Show boxes (hover for original YOLO row number)</label></header>'''+"".join(pane
                "code_dirty":bool(subprocess.check_output(["git","status","--porcelain"],cwd=ROOT,text=True).strip()),
                "versions":{p:importlib.metadata.version(p) for p in ["numpy","Pillow","PyYAML","matplotlib"]},
                "script_sha256":hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-               "validation_labels":0,"test_labels":0,
-               "limits":["No full semantic/completeness approval", "No reviewed negative images",
+               "validation_labels":sum(len(r["boxes"]) for r in records) if expected_split=="val" else 0,
+               "test_labels":sum(len(r["boxes"]) for r in records) if expected_split=="test" else 0,
+               "empty_label_images":sum(not r["boxes"] for r in records),
+               "limits":["No full semantic/completeness approval", "Only the explicitly requested split is imported",
                          "Box instances are not a count of distinct physical wells",
-                         "No active training YAML: export val/test paths have no corresponding images"]}
+                         "No active training YAML: this is a single-split import"]}
     (output/"audit.json").write_text(json.dumps({"summary":summary,"images":records},indent=2))
     (output/"dataset.template.yaml").write_text(
         "# REVIEW REQUIRED; independent validation/test labels are absent.\n"
         "# This is not an active training configuration.\n"
-        f"path: {output.resolve()}\ntrain: images/train\nval: null\ntest: null\nnames:\n  0: well_symbol\n")
+        f"path: {output.resolve()}\n"+
+        "".join(f"{s}: "+(f"images/{s}" if s==expected_split else "null")+"\n" for s in ["train","val","test"])+
+        "names:\n  0: well_symbol\n")
     review_figure(output,records)
     (output/"INCOMPLETE").unlink()
     return summary
@@ -209,8 +219,9 @@ def main():
     parser.add_argument("archive",type=Path)
     parser.add_argument("--dataset",type=Path,default=ROOT/"data/ml/kern_1024_v1")
     parser.add_argument("--output",type=Path,default=ROOT/"data/ml/reviewed_v1")
+    parser.add_argument("--split",choices=["train","val","test"],default="train")
     args = parser.parse_args()
-    print(json.dumps(audit(args.archive,args.dataset,args.output),indent=2))
+    print(json.dumps(audit(args.archive,args.dataset,args.output,args.split),indent=2))
 
 
 if __name__ == "__main__":
