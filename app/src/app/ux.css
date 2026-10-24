@@ -35,7 +35,8 @@
 .fold > :last-child { margin-bottom: 10px; }
 
 /* ---- Field View ---- */
-.field { padding-bottom: calc(88px + env(safe-area-inset-bottom)); }
+/* main.field outranks the plain .field rule in globals.css, so the tab bar never covers the last row */
+main.field { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
 .field-head { gap: 10px; }
 .field-head h1 { margin-right: auto; }
 .field-gps { font: 11px var(--mono); color: var(--muted); }
