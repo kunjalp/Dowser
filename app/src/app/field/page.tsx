@@ -776,7 +776,7 @@ function Paired({
         <h2 className="pc-title">
           <span className="dot" style={{ background: dotColor(c) }} />
           <span className="pc-name">{c.quadName}</span>
-          <span className="pc-id">{c.id}</span>
+          <span className="pc-id" title={c.id}>{c.id.replace(/^cand-cursor_translate_mps-usgs_/, "")}</span>
         </h2>
         <span className="pc-chip" title="Distance to the nearest home">
           {fmtM(c.distToHomeM)} to home
