@@ -1,10 +1,22 @@
 "use client";
 
 import { useMutation, useQuery } from "convex/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/convexApi";
 import { PART_LABELS, STATUSES, STATUS_META, dotColor } from "../lib/types";
 import type { Candidate, Reading, ScoreParts, Status } from "../lib/types";
+
+type StatusEvent = { _id: string; from: Status; to: Status; source: string; note?: string; createdAt: number };
+
+const SOURCE_LABEL: Record<string, string> = { field: "Field check", analyst: "Analyst", auto: "Auto-confirmed", pipeline: "Pipeline" };
+
+function ago(ts: number, now: number): string {
+  const s = Math.max(0, Math.round((now - ts) / 1000));
+  if (s < 60) return `${s}s ago`;
+  if (s < 3600) return `${Math.round(s / 60)} min ago`;
+  if (s < 86400) return `${Math.round(s / 3600)} h ago`;
+  return `${Math.round(s / 86400)} d ago`;
+}
 
 const fmtM = (m?: number) =>
   m === undefined ? "n/a" : m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
@@ -85,7 +97,13 @@ export default function DetailPanel({
     api.readings.recent,
     candidate ? { candidateId: candidate.id, limit: 60 } : "skip",
   ) as Reading[] | undefined;
+  const events = useQuery(api.candidates.eventsFor, candidate ? { id: candidate.id } : "skip") as StatusEvent[] | undefined;
   const setStatus = useMutation(api.candidates.setStatus);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(t);
+  }, []);
 
   const chrono = readings ? [...readings].reverse() : [];
   const anyReplay = chrono.some((r) => r.isReplay);
@@ -158,6 +176,29 @@ export default function DetailPanel({
                 {chrono.length} readings{chrono.length ? ` · latest ${chrono[chrono.length - 1].value.toFixed(1)}` : ""}
               </p>
             </section>
+
+            {events && events.length > 0 && (
+              <section>
+                <h3>Activity</h3>
+                <ul className="timeline">
+                  {events.map((e) => (
+                    <li key={e._id}>
+                      <span className="tl-dot" style={{ background: STATUS_META[e.to].color }} />
+                      <span>
+                        <span className="tl-main">
+                          {STATUS_META[e.from].label} → {STATUS_META[e.to].label}
+                        </span>
+                        <span className="tl-sub">
+                          {" "}
+                          · {SOURCE_LABEL[e.source] ?? e.source} · {ago(e.createdAt, now)}
+                          {e.note ? ` · ${e.note}` : ""}
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             <section>
               <h3>Set status</h3>

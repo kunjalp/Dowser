@@ -46,6 +46,10 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
   const [sheets, setSheets] = useState<Sheet[]>([]);
   const [sheetSel, setSheetSel] = useState<string>("all");
   const [mapReady, setMapReady] = useState(false);
+  // CalGEM documented wells: "none" = file not published yet, "off"/"on" = available.
+  const [wellsOn, setWellsOn] = useState(true);
+  const [wellsAvail, setWellsAvail] = useState<"checking" | "yes" | "no">("checking");
+  const wellsData = useRef<unknown>(null);
   rowsRef.current = rows;
   selectRef.current = onSelect;
 
@@ -151,6 +155,47 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
     };
   }, []);
 
+  // Documented wells (CalGEM): one compact file, loaded once, drawn as hollow rings under the candidates.
+  useEffect(() => {
+    let alive = true;
+    fetch("/calgem/wells.json")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d) => {
+        if (!alive) return;
+        wellsData.current = d;
+        setWellsAvail("yes");
+      })
+      .catch(() => alive && setWellsAvail("no"));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady || wellsAvail !== "yes") return;
+    if (!map.getSource("calgem")) {
+      map.addSource("calgem", { type: "geojson", data: wellsData.current as never });
+      map.addLayer(
+        {
+          id: "calgem-wells",
+          type: "circle",
+          source: "calgem",
+          minzoom: 9,
+          paint: {
+            "circle-color": "rgba(0,0,0,0)",
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 9, 1.6, 13, 4.5],
+            "circle-stroke-color": "#ffffff",
+            "circle-stroke-width": ["interpolate", ["linear"], ["zoom"], 9, 0.6, 13, 1.4],
+            "circle-stroke-opacity": 0.85,
+          },
+        },
+        "candidates",
+      );
+    }
+    map.setLayoutProperty("calgem-wells", "visibility", wellsOn ? "visible" : "none");
+  }, [wellsAvail, wellsOn, mapReady]);
+
   // Historical sheets: public/historical/manifest.json is written by pipeline/geotiff_to_overlay.py.
   useEffect(() => {
     let alive = true;
@@ -221,7 +266,17 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
     <div className="map">
       <div ref={el} className="map-canvas" />
 
-      <div className="map-control" aria-label="Historical map overlay">
+      <div className="map-control" aria-label="Map layers">
+        <label className={`toggle ${wellsAvail === "yes" ? "" : "disabled"}`} title="Wells already in the state's CalGEM records. Shown from zoom 9.">
+          <input
+            type="checkbox"
+            checked={wellsAvail === "yes" && wellsOn}
+            disabled={wellsAvail !== "yes"}
+            onChange={(e) => setWellsOn(e.target.checked)}
+          />
+          <span>Documented wells (CalGEM)</span>
+          {wellsAvail === "no" && <em>not loaded</em>}
+        </label>
         {sheets.length === 0 ? (
           <label className="toggle disabled" title="Add a converted sheet with pipeline/geotiff_to_overlay.py">
             <input type="checkbox" checked={false} disabled readOnly />
@@ -275,6 +330,12 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
           <span>low</span>
           <span>high</span>
         </div>
+        {wellsAvail === "yes" && wellsOn && (
+          <div className="legend-row">
+            <span className="dot ring" />
+            In CalGEM records
+          </div>
+        )}
         {(Object.keys(STATUS_META) as (keyof typeof STATUS_META)[])
           .filter((s) => s !== "candidate")
           .map((s) => (

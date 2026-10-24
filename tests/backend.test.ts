@@ -230,3 +230,86 @@ describe("upsertBatch (pipeline loader)", () => {
     expect(open.brief).toBeTruthy(); // seeded placeholder brief is kept when the load has none
   });
 });
+
+describe("Claude brief generator", () => {
+  const good = (quad: string) =>
+    `The ${quad} quadrangle shows a well symbol on the 1962 and 1978 map editions, a repeated mark that suggests a real structure rather than a one-off drawing artifact. ` +
+    `The state CalGEM records list no well within 1.1 km, so this site is flagged as undocumented. ` +
+    `The nearest home is 336 m away, a school lies 644 m off and surface water is 418 m away, with 7 buildings inside 250 m, which raises the stakes if anything is leaking. ` +
+    `This is an unverified candidate only. The next step is to visit the site and take readings with the handheld methane sensor before any plugging decision is made.`;
+
+  const stubFetch = (texts: string[]) => {
+    const calls: any[] = [];
+    let i = 0;
+    (globalThis as any).fetch = async (_url: string, init: any) => {
+      calls.push(JSON.parse(init.body));
+      const text = texts[Math.min(i++, texts.length - 1)];
+      return { ok: true, json: async () => ({ content: [{ type: "text", text }] }), text: async () => "" };
+    };
+    return calls;
+  };
+
+  beforeEach(() => {
+    process.env.ANTHROPIC_API_KEY = "test-key";
+  });
+
+  test("writes a brief, prefixes fake candidates, and skips unchanged inputs on re-run", async () => {
+    const t = setup();
+    await t.mutation(internal.seed.seedFakeCandidates, { count: 2 });
+    const c: any = await t.query(api.candidates.get, { id: "fake-001" });
+    // make the facts match the canned brief text
+    await t.run(async (ctx: any) => {
+      const row = await ctx.db.query("candidates").withIndex("by_candidate_id", (q: any) => q.eq("id", "fake-001")).unique();
+      await ctx.db.patch(row._id, {
+        quadName: "Lost Hills", editionsSeen: [1962, 1978], nearestDocumentedDistM: 1123,
+        distToHomeM: 336, distToSchoolM: 644, distToWaterM: 418, buildingsNear250m: 7,
+      });
+    });
+    const calls = stubFetch([good("Lost Hills")]);
+    const r1: any = await t.action(internal.briefs.generate, { id: "fake-001" });
+    expect(r1).toEqual({ generated: 1, skipped: 0, failed: [] });
+    expect(calls[0].system).toContain("ONLY the facts provided");
+    const after: any = await t.query(api.candidates.get, { id: "fake-001" });
+    expect(after.brief.startsWith("FAKE DATA: The Lost Hills")).toBe(true);
+    const r2: any = await t.action(internal.briefs.generate, { id: "fake-001" });
+    expect(r2.skipped).toBe(1);
+    expect(calls.length).toBe(1); // no second API call
+    expect(c.id).toBe("fake-001");
+  });
+
+  test("rejects a brief that invents a number, retries once, then records the failure", async () => {
+    const t = setup();
+    await t.mutation(internal.seed.seedFakeCandidates, { count: 1 });
+    const bad = good("Lost Hills").replace("336 m", "999 m");
+    const calls = stubFetch([bad, bad]);
+    const r: any = await t.action(internal.briefs.generate, { id: "fake-001" });
+    expect(r.generated).toBe(0);
+    expect(r.failed).toHaveLength(1);
+    expect(calls.length).toBe(2); // original + one retry
+    const unchanged: any = await t.query(api.candidates.get, { id: "fake-001" });
+    expect(unchanged.brief).toMatch(/^FAKE DATA: placeholder/);
+  });
+
+  test("an empty reply is retried once and then succeeds", async () => {
+    const t = setup();
+    await t.mutation(internal.seed.seedFakeCandidates, { count: 1 });
+    await t.run(async (ctx: any) => {
+      const row = await ctx.db.query("candidates").withIndex("by_candidate_id", (q: any) => q.eq("id", "fake-001")).unique();
+      await ctx.db.patch(row._id, {
+        quadName: "Lost Hills", editionsSeen: [1962, 1978], nearestDocumentedDistM: 1123,
+        distToHomeM: 336, distToSchoolM: 644, distToWaterM: 418, buildingsNear250m: 7,
+      });
+    });
+    const calls = stubFetch(["", good("Lost Hills")]);
+    const r: any = await t.action(internal.briefs.generate, { id: "fake-001" });
+    expect(r).toEqual({ generated: 1, skipped: 0, failed: [] });
+    expect(calls.length).toBe(2);
+    expect(calls[1].messages[0].content).toContain("empty response");
+  });
+
+  test("fails loudly when the API key is missing", async () => {
+    const t = setup();
+    delete process.env.ANTHROPIC_API_KEY;
+    await expect(t.action(internal.briefs.generate, {})).rejects.toThrow(/ANTHROPIC_API_KEY/);
+  });
+});
