@@ -9,7 +9,7 @@ import { applyStatus } from "./candidates";
  * threshold within the window flips a candidate to confirmed_leaking. The threshold is
  * in the same units as `value` (the corrected reading); tune it once Murad has a baseline.
  */
-export const AUTO_CONFIRM = { threshold: 1200, count: 3, windowMs: 30_000 } as const;
+export const AUTO_CONFIRM = { threshold: 1200, count: 8, windowMs: 10_000 } as const;
 
 /** Called by the HTTP ingest action in http.ts after validation. */
 export const ingest = internalMutation({
@@ -71,6 +71,7 @@ export const ingest = internalMutation({
           .withIndex("by_candidate_receivedAt", (q) =>
             q.eq("candidateId", candidateId as string).gte("receivedAt", receivedAt - AUTO_CONFIRM.windowMs),
           )
+          .order("desc")
           .take(50);
         const hot = recent.filter((r) => r.value >= AUTO_CONFIRM.threshold).length;
         if (hot >= AUTO_CONFIRM.count) {
