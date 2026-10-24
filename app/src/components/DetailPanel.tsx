@@ -99,6 +99,7 @@ export default function DetailPanel({
   ) as Reading[] | undefined;
   const events = useQuery(api.candidates.eventsFor, candidate ? { id: candidate.id } : "skip") as StatusEvent[] | undefined;
   const setStatus = useMutation(api.candidates.setStatus);
+  const [tipOff, setTipOff] = useState(false); // Esc hides the confidence tooltip (WCAG 1.4.13)
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 15000);
@@ -136,9 +137,24 @@ export default function DetailPanel({
 
           <div className="detail-body" ref={bodyRef}>
             <div className="detail-top">
-              <div className="badge big" style={{ ["--c" as string]: STATUS_META[c.status].color }}>
-                {STATUS_META[c.status].label}
-                {c.status === "candidate" ? ` · ${c.score.toFixed(2)}` : ""}
+              <div className="detail-top-pills">
+                <div className="badge big" style={{ ["--c" as string]: STATUS_META[c.status].color }}>
+                  {STATUS_META[c.status].label}
+                  {c.status === "candidate" ? ` · ${c.score.toFixed(2)}` : ""}
+                </div>
+                <span
+                  className={`conf-pill ${tipOff ? "tip-off" : ""}`}
+                  tabIndex={0}
+                  aria-describedby="conf-tip"
+                  onKeyDown={(e) => e.key === "Escape" && setTipOff(true)}
+                  onBlur={() => setTipOff(false)}
+                  onMouseLeave={() => setTipOff(false)}
+                >
+                  Map confidence {Math.round(c.scoreParts.confidence * 100)}%
+                  <span id="conf-tip" role="tooltip" className="conf-tip">
+                    Combines detector confidence with how many map editions show the symbol.
+                  </span>
+                </span>
               </div>
               {c.status === "candidate" && (
                 <button

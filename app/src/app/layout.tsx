@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import ConvexClientProvider from "./ConvexClientProvider";
 import "./globals.css";
 import "./ux.css";
+import "./cmdmap.css";
 
 const sans = Figtree({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
 
