@@ -9,14 +9,14 @@ It supersedes the original PRD. Legacy FR identifiers are cross-references only.
 | 1024 px tiles, about 20% overlap, own ID/year/transform | Emir: implemented | `pipeline.prepare_dataset`; 819 px stride, source hash, WKT, native offset |
 | Corner reconstruction <=1 source pixel | Emir: numerically verified | Tests/summary; not absolute map-accuracy evidence |
 | Test about 20%, >=30 tiles before training | Emir: partition implemented | Shared geography across years; crossing tiles quarantined; annotate protected tiles before evaluation |
-| >=300 human-labeled symbols, lookalike negatives, multiple eras | Emir + team: export verification pending | User reports about 600 symbols across 5 images added to Roboflow Dataset; local export/quality not yet checked |
+| >=300 human-labeled symbols, lookalike negatives, multiple eras | Count/eras verified; quality pending | Export has 568 boxes on 5 Train images: 297 from 1954, 271 from 1992; 15 large boxes flagged, no reviewed empty negatives |
 | Fine-tune pretrained YOLO, imgsz 1024 | Emir: pending | No training/weights; no replacement with published U-Net |
 | Box, confidence, class, tile ID, year, crop | Emir: pending inference | Current contract documented; no fabricated detections |
 | Pixel-to-WGS84 with native tile transform | Emir: unit checked | `pipeline.geo`, edge convention and rotated-affine checks |
 | >=3 control points on actual maps | Emir: pending | Synthetic projection tests do not satisfy independent map-control acceptance |
 | >=10 known CalGEM wells, median offset <50 m target | Emir + Ryann: pending | Needs reviewed symbols and reference matches |
 | Precision/recall on untouched test; target >=0.60 | Emir: pending | Tune on separate validation; no quality claim |
-| Model/manual-ground-truth fallback | Emir: pending | Human labels first; numeric confidence semantics need agreement |
+| Model/manual-ground-truth fallback | Emir: pending export | Main now uses explicit ground_truth with numeric 1.0 and a hand-labeled UI tag; audit outputs remain label files, not candidate loads |
 | Dedup 20 m across tiles and editions | Ryann | Master Plan supersedes original 15 m |
 | Match 100 m, OSM homes/schools/water, scoring, load | Ryann | Existing backend loading API is not ML's task |
 | Command Map and Field View | Kunjal | Ryann prepares overlay; ML supplies source/crops |

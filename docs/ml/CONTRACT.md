@@ -1,7 +1,7 @@
 # ML/backend contract
 
 Source of truth: [Master Plan sections 4–6](../master-plan/source.txt).
-Backend/schema inspected at `f7e5eeb`, incorporated into the ML preparation branch.
+Backend/schema inspected through `84335ce`, incorporated into the ML branch.
 The original PRD and the old `15f7c8f` schema are superseded.
 
 ## Ownership and delivery
@@ -39,10 +39,20 @@ For an xywh box the center is `(x+w/2, y+h/2)`; do not add another half pixel.
 Undo inference resize/letterboxing before conversion. `pipeline.geo` implements
 the native pixel-edge convention, finite-value checks, and per-tile transforms.
 
-Ground-truth annotation files naturally have no model confidence. Backend still
-requires a number: fallback confidence/ranking semantics remain an explicit
-coordination item. Current preparation creates no fake confidence, detections,
-or unreviewed ground truth.
+Ground-truth annotation files naturally have no model confidence. Current main
+uses numeric 1.0 for the hand-labeled fallback and displays a hand-labeled tag
+with a tooltip explaining that it is not a model score. Future fallback exports
+must explicitly carry `source=ground_truth` and this convention. Model exports
+must contain their actual score and `source=model`; never rely on the dedup
+script's missing-confidence default. The imported label dataset has no confidence
+column; no detections or candidate load were performed by the audit task.
+
+Ryann's current offline entry point is `pipeline/dedup.py --detections ...`.
+It accepts CSV with `lat`, `lon`, `confidence`, `year` (alias `mapYear`), and
+optional `detectionId`, `tileId`, `crop`, `quadName`, `source`. Supply these
+explicitly in the future ML handoff. Downstream steps are `match_wells.py`,
+`enrich.py`, `score.py`, and `load_candidates.py`. These are team implementations;
+their broader defaults do not replace the selected ML region/config.
 
 ## Candidate and reading contracts
 
@@ -52,6 +62,8 @@ Ryann's final candidate uses `id`, `score`,
 matching/enrichment/provenance fields. See the current schema for full fields.
 `candidates:upsertBatch` and bulk import are implemented; the old statement that
 no candidate loading path exists is obsolete.
+Current upsert preserves an existing non-candidate status and field score part,
+and keeps an existing brief when the incoming load has none.
 
 Exact statuses: `candidate`, `queued`, `confirmed_leaking`,
 `confirmed_not_leaking`, `no_well`, `mislocated`. Manual field logging is P0;

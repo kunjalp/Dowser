@@ -198,7 +198,39 @@ Record verified counts separately from screenshot/user-reported counts.
 evidence of coverage across eras or unseen geography. More varied reviewed
 training examples, negatives, validation and test labels are still required.
 
-## Completion
+## Local export audit
+
+After downloading the reviewed ZIP:
+
+```sh
+.venv/bin/python -m pip install -r pipeline/requirements-audit.txt
+.venv/bin/python -m pipeline.audit_annotations \
+  data/ml/reviewed_exports/dowser-kern-well-symbols.v1-manual_5_images_v1.yolov8.zip
+.venv/bin/python -m unittest discover -s pipeline/tests -v
+```
+
+Active imported review package: `data/ml/reviewed_v1/`. The audit preserves the
+original archive, maps Roboflow suffixes to frozen Train IDs, verifies geometry
+against source PNGs, and uses those original PNGs instead of recompressed JPEGs.
+Only boundary overflow <=0.02 px is clipped and logged; semantic box boundaries
+are not automatically changed. Re-runs require a new output directory.
+
+`audit.json` records archive/image/code hashes, counts, geometric corrections,
+and limitations. `review.html` toggles all boxes on originals.
+`large_boxes_review.png` shows the 15 boxes wider/taller than 40 px in this export.
+That size is a review heuristic; inspect symbol boundaries, not just size.
+Visual inspection found excess background around the symbols in these examples.
+Correct boxes in the original Roboflow project and export a new version; retain
+v1 and compare the revised archive rather than replacing it.
+
+Current import has 568 boxes: 297 (1954) and 271 (1992), all five images still
+Train. No independently annotated validation/test images or reviewed empty
+negative images exist in this local import. The export's YAML points to missing
+valid/test directories, so do not use it unchanged to claim held-out metrics.
+Only `dataset.template.yaml` is written, with validation/test explicitly absent.
+Format validation and the figure inspection do not prove full label completeness.
+
+## Training readiness
 
 - >=300 human-reviewed symbols overall; report the training count separately.
 - All included train/val images reviewed, including negatives.

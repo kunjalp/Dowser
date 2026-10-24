@@ -46,9 +46,11 @@ human-reviewed ground truth or label unknown tiles as negative examples.
 - Record data/split identity, exact config/commands, code version (including dirty
   changes), software environment, hardware, weights/checksums, thresholds, actual
   metrics, and limitations in the experiment log.
-- Keep ground-truth fallback distinguishable from inference. The current backend
-  requires numeric confidence; its annotation semantics are unresolved. Do not
-  invent a probability or silently change the schema to work around this.
+- Keep ground-truth fallback distinguishable from inference. Current main uses
+  numeric 1.0 for hand-labeled fallback and a visible hand-labeled indicator.
+  Preserve `source=ground_truth`; this value is not a model probability. Model
+  exports must carry their actual score and explicit source, avoiding the
+  backend pipeline's default score when confidence is absent.
 - Keep raw maps, full datasets, weights, caches, and secrets outside normal Git.
   Track manifests, configs, small fixtures, and artifact references/checksums.
 

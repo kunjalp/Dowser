@@ -1,6 +1,7 @@
-# Offline map preparation, pinned to the locally verified versions.
+# Map preparation and label parsing, pinned to locally verified versions.
 rasterio==1.4.3
 Pillow==11.3.0
 pyproj==3.6.1
 numpy==2.0.2
 affine==3.0.1
+PyYAML==6.0.2

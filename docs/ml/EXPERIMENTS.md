@@ -1,6 +1,6 @@
 # ML experiments
 
-No training or evaluation run has been performed in this workspace. Do not fill
+No model training or evaluation run has been performed in this workspace. Do not fill
 results from expectations. Add one record per meaningful run; link larger reports
 and artifacts instead of committing generated directories.
 
@@ -80,6 +80,53 @@ geographic holdouts. This is a data preparation run, not a model experiment.
   absent 1992 coverage. Review the whole image, not only proposed boxes.
 - Next: correct/complete pilot annotations, record reviewer/tile IDs, add the
   other era and negatives, then prepare a reviewed YOLO training subset.
+
+## Human export audit: reviewed_v1 — 2026-10-23
+
+- Purpose: Master Plan annotation/1024 px/source-split acceptance, before training.
+  Code base `7bb3eb6b64de0d111cbc4ccce07a8ed550bb3f1e` with uncommitted audit
+  implementation in this PR; exact script hash and dirty state are in `audit.json`.
+- Command: `.venv/bin/python -m pipeline.audit_annotations data/ml/reviewed_exports/dowser-kern-well-symbols.v1-manual_5_images_v1.yolov8.zip`.
+- Archive SHA-256:
+  `70a6d70a642271b6bd6e4dcffaf8cb77359001070771ead80ea315d37d40271e`.
+  Original ZIP unchanged; matches Roboflow v1 `manual_5_images_v1`.
+- Frozen input manifest SHA-256:
+  `fdc01146873c0d5e5e0c6c4c95e7eae51998f872fd1746dc8c6919151f4d19af`.
+- Output: ignored `data/ml/reviewed_v1/`, original PNGs plus imported label files,
+  `audit.json`, toggleable `review.html`, `large_boxes_review.png`, YAML template.
+- Exact tile/counts, all still Train:
+
+| Tile ID | Date-on-map | Boxes |
+| --- | --- | ---: |
+| usgs_102321_x01250_y03651 | 1992 | 271 |
+| usgs_293661_x02149_y03639 | 1954 | 232 |
+| usgs_293661_x03787_y05277 | 1954 | 27 |
+| usgs_293661_x04606_y04458 | 1954 | 15 |
+| usgs_293661_x04606_y05277 | 1954 | 23 |
+
+- Total: 568 boxes (297 from 1954, 271 from 1992), class 0 `well_symbol`.
+  Zero empty negative images, zero labeled validation/test images. User reports
+  all five complete; full semantic/completeness approval is pending.
+- Export JPEGs are RGB 1024×1024, recompressed (mean absolute channel difference
+  2.44–4.27 from source PNGs), with identity pixel alignment preferred over
+  tested 1/2 px shifts. Restore original source PNGs rather than training on
+  recompressed copies; hashes verified. This is not absolute geographic validation.
+- Three boxes exceed edges by <=0.005 px from export rounding. Only these tiny
+  overflows are clipped/logged in the derived copy. No semantic bounds or cloud
+  annotations changed. Source rows are preserved in the original archive.
+- Fifteen 1992 boxes exceed the 40 px review heuristic. Visual inspection of
+  their plotted neighborhoods shows unnecessarily loose bounds around symbols;
+  this is a quality issue, not rejection solely by size. Source export rows:
+  11,12,18,20,23,24,26,27,30,31,32,35,36,38,39. Other labels still need review.
+- All 21 ML tests passed. Actual output counts, original PNG hashes, and source
+  archive identity rechecked separately. No training/precision/recall measured.
+- Added audit environment: PyYAML 6.0.2 and matplotlib 3.9.4 on the existing local
+  CPU/Python 3.9.6 environment. Dependencies are pinned; no cloud compute started.
+  Roboflow version-generation credit usage was not observed by this local audit.
+- Export YAML references absent valid/test directories. No active training YAML
+  is generated; do not silently random-split five overlapping training images or
+  claim quality against training examples. Correct identified bounds, preserve
+  revised export, then complete independent evaluation data/training setup.
 
 ## Run template
 
