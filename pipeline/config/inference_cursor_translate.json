@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "cursor_val_candidate_pending_review_and_final_test",
+  "training_run": "cursor_translate_mps",
+  "weights": "data/ml/runs/cursor_translate_mps/training/weights/best.pt",
+  "weights_sha256": "d417cf36430485eb534fd1197be6cf15b4cad11c967083654fc3388e5a226b2e",
+  "manifest": "data/ml/kern_1024_v2/manifest.jsonl",
+  "manifest_sha256": "ebb2f8a4fdfefabf7dcdd9f3e4339f4c5912d4b2b2ecbb448b3f6da06c0ef572",
+  "confidence": 0.71,
+  "nms_iou": 0.7,
+  "imgsz": 1024,
+  "max_det": 1000,
+  "device": "mps",
+  "selection": "Highest Cursor human-Val F1 among round-2 one-factor runs; cutoff from the same 0.05..0.95 step .01 IoU .5 sweep. Seed 42, same mix_v1 as data_v2. Does not replace inference_selected.json until review. No Test use.",
+  "training_supervision": "Same train_mixed_v1 as data_v2: 568 human + 49 assistant boxes, 8 images, 1 empty. Only change: translate=0.1.",
+  "validation_limits": "Val-only: TP46/FP4/FN3 at .71, F1 .9293 vs data_v2 .8000. 1992 Val FP 0. Repeat seeds: s43 F1 .8113 still above reference; s7 collapsed F1 .3028. Tiny overlapping Val; not final Test."
+}

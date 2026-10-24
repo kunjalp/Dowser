@@ -9,8 +9,14 @@ Editor entry point: [CONTINUE.md](../CONTINUE.md).
 
 ## Current selected model
 
-**Assistant completed the additional annotation and trained two data experiments
-under Emir's explicit instruction. Current candidate is kern_yolo11n_data_v2.**
+Pinned diagnostic config is still `kern_yolo11n_data_v2` /
+`pipeline/config/inference_selected.json` until review. Cursor's best
+challenger is **`cursor_translate_mps`** (translate=0.1, same mix_v1, seed 42):
+Val-selected .71, **TP46 / FP4 / FN3**, P=.9200 / R=.9388 / F1=.9293 vs data_v2
+.8000. Pair: `data/ml/runs/cursor_translate_mps/comparison_to_data_v2/comparison.html`.
+Candidate pin: `pipeline/config/inference_cursor_translate.json`. Seed 43 also
+beats .8000 (F1 .8113); seed 7 collapsed. Val-only, not Test.
+
 Original human annotations and frozen Val/Test are unchanged. New labels are
 explicitly assistant-reviewed, not human ground truth.
 
@@ -87,17 +93,12 @@ Do not claim the text-confusion problem is solved or broad per-era accuracy.
 
 ## Next action
 
-Independent Cursor experiment on this worktree is finished. Results:
-[CURSOR_RESULTS.md](CURSOR_RESULTS.md). **No candidate beat data_v2 Val F1
-.8000**; closest mixed-positive run is .7736 with 3 more FN. Flip raised
-precision by collapsing recall. YOLO11s failed on this tiny set. Selected
-weights/config remain `kern_yolo11n_data_v2` /
-`pipeline/config/inference_selected.json`. Nothing was merged to main.
-
-Reviewer should inspect branch diff, assistant-label overlays under
-`data/ml/cursor_assistant_review_v1/`, paired HTML under
-`data/ml/runs/cursor_*_mps/comparison_to_data_v2/`, and remaining unmatched
-crops. Original human Train/Val/Test identities were rechecked unchanged.
+Cursor round 2 found a better Val candidate: translate=0.1
+(`cursor_translate_mps`). Full table, failed methods, and seed checks:
+[CURSOR_RESULTS.md](CURSOR_RESULTS.md). Reviewer should inspect the paired
+HTML and remaining 4 FP / 3 FN crops, then decide whether to point
+`inference_selected.json` at `inference_cursor_translate.json`. Do not merge
+to main. Test still unlabeled.
 
 No additional annotation work is required from Emir for the completed data
 experiments. The paired report is ready to inspect. Current model improves

@@ -572,7 +572,13 @@ hashes unchanged. New Train labels are assistant_visual_review only.
 | cursor_fliplr_mps | fliplr=0.5, same mix_v1 | .25 | 27 / 8 / 22 | .6429 |
 | cursor_yolo11s_mps | YOLO11s, same mix_v1 | .95 | 49 / 3023 / 0 | .0314 |
 
-No candidate selected. `inference_selected.json` unchanged. 54 tests pass.
+Round 1: no data/architecture/flip run beat F1 .8000.
+Round 2, same mix_v1: `cursor_translate_mps` translate=0.1 seed 42 selected
+**.71, TP46/FP4/FN3, F1 .9293**. Fine-tune of data_v2 reached F1 .8317. cls=1.5
+hurt. erasing=0 and copy_paste=0.3 matched the reference (no-ops here). Extra
+translate seeds: s43 F1 .8113, s7 collapsed. Candidate pin
+`pipeline/config/inference_cursor_translate.json`; `inference_selected.json`
+unchanged pending review. 54 tests pass.
 
 ## Model-run template
 

@@ -144,14 +144,59 @@ cutoff. Common cutoff .70 is reported even when a model emits no boxes.
 More Train images change optimizer-update counts. This is not an equal-compute
 causal study. Val F1 on this repeatedly used 15-image slice is tuning, not Test.
 
-### Decision
+### Decision (round 1)
 
-**No candidate is adopted.** None beat reference Val F1 .8000 without a large
-recall loss. Closest is `cursor_data_v1_mps` (−3 TP, −1 FP, +3 FN). Flip raised
-precision by collapsing recall and is not an overall improvement. YOLO11s on
-this tiny set emitted thousands of Val boxes. Targeted empties repeated the
-earlier mix_v2/data_v3 pattern: slightly worse. Selected diagnostic inference
-remains `pipeline/config/inference_selected.json` → `kern_yolo11n_data_v2`.
+Round-1 data/architecture/flip runs did **not** beat F1 .8000. Closest mixed
+positives were .7736. Flip raised precision by collapsing recall. YOLO11s failed.
+`inference_selected.json` was left on data_v2.
+
+## Round 2 — other methods, same mix_v1
+
+Same frozen human Train/Val/Test, same pretrained YOLO11n unless noted, seed 42,
+MPS. One major factor each. Native protocol unchanged.
+
+| Run | Factor | Epochs / updates | Time s | Selected cutoff | TP / FP / FN | P / R / F1 | 1992 FP | .70 TP/FP/FN |
+| --- | --- | --- | ---: | ---: | --- | --- | ---: | --- |
+| **data_v2 (reference)** | frozen | 24 / 96 | 52.689 | .24 | 44 / 17 / 5 | .7213 / .8980 / .8000 | 3 | 0 / 0 / 49 |
+| **cursor_translate_mps** | **translate=0.1** | **34 / 136** | **80.904** | **.71** | **46 / 4 / 3** | **.9200 / .9388 / .9293** | **0** | **46 / 5 / 3** |
+| cursor_ft_datav2_mps | fine-tune data_v2, lr0=2e-4 | 12 / 48 | 30.136 | .17 | 42 / 10 / 7 | .8077 / .8571 / .8317 | 3 | 5 / 0 / 44 |
+| cursor_cls15_mps | cls=1.5 | 21 / 84 | 52.222 | .48 | 35 / 13 / 14 | .7292 / .7143 / .7216 | 1 | 9 / 1 / 40 |
+| cursor_erasing0_mps | erasing=0 | 24 / 96 | 59.929 | .24 | 44 / 17 / 5 | .7213 / .8980 / .8000 | 3 | 0 / 0 / 49 |
+| cursor_copypaste_mps | copy_paste=0.3 | 24 / 96 | 58.275 | .24 | 44 / 17 / 5 | .7213 / .8980 / .8000 | 3 | 0 / 0 / 49 |
+
+`erasing=0` and `copy_paste=0.3` matched data_v2 native counts exactly;
+copy-paste is a no-op while mosaic=0, and random-erasing did not change this
+fit. Higher `cls` hurt recall. Fine-tuning the selected checkpoint improved
+F1 to .8317 (fewer FP, slightly more FN).
+
+### Translate stability (same recipe, other seeds)
+
+| Seed | Run | Selected cutoff | TP / FP / FN | F1 vs .8000 |
+| ---: | --- | ---: | --- | --- |
+| 42 | cursor_translate_mps | .71 | 46 / 4 / 3 | **.9293 beat** |
+| 43 | cursor_translate_s43_mps | .58 | 43 / 14 / 6 | **.8113 beat** |
+| 7 | cursor_translate_s7_mps | .95 | 38 / 164 / 11 | .3028 collapse (best epoch 2) |
+
+Two of three seeds beat the reference. Seed 7 stopped immediately and is not
+usable. Tiny-data MPS runs remain seed-sensitive; do not treat .9293 as a
+stable population estimate.
+
+### Decision (round 2)
+
+**Best Cursor candidate: `cursor_translate_mps` (seed 42, translate=0.1).**
+Same Train as data_v2. Val-selected .71: TP+2, FP 17→4, FN 5→3, 1992 FP 3→0.
+F1 .8000→.9293. At common .70 it still has TP46/FP5/FN3, while data_v2 emits
+no boxes. Remaining errors: 4 squares/structures and 3 canal-edge FN; digit
+`399`/`460` fires are gone on this Val slice.
+
+Candidate pin (does **not** replace `inference_selected.json`):
+`pipeline/config/inference_cursor_translate.json`.
+Paired HTML:
+`data/ml/runs/cursor_translate_mps/comparison_to_data_v2/comparison.html`.
+Unmatched crops:
+`data/ml/runs/cursor_translate_mps/preview/remaining_unmatched.png`.
+
+This is still human-Val tuning on 15 overlapping 1954 tiles, not Test.
 
 ## Checkpoints, reports, and errors
 
@@ -162,29 +207,33 @@ remains `pipeline/config/inference_selected.json` → `kern_yolo11n_data_v2`.
 | cursor_data_v3_mps | `afe7906bc7808928efee16061fc3c3cdac9ad8356a8071abbd6f37e0bd38d168` | `47131eda061d9a121f864b31b233bd2656782ac78d6f61f54db432485efb25a5` | `1cc737f1a69db624f1096061f1e3585204b4dcaae1e03d5db8444af8160466f2` | `data/ml/runs/cursor_data_v3_mps/comparison_to_data_v2/comparison.html` |
 | cursor_fliplr_mps | `14f7b65b76af3971825ab6e53ccbc22c4a6c3828916e90a0e8c87bc402a5fee4` | `e55cc571a7586870e11f8b1a842d3861829a0cdb30e8172871cca1dfca03fda2` | `dff37994f6696c07c9d8fbabeb9180a4d3e0a37c3d44001921e521abb41d2969` | `data/ml/runs/cursor_fliplr_mps/comparison_to_data_v2/comparison.html` |
 | cursor_yolo11s_mps | `1eb2e948204afba90d41345f309a9af0a09b94c027338089e8f4706525c8dd71` | `cb046d9536c864f660cbff524a1c55ca02a949c0ca387112b4b99d1eff5b54f2` | `33692dac1013166e2a89928bfa1c115a055020d67f0d8ff6160c520f103b9e23` | `data/ml/runs/cursor_yolo11s_mps/comparison_to_data_v2/comparison.html` |
+| cursor_translate_mps | `d417cf36430485eb534fd1197be6cf15b4cad11c967083654fc3388e5a226b2e` | `3fd32bda4d5186314ea06320e115c1d620c2110796e5f3e0e7274442d4afbeb6` | `88a4347b465e66ac9ade22c26bc577efc42a040c5d0c34f8e5c7480f6f409958` | `data/ml/runs/cursor_translate_mps/comparison_to_data_v2/comparison.html` |
+| cursor_ft_datav2_mps | `693d40f9a9e2a0ffc12ecd48abb86069a0668dac18853da17817916299e1159f` | `650f94d6575ed8d4e6860b97e390479f45e79e4cf2554f5d84b01eb3f857dd26` | `40f6f9343f0a21d44a09dc648c0af1dea4c0292c21ec8d8bcc0f259595b6c0c7` | `data/ml/runs/cursor_ft_datav2_mps/comparison_to_data_v2/comparison.html` |
+| cursor_cls15_mps | `f107a663ad56d317ebe578d3ce90d6079313e8a390b015e61912cd23946c1a39` | `c7795269454b7f2353d71fcf5016b19f0bd776c31626f19f7b6da78aa953f179` | `4bc97d6cbd4fd646957a5a3cf1449782e194ab62b09a70ea924a89e1f4512a9d` | `data/ml/runs/cursor_cls15_mps/comparison_to_data_v2/comparison.html` |
+| cursor_translate_s43_mps | `66afa6a0a20649c4cbeaa9d1009a4e2e46bf39eaeac6b98fd9900a652ca51165` | `f2be5f629e8974e638db8a5f88b78792072b6bcd6d39817490404868c7d798a3` | see run.json | `data/ml/runs/cursor_translate_s43_mps/comparison_to_data_v2/comparison.html` |
+| cursor_translate_s7_mps | `a26f516e8b56dea41eb9c4e313bc82865dfe66724a19db2ff436b760a164ee99` | `7a7bc961799e576bf9d7bd1745665b1d16e4639d7ec4a083d179f30ea13e1110` | see run.json | `data/ml/runs/cursor_translate_s7_mps/comparison_to_data_v2/comparison.html` |
 
 Per-run selected preview: `data/ml/runs/<name>/preview/preview_selected.html`.
 Threshold grids: `preview/threshold_selection.json`.
 
-Closest-candidate remaining unmatched crops:
+Round-1 mixed-data remaining unmatched:
 `data/ml/runs/cursor_data_v1_mps/preview/remaining_unmatched.png`.
-Digit `399`/`460` fires are reduced versus the reference gallery, and 1992 FP
-went 3→1, but canal-edge FN increased and letter/square/`OIL`/`Water Tanks`
-false positives remain. That is not a net improvement.
+Best-candidate remaining unmatched (4 FP squares + 3 canal FN):
+`data/ml/runs/cursor_translate_mps/preview/remaining_unmatched.png`.
 
 ## Tests, limitations, next action
 
 - `pipeline.train_detector --check-only` passed on each Cursor train config.
-- `.venv/bin/python -m unittest discover -s pipeline/tests -q`: **54 tests OK**
-  after mixes were built and before/after training.
+- `.venv/bin/python -m unittest discover -s pipeline/tests -q`: **54 tests OK**.
 - MPS was required for comparable runs; the CPU `cursor_data_v1` directory is a
   sandbox artifact, not a challenger.
-- Reference `preview_selected.html` / `remaining_unmatched.png` were briefly
-  regenerated by a helper and **restored** from `/Users/emirtg/Desktop/dowser`
-  byte-for-byte.
-- Limitations: one seed; tiny overlapping Val; no 1992 positive Val recall;
-  assistant labels are not human GT; update counts differ with data size;
-  YOLO11s was not retuned (batch/lr/epochs kept identical by design).
-- **Exact next action:** reviewer inspects this file, branch diff, label
-  overlays, and paired HTML. Keep `kern_yolo11n_data_v2` selected. Do not merge
-  to main. Independent 30-image Test labeling remains the accuracy gate.
+- Reference preview artifacts were restored byte-for-byte after an earlier
+  helper overwrite.
+- Limitations: Val has 49 positives on four overlapping 1954 strips; no 1992
+  positive Val recall; translate is seed-sensitive (s7 collapsed); assistant
+  labels are not human GT; this is not Test.
+- **Exact next action:** reviewer inspects translate vs data_v2 HTML and
+  remaining crops. Candidate pin is
+  `pipeline/config/inference_cursor_translate.json`. Do not merge to main.
+  Adopt into `inference_selected.json` only after review. Independent 30-image
+  Test labeling remains the accuracy gate.
