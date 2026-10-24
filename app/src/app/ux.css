@@ -709,3 +709,9 @@ main.field:has(.field-paired) > .field-toast { flex: none; }
 .pc-title { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-items: center; }
 .pc-title .dot { grid-row: 1 / span 2; align-self: center; }
 .pc-name, .pc-id { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+
+/* Brief + Add details share one row so the locked screen does not grow */
+.pc-actions-row { display: flex; gap: 8px; margin-bottom: 8px; }
+.pc-actions-row .pc-details-toggle { flex: 1; margin-bottom: 0; min-width: 0; }
+.pc-actions-row .pc-brief-toggle { flex: 0 0 auto; width: auto; padding: 0 20px; font-weight: 600; }

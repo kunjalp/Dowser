@@ -589,6 +589,7 @@ function Paired({
   const [secs, setSecs] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [simInfo, setSimInfo] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -855,6 +856,12 @@ function Paired({
 
       <FieldEvidence images={c.evidenceImages} />
 
+      <div className="pc-actions-row">
+      {c.brief && (
+        <button className="pc-details-toggle pc-brief-toggle" aria-haspopup="dialog" onClick={() => setBriefOpen(true)}>
+          <span>Brief</span>
+        </button>
+      )}
       <button
         className="pc-details-toggle"
         aria-expanded={detailsOpen}
@@ -867,6 +874,18 @@ function Paired({
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
+      </div>
+      {briefOpen && c.brief && (
+        <div className="sheet-backdrop" onClick={() => setBriefOpen(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label="Candidate brief" onClick={(e) => e.stopPropagation()}>
+            <h3>Brief</h3>
+            <p className="pc-sim-copy">{c.brief}</p>
+            <button className="pc-sim-done" onClick={() => setBriefOpen(false)}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
       <div id="pc-details" className="sheet-backdrop pc-details-backdrop" hidden={!detailsOpen} onClick={() => setDetailsOpen(false)}>
       <div className="sheet pc-details-sheet" role="dialog" aria-label="Note and photo" onClick={(e) => e.stopPropagation()}>
         <h3>Note and photo</h3>
