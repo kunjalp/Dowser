@@ -2,10 +2,10 @@ node_modules/
 .env
 .env.local
 .convex/
-convex/_generated/
 data/
 __pycache__/
 *.pyc
+.DS_Store
 
 # Local environments and generated ML artifacts; keep small fixtures in pipeline/fixtures/.
 /.venv/

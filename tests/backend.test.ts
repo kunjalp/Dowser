@@ -167,3 +167,42 @@ describe("ingest endpoint", () => {
     expect(r.candidateId).toBe("fake-099");
   });
 });
+
+describe("auto-confirm", () => {
+  const hot = (id: string, value = 1500) => ({ deviceId: "esp32-1", value, candidateId: id });
+
+  test("three hot readings in the window confirm a leak and move it to #1", async () => {
+    const t = setup();
+    await t.mutation(internal.seed.seedFakeCandidates, { count: 5 });
+    const r1 = await post(t, hot("fake-003"));
+    const r2 = await post(t, hot("fake-003"));
+    expect((await r2.json()).autoConfirmed).toBe(false);
+    const r3 = await post(t, hot("fake-003"));
+    expect((await r3.json()).autoConfirmed).toBe(true);
+    expect(r1.status).toBe(201);
+    const rows = await t.query(api.candidates.ranked, {});
+    expect(rows[0].id).toBe("fake-003");
+    expect(rows[0].status).toBe("confirmed_leaking");
+    const events = await t.query(api.candidates.eventsFor, { id: "fake-003" });
+    expect(events.some((e: any) => e.source === "auto")).toBe(true);
+  });
+
+  test("low readings and unknown candidates do not confirm or break ingest", async () => {
+    const t = setup();
+    await t.mutation(internal.seed.seedFakeCandidates, { count: 5 });
+    for (let i = 0; i < 4; i++) await post(t, hot("fake-002", 200));
+    expect((await t.query(api.candidates.get, { id: "fake-002" }))?.status).not.toBe("confirmed_leaking");
+    for (let i = 0; i < 3; i++) {
+      const r = await post(t, hot("does-not-exist"));
+      expect(r.status).toBe(201);
+    }
+  });
+
+  test("a human decision is never overridden by auto-confirm", async () => {
+    const t = setup();
+    await t.mutation(internal.seed.seedFakeCandidates, { count: 5 });
+    await t.mutation(api.candidates.setStatus, { id: "fake-004", status: "no_well", source: "analyst" });
+    for (let i = 0; i < 4; i++) await post(t, hot("fake-004"));
+    expect((await t.query(api.candidates.get, { id: "fake-004" }))?.status).toBe("no_well");
+  });
+});
