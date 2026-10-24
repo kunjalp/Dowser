@@ -10,6 +10,8 @@ import importlib.metadata
 import json
 import os
 import subprocess
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
@@ -115,13 +117,32 @@ def run(config, name):
     dataset_path = output/"data.yaml"
     dataset_path.write_text(yaml.safe_dump(data))
     record = {"state":"starting","inputs":ready,"config":config,"versions":actual_versions,
+              "started_at":datetime.now(timezone.utc).isoformat(),
+              "progress":{"optimizer_steps":0,"epochs_completed":0},
               "code_commit":subprocess.check_output(["git","rev-parse","HEAD"],cwd=ROOT,text=True).strip(),
               "code_dirty":bool(subprocess.check_output(["git","status","--porcelain"],cwd=ROOT,text=True).strip())}
     record_path = output/"run.json"
     record_path.write_text(json.dumps(record,indent=2))
+    started = time.perf_counter()
     try:
         YOLO = local_sdk()
         model = YOLO(str(ROOT/config["weights"]))
+
+        def count_optimizer_steps(trainer):
+            """Count actual parameter-update calls, including accumulated batches."""
+            def after_step(optimizer, args, kwargs):
+                record["progress"]["optimizer_steps"] += 1
+            trainer.optimizer.register_step_post_hook(after_step)
+
+        def record_epoch(trainer):
+            """Persist progress so an interrupted run is distinguishable from setup."""
+            record["state"] = "training"
+            record["progress"]["epochs_completed"] = int(trainer.epoch)+1
+            record["elapsed_seconds"] = round(time.perf_counter()-started,3)
+            record_path.write_text(json.dumps(record,indent=2,default=str))
+
+        model.add_callback("on_pretrain_routine_end",count_optimizer_steps)
+        model.add_callback("on_train_epoch_end",record_epoch)
         model.train(data=str(dataset_path),project=str(output),name="training",exist_ok=False,**config["training"])
         record["state"] = "completed"
         record["save_dir"] = str(model.trainer.save_dir)
@@ -136,6 +157,8 @@ def run(config, name):
         record["error"] = str(exc)
         raise
     finally:
+        record["finished_at"] = datetime.now(timezone.utc).isoformat()
+        record["elapsed_seconds"] = round(time.perf_counter()-started,3)
         record_path.write_text(json.dumps(record,indent=2,default=str))
     return record
 

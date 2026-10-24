@@ -1,7 +1,7 @@
 # ML experiments
 
-No model training or evaluation run has been performed in this workspace. Do not fill
-results from expectations. Add one record per meaningful run; link larger reports
+The first model diagnostic is recorded below. Do not fill results from
+expectations. Add one record per meaningful run; link larger reports
 and artifacts instead of committing generated directories.
 
 ## Preparation: kern_1024_v1 — 2026-10-23
@@ -251,6 +251,65 @@ geographic holdouts. This is a data preparation run, not a model experiment.
   `5794c25ad8f342769da318955f4ec130e57d0f21ced409c00df79a15c9ced9f7`.
   No hosted session, API call, account upload or paid compute started by setup.
   Installed SDK/pretrained checks do not establish detector accuracy.
+
+## Human Validation import — 2026-10-24
+
+- Command: `.venv/bin/python -m pipeline.audit_annotations data/ml/reviewed_exports/dowser-kern-validation.v1-manual_validation_v1.yolov8.zip --dataset data/ml/kern_1024_v2 --split val --output data/ml/reviewed_validation_v1`.
+- Source ZIP SHA-256:
+  `ec7d27d31dd023420aeac3a0c9e09e5ce9fc3526e0a4cf9f26fa79f64a5ac8bb`;
+  unchanged. Clean code `a3cf3793a571d993c67be53293a5691dde779fdb`;
+  auditor SHA `ee6076f64a5eee8e7c8d38cf22f586cae71e86e24714f9f1815cd74d35bcd709`.
+- Frozen v2 manifest SHA:
+  `ebb2f8a4fdfefabf7dcdd9f3e4339f4c5912d4b2b2ecbb448b3f6da06c0ef572`.
+  All 15 Val IDs matched, no resized/shifted geometry; original PNGs restored.
+  49 boxes on four Oildale 1954 strips (8, 13, 27, 1), 11 explicit empty labels.
+  All four 1992 images are negative; no per-era 1992 recall can be measured.
+  Box instances across overlapping images are not counts of unique wells.
+- One <=0.005 px right-edge rounding overflow clipped/logged only in the derived
+  copy. Zero >40 px size flags. Native-pixel contact figure for four positives
+  and both full negative tiles visually inspected; not full independent semantic
+  completeness approval. Audit/review HTML and contact figure are local artifacts.
+- Audit JSON SHA:
+  `1a88c5c0d2d38e96c87ff7ad395e93d0c2cae52a80ccfa7437a39170201fcc2e`.
+  Preflight now passes 5/568 Train and 15/49 Val, test_used=false.
+  Preparation/audit Python 3.9.6 environment unchanged. No cloud training/upload.
+
+## First five-epoch diagnostic: kern_yolo11n_smoke_v1 — 2026-10-24
+
+- Command: `pipeline/.venv/bin/python -u -m pipeline.train_detector --name kern_yolo11n_smoke_v1`, log `data/ml/kern_yolo11n_smoke_v1.log`.
+- Clean code `a3cf3793a571d993c67be53293a5691dde779fdb`, config at that commit
+  (before nbs was explicitly set). Run metadata preserves the actual full config.
+  Pinned official pretrained YOLO11n, source SHA
+  `0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1`.
+  Train audit SHA `eee6fa445dd1b0ddd606ad18704f870e617c0156d310925425e8bde8a746d55b`;
+  Val/manifest identities above. 5 Train images/568 boxes; 15 Val images/49 boxes.
+  Final Test not read. Python 3.12.14, torch 2.14.1, torchvision 0.29.1,
+  ultralytics 8.4.185, numpy 2.5.4, Apple M5/MPS, 24 GiB.
+- Actual settings: 5 epochs, imgsz 1024, batch 2, workers 0, amp false, seed 42,
+  AdamW/lr0 .001, warmup 0, augmentation off, max_det 1000. SDK default nbs=64.
+  Completed all epochs; cumulative epoch clock ~14.645 s (not full process wall
+  time). Final validation speed: ~40.9 ms inference per image in this tiny run,
+  excluding preprocessing (~0.7 ms) and postprocessing (~18.5 ms); not full-sheet
+  latency or a production benchmark. MPS warned some operations are nondeterministic.
+- Saved best-checkpoint framework Val metrics: P=0.2787836770837814,
+  R=0.08163265306122448, mAP50=0.04438908780269761,
+  mAP50-95=0.017124950603355435. These are SDK sweep-based metrics, not measured
+  at fixed confidence 0.4, not per-era 1992 recall, and not untouched final Test.
+  Final revalidation differs slightly from the final CSV row; report which one.
+- Local outputs under `data/ml/runs/kern_yolo11n_smoke_v1/`: run.json,
+  training/results.csv, plots and weights. Best.pt SHA:
+  `c1f0b64a6f34c1d4819b1f8e86c1ec7f82f1059d70d0656941184d0eb8234f94`;
+  last.pt SHA `636e53745030c9eaf3121be61bfcaee6c7098cf5fb67deb24eb5f0d9cbc04030`.
+- Finding from installed primary SDK source: accumulate=min(round(nbs/batch),
+  total_batches)=15, with only 15 batches in this run. Cadence implies one
+  optimizer step, not five meaningful training passes; no step counter was
+  installed in this historical run. Do not infer updates from epoch count.
+  Before the baseline, set nbs=2 at batch=2 and record actual optimizer post-step
+  calls/epochs/timestamps. Added two failure/progress tests; all 35 ML tests pass.
+- Next: separately committed baseline config, up to 50 epochs/patience 10,
+  warmup 3, nbs 2, same pretrained start and frozen data. Render predictions and
+  inspect false positives/negatives. The diagnostic is preserved as a setup run,
+  not acceptable detector quality or a reason to change final Test membership.
 
 ## Model-run template
 

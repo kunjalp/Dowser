@@ -1,7 +1,8 @@
 # First detector training plan
 
 Decision date: 2026-10-24, America/Los_Angeles. Current outcomes/next action are
-in [STATUS.md](STATUS.md). No detector epochs have run.
+in [STATUS.md](STATUS.md). The initial five-epoch diagnostic is recorded in
+[EXPERIMENTS.md](EXPERIMENTS.md); use that record for its actual old config.
 
 ## Environment and model
 
@@ -46,12 +47,14 @@ and excluding overlapping neighbors from Train.
 Fit only `data/ml/reviewed_v2/`: 5 user-reviewed images, 568 boxes, both eras,
 native PNGs. All other unreviewed Train images are excluded.
 Reviewed Validation must be imported to `data/ml/reviewed_validation_v1/`
-and audited against the active manifest. Its labels are still missing.
+and audited against the active manifest. The supplied export is now imported:
+15 Val images, 49 symbols, 11 verified-empty images. All positives are from
+Oildale 1954; 1992 recall is unavailable from this Val set.
 Never fabricate negatives, re-split the five Train images or tune against Test.
 Final Test labels are needed for evaluation, not the first training diagnostic.
 
 [Diagnostic config](../../pipeline/config/train_smoke.json): 5 epochs,
-imgsz 1024, batch 2, mps, workers 0, amp false, seed 42, AdamW/lr0 0.001,
+imgsz 1024, batch 2, nbs 2, mps, workers 0, amp false, seed 42, AdamW/lr0 0.001,
 warmup 0, augmentation off, max_det 1000, plots/checkpoints enabled.
 Measure actual memory and epoch timing in that run.
 
@@ -92,8 +95,20 @@ predictions. The first visible model result will be a prediction preview from
 our fine-tuned detector. Seen-Train previews are marked as such and do not
 establish unseen quality. Existing published-proposal HTML is distinct.
 
-After diagnostics and positive independent Val, commit a separate baseline
-config: up to 50 epochs, patience 10, `allow_negative_only_validation=false`.
+The [baseline config](../../pipeline/config/train_baseline.json) uses up to
+50 epochs, patience 10, warmup 3, `allow_negative_only_validation=false`, and
+nbs=2 for batch=2. This avoids the SDK's nbs=64 default accumulating essentially
+the whole tiny diagnostic before an update. Actual update counts are recorded;
+the first diagnostic is preserved rather than rewritten to match new settings.
+Run the baseline with a fresh name:
+
+```sh
+pipeline/.venv/bin/python -m pipeline.train_detector \
+  --config pipeline/config/train_baseline.json --check-only
+pipeline/.venv/bin/python -m pipeline.train_detector \
+  --config pipeline/config/train_baseline.json --name kern_yolo11n_baseline_v1
+```
+
 Start from pinned pretrained weights, select checkpoint/threshold on Val, record
 actual stopping and per-era errors. Freeze choices, evaluate on independently
 labeled 30-image Test, then export WGS84 detections/crops and check well offsets.

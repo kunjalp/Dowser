@@ -15,6 +15,7 @@
     "epochs": 5,
     "imgsz": 1024,
     "batch": 2,
+    "nbs": 2,
     "device": "mps",
     "workers": 0,
     "amp": false,

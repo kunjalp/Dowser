@@ -10,13 +10,13 @@ For another editor, start at [CONTINUE.md](../CONTINUE.md).
 
 ## Current stage
 
-Human Train annotations and the local YOLO environment/runner are ready.
-**No detector fitting: zero optimizer updates, zero epochs, no trained checkpoint,
-no measured detection accuracy.** Independent Validation labels are next.
-A full-model loss/backward compatibility probe passed on the Apple GPU;
-that is not a trained detector.
-YOLO11n names the architecture, not eleven completed runs. The pasted team
-update's claimed v11 metrics/checkpoint do not exist here. See the
+**Validation imported and first five-epoch diagnostic completed.** Train is
+5 images/568 boxes; Val is 15 images/49 boxes with 11 reviewed empty images.
+All Val positives are Oildale 1954; 1992 has negatives only, so its recall cannot
+be measured. Test remains untouched/unlabeled. The first diagnostic saved weights
+but showed low Val quality (framework P 0.279, R 0.082); these are not final Test
+scores or fixed-confidence-0.4 metrics. A longer baseline is the next action.
+YOLO11n names the architecture, not eleven completed runs. See the
 [update/PR review](INTEGRATION_REVIEW.md). Its two described inference/export
 scripts have not been supplied as files and are absent from main/this checkout.
 
@@ -57,12 +57,37 @@ No cloud training, deployment or API generation was started here.
 - Pinned pretrained YOLO11n weights are in `data/ml/weights/`. Full 1024 px
   loss/backward on one real Train image (271 boxes) passed on MPS with finite
   gradients in 5.976 s. No optimizer step or trained weights saved.
-  Batch 2/full epochs and rendering remain untested.
+  The subsequent batch-2 diagnostic completed five epochs and saved plots/weights;
+  see the run record below. The compatibility probe remains distinct.
 - `pipeline.train_detector` checks missing Val, changed labels/images, wrong
   frozen partitions, overlapping Train/Val, extra unaudited images, and weight
   identity. A fresh recorded run is created only after preflight passes.
 
-## Exact next action
+## Current Validation and next action
+
+Emir supplied `dowser-kern-validation.v1-manual_validation_v1.yolov8.zip`.
+Audited import: `data/ml/reviewed_validation_v1/`, all 15 exact frozen Val IDs,
+native PNGs restored, 49 class-0 boxes, 11 explicit empty labels, no large-box
+flags. One 0.005 px export-edge overflow was clipped/logged only in the derived
+copy. Original archive is unchanged; full independent semantic approval is not
+claimed. Four positive annotation strips and both full negative tiles were
+visually inspected. No new labeling request is pending for Emir.
+
+Diagnostic `data/ml/runs/kern_yolo11n_smoke_v1/` completed at clean code `a3cf379`.
+Installed SDK defaults nbs=64 accumulated 15 batches before its first update;
+the five-epoch diagnostic therefore supplied very few parameter updates (one
+inferred from inspected SDK cadence, not an instrumented counter). Preserve it.
+Config now explicitly uses nbs=2 for batch=2; the runner records actual optimizer
+steps, completed epochs, timestamps and elapsed time, including partial failures.
+35 ML tests pass, including update-counter/failure-record checks.
+
+Next: run `pipeline/config/train_baseline.json` from pinned pretrained weights,
+up to 50 epochs/patience 10, then render a local prediction preview at recorded
+confidence 0.4. Use the same frozen Train/Val; do not tune on protected Test or
+claim per-era recall for 1992. See [training plan](TRAINING_PLAN.md) and
+[experiment records](EXPERIMENTS.md).
+
+### Completed human handoff (retained instructions)
 
 Emir: create a **separate Object Detection project** `dowser-kern-validation`
 and upload **`data/ml/kern_1024_v2/annotation_import/val.zip` (15 PNGs)**.
@@ -96,8 +121,9 @@ of the five overlapping Train images or use of protected Test for tuning.
   auditing including explicit negatives, split revision, training guards.
 - Actual new ZIP: 15 PNGs, integrity/content checked; Test IDs and all native PNG
   identities preserved. Five-image import and both source archive hashes pass.
-- Real `--check-only` exits 2, `Missing reviewed val import`, as expected.
-  No training run is created. Raw probe/data identities: [EXPERIMENTS.md](EXPERIMENTS.md).
+- Before the human export, preflight correctly refused missing Val. After import,
+  it passes with 5/568 Train and 15/49 Val. First diagnostic completed; exact
+  identities/results are in [EXPERIMENTS.md](EXPERIMENTS.md).
 - Main through `2b4678a` is incorporated. Incoming brief/evidence-URL loading,
   CalGEM layer, impact/replay and UI changes were source-inspected; see
   [main review](../MAIN_REVIEW.md). Team files are unchanged by ML. No deployment,
