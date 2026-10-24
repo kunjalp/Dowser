@@ -703,3 +703,9 @@ main.field:has(.field-paired) > .field-toast { flex: none; }
   .dc-primary, .dc-secondary, .dc-undo { border: 2px solid var(--text); }
 }
 .field.outdoor .dc-undo { height: 126px; } /* 72 + 6 + 48, same as the outdoor rows */
+
+
+/* Paired header: long candidate id gets its own truncating line so it never runs under the "to home" chip */
+.pc-title { display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 8px; align-items: center; }
+.pc-title .dot { grid-row: 1 / span 2; align-self: center; }
+.pc-name, .pc-id { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
