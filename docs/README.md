@@ -29,6 +29,6 @@ Documentation is stored with code and reviewed in the same PR. Prefer English fo
 shared technical files and code identifiers; chat can remain in Russian. Do not
 copy mutable statuses across several documents. Link to evidence instead.
 
-The ML preparation branch includes main `f7e5eeb`. The contract reflects its
+The ML preparation branch includes main `48cdd29`. The contract reflects its
 current backend schema. Raw maps and labeling images are ignored and reproducible
 locally. Prepared images remain unlabeled; no detector result is claimed.

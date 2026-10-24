@@ -1,8 +1,9 @@
 # ML status and handoff
 
 Last verified: 2026-10-23, America/Los_Angeles.
-Task branch: `ml/tile-georeferencing`; includes reviewed main `7f04aad`
-(`.gitignore` additions only since the `f7e5eeb` implementation review).
+Task branch: `ml/tile-georeferencing`; includes reviewed main `48cdd29`.
+Backend/schema review remains `f7e5eeb`; later upstream changes add editor ignores
+and frontend demo banners/reason lines, with no schema change.
 For a new editor/AI session, use [continuation instructions](../CONTINUE.md).
 
 ## Integration handoff
@@ -49,7 +50,7 @@ The user's zero-cost constraint is recorded in root agent instructions.
 - Backend changes were merged from main. Current schema includes `mapYear`,
   optional `cropUrl`, candidate loading, field status changes, and pairing.
   Main now also contains auto-confirmation, Command Map/Field View, and an overlay
-  converter. Those team files are unchanged relative to `f7e5eeb`.
+  converter. Those team files are unchanged relative to `48cdd29`.
   See [current contract](CONTRACT.md).
 
 ## Data preparation run
