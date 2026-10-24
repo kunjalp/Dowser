@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "status": "validation_selected_candidate_pending_final_test_and_real_map_controls",
+  "training_run": "kern_yolo11n_data_v2",
+  "weights": "data/ml/runs/kern_yolo11n_data_v2/training/weights/best.pt",
+  "weights_sha256": "a409254df3769cb119b0b2396e44df5038a669dc748d22a28a4fdf173095f5df",
+  "manifest": "data/ml/kern_1024_v2/manifest.jsonl",
+  "manifest_sha256": "ebb2f8a4fdfefabf7dcdd9f3e4339f4c5912d4b2b2ecbb448b3f6da06c0ef572",
+  "confidence": 0.24,
+  "nms_iou": 0.7,
+  "imgsz": 1024,
+  "max_det": 1000,
+  "device": "mps",
+  "selection": "Highest per-tile human-Val F1 among baseline/data_v2/data_v3, with each cutoff selected on 0.05..0.95 step .01, IoU .5; ties favor higher cutoff. No Test use.",
+  "training_supervision": "568 original human boxes plus 49 assistant-visual-reviewed boxes; 8 images including one assistant-reviewed negative; not all-human GT.",
+  "validation_limits": "49 positive instances on four overlapping 1954 Oildale tiles; 1992 has negatives only. Data_v2 has three 1992 FP vs baseline two at their selected cutoffs. Validation/tuning, not final Test performance."
+}

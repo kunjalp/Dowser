@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "reason": "Add full-content validation examples; original validation consists mainly of padded southern-edge strips.",
+  "base_dataset": "data/ml/kern_1024_v1",
+  "preserved_human_import": "data/ml/reviewed_v2",
+  "output_dataset": "data/ml/kern_1024_v2",
+  "reserve_tile_ids": [
+    "usgs_293661_x03787_y02820",
+    "usgs_102321_x03707_y02832"
+  ],
+  "minimum_full_tile_fraction": 0.95,
+  "test_policy": "Keep all original 30 test tiles unchanged; no images or labels used for tuning."
+}

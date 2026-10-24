@@ -1,0 +1,8 @@
+# Local macOS ARM64 training, Python 3.12.14; separate from preparation .venv.
+# Complete installed environment: requirements-train.lock.txt.
+torch==2.14.1
+torchvision==0.29.1
+ultralytics==8.4.185
+numpy==2.5.4
+Pillow==13.0.0
+PyYAML==6.0.3

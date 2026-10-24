@@ -1,0 +1,1584 @@
+Dowser PRD — Cal Hacks 13.0
+
+Oct 23, 2026
+ · 
+@Someone
+
+
+1. Overview
+Dowser is a four-person Cal Hacks 13.0 build (Climate track, software + hardware, Oct 23–25, 2026, Palace of Fine Arts, SF) that finds undocumented orphaned oil and gas wells on century-old USGS maps, ranks them for plugging crews, and confirms leaks in the field with a handheld methane sensor. The deliverable by Sunday 9 AM is a working end-to-end demo: historical map tile in, ranked candidate wells out, sensor reading in the field, live map updated.
+
+1.1 One-liner
+A computer vision model finds oil and gas well symbols on historical USGS topographic maps, flags the ones missing from state records, and ranks them for plugging crews, who confirm leaks with a cheap handheld methane sensor that logs readings back to a live map.
+
+1.2 Problem
+There are likely hundreds of thousands of undocumented orphaned oil and gas wells in the US (estimate from the proposal; cite a source in the Devpost before using a number).
+
+Many leak methane, which is far more potent than CO₂ over the near term. Some sit near homes and schools.
+
+Plugging funding exists, but crews cannot plug wells nobody knows about.
+
+The evidence is already on historical topographic maps, which marked wells with small symbols decades before modern record-keeping. Nobody has the time to scan those maps by hand.
+
+1.3 Why now
+The 2021 Infrastructure Act funded orphaned well plugging and states are building out programs. Verify current program status before pitching.
+
+Berkeley Lab and partners have published research showing deep learning can find undocumented wells on historical maps, so the approach is proven. Dowser's differentiator is the end-to-end workflow: detection → records cross-check → ranking → field verification.
+
+USGS has digitized and georeferenced its historical map collection (TopoView), so the raw data is free and ready.
+
+1.4 Goals
+ID
+
+Goal
+
+Why it matters
+
+G1
+
+Demonstrate the full loop live: detect → cross-check → rank → verify in the field
+
+Functionality and Technical Complexity scoring
+
+G2
+
+Produce a ranked candidate list for one region with a plain-English brief per well
+
+Intentionality: built for a real user (state plugging programs)
+
+G3
+
+Show a hardware sensor reading change a well's status on the live map in under 5 seconds
+
+The "wow" moment of the demo
+
+G4
+
+Report detector accuracy honestly on maps we actually checked
+
+Credibility with judges and domain experts
+
+G5
+
+Use sponsor tools where they are a real fit (Convex, Factory Droid SDK, Apify)
+
+Prize track eligibility
+
+1.5 Non-goals
+Not a production system for any state agency, and not a certified emissions measurement.
+
+No claim of finding real, verified undocumented wells unless verified against records.
+
+No multi-state coverage in the MVP; one region only.
+
+No custom-trained hardware calibration beyond a simple threshold; the MQ-4 is a demo-grade indicator, not a regulatory instrument.
+
+1.6 Success metrics
+These are targets for the weekend, not promises. Adjust after the first labeling pass.
+
+Metric
+
+Target
+
+How measured
+
+End-to-end demo runs without manual intervention
+
+3 of 3 rehearsal runs
+
+Rehearsal log Sat night and Sun morning
+
+Detector recall on held-out labeled tiles
+
+Report the actual number; aim for 0.60+
+
+Hand-labeled validation split (about 20%)
+
+Detector precision on held-out labeled tiles
+
+Report the actual number; aim for 0.60+
+
+Same split
+
+Pixel-to-lat/long error
+
+Under 50 m on spot-checked wells
+
+Spot-check against known CalGEM wells
+
+Sensor-to-map latency
+
+Under 5 s
+
+Timestamp on device vs. map render
+
+Submission complete
+
+GitHub link, video, table number, Devpost by Sun 9 AM
+
+Checklist
+
+2. Users and stories
+The primary user is a state orphan well program staffer who must decide where plugging crews go next; the secondary user is the field crew member who walks to a candidate and confirms it. Judges are a third audience and see both views in the demo.
+
+2.1 Personas
+Persona
+
+Role
+
+Needs
+
+What Dowser gives them
+
+Program analyst (primary)
+
+Works at a state oil and gas agency or plugging program; builds the plugging priority list
+
+A defensible, ranked list of wells not yet in records, with reasons
+
+Ranked candidates plus a plain-English brief per well
+
+Field verifier (secondary)
+
+Plugging crew member or inspector
+
+Know where to walk, and a quick yes/no on whether it is leaking
+
+Handheld sensor that posts readings tagged to the well on a live map
+
+Community or public health reviewer (tertiary)
+
+Local official or advocate
+
+See which candidates are near homes and schools
+
+Proximity scores and map overlay
+
+2.2 User stories
+ID
+
+As a...
+
+I want to...
+
+So that...
+
+Priority
+
+US1
+
+Program analyst
+
+upload or select a historical map tile and see detected well symbols on it
+
+I can see what the old map shows without scanning it by hand
+
+Must
+
+US2
+
+Program analyst
+
+see which detections have no documented well nearby in state records
+
+I focus on wells nobody knows about
+
+Must
+
+US3
+
+Program analyst
+
+see candidates ranked by proximity to homes and schools, map confidence and field confirmation
+
+I send crews to the highest-risk wells first
+
+Must
+
+US4
+
+Program analyst
+
+read a short plain-English brief for each candidate
+
+I can justify the priority to my manager
+
+Must
+
+US5
+
+Program analyst
+
+toggle between the old map and today's satellite view
+
+I can visually sanity-check a detection
+
+Must
+
+US6
+
+Field verifier
+
+take a handheld sensor to a candidate and see readings logged to it
+
+I confirm or rule out a leak on site
+
+Must
+
+US7
+
+Program analyst
+
+watch a candidate turn red and move to the top when a leak is confirmed
+
+The list reflects field reality in real time
+
+Must
+
+US8
+
+Program analyst
+
+see a second-pass AI check on uncertain detections
+
+I trust borderline cases more
+
+Stretch
+
+US9
+
+Program analyst
+
+switch to another region or state
+
+I see it generalizes
+
+Stretch
+
+US10
+
+Program analyst
+
+overlay satellite methane data where available
+
+I get independent evidence
+
+Stretch
+
+2.3 Demo narrative (the story judges should leave with)
+A historical map tile is uploaded. Undocumented wells light up on the map. The presenter picks the top-ranked candidate, then "walks to it" with the handheld sensor near a simulated leak. The sensor reading appears on the live map, the candidate turns red, and it jumps to the top of the plugging list. A Claude-written brief explains why it matters. See section 8.3 for the scripted run.
+
+3. Scope
+The MVP is one region, one detector, one cross-check, one ranking, one handheld, one live map; anything else waits until the MVP works end-to-end. The stretch gate is Saturday around 6 PM.
+
+3.1 MVP (must ship by Sun 9 AM)
+Map ingestion for one region with heavy historical drilling (LA Basin or Kern County, CA): georeferenced historical maps from USGS TopoView, tiled.
+
+YOLO well-symbol detector fine-tuned on a few hundred hand-labeled symbols (Roboflow), with pixel-to-lat/long conversion using each map's georeferencing.
+
+Records cross-check against CalGEM: any detection with no documented well within about 100 m becomes a candidate undocumented well.
+
+Ranking by proximity to homes and schools (OpenStreetMap), map confidence and field confirmation.
+
+Claude agent writing a plain-English brief per candidate.
+
+Handheld verifier: ESP32 + MQ-4 methane sensor + small OLED display, posting readings to Convex.
+
+Live map UI (Next.js + MapLibre) with old map / satellite toggle, documented vs. undocumented wells, and live sensor readings.
+
+A scripted 3-minute demo, a backup demo video and a Devpost submission.
+
+3.2 Stretch (only if the MVP works end-to-end by Saturday ~6 PM)
+Claude vision as a second-pass verifier on uncertain detections.
+
+A second region or state.
+
+Overlay of satellite methane data where available.
+
+3.3 Out of scope
+User accounts, authentication and multi-tenant data.
+
+Mobile app (a simple phone web page for location is allowed, see risks).
+
+Real methane handling or any real gas release.
+
+Regulatory-grade calibration or compliance reporting.
+
+Writing project code before the event starts (gathering data and parts is allowed; writing project code early is not).
+
+4. Functional requirements
+Nine modules, each with numbered requirements and an acceptance test a teammate can check in under a minute. Priority: P0 = demo fails without it, P1 = should have, P2 = stretch.
+
+4.1 Map ingestion (Data/backend + ML)
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-1.1
+
+Pick one region (LA Basin or Kern County) and record the choice and bounding box in the repo
+
+Region and bounding box written in README
+
+P0
+
+FR-1.2
+
+Download georeferenced historical map sheets for the region from USGS TopoView
+
+At least 3 sheets covering at least 2 map eras saved locally with their georeferencing metadata
+
+P0
+
+FR-1.3
+
+Tile each sheet into fixed-size images (for example 1024 px square with 10–20% overlap) and store the tile's pixel-to-world transform
+
+Every tile has an ID, source sheet, map year and transform; reconstructing a tile's corner coordinates matches the sheet within 1 pixel
+
+P0
+
+FR-1.4
+
+Upload a single map tile through the UI or a CLI and run detection on it
+
+A tile goes from upload to detections stored in under 30 s on demo hardware
+
+P0
+
+FR-1.5
+
+Keep raw sheets out of git; store only tile manifests and small demo tiles
+
+Repo size under 100 MB
+
+P1
+
+4.2 Well-symbol detector (ML)
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-2.1
+
+Label well symbols in Roboflow on tiles from at least two map eras; target a few hundred labeled symbols
+
+At least 300 labeled boxes (adjust after first pass), exported in YOLO format
+
+P0
+
+FR-2.2
+
+Hold out about 20% of labeled tiles as a validation set, never trained on
+
+Split recorded in a manifest file
+
+P0
+
+FR-2.3
+
+Fine-tune a YOLO model starting from pretrained weights
+
+Training run completes; weights saved; run config committed
+
+P0
+
+FR-2.4
+
+Output for each detection: box, confidence score, class (well symbol), source tile ID
+
+Detections stored as JSON with those four fields
+
+P0
+
+FR-2.5
+
+Report precision, recall and confusion examples on the validation set only
+
+A results table is in the Devpost and a slide; numbers state which maps were checked
+
+P0
+
+FR-2.6
+
+Provide a confidence threshold slider or fixed default (for example 0.4) tuned on the validation set
+
+Default chosen from validation PR curve and documented
+
+P1
+
+FR-2.7
+
+Fallback mode: load hand-labeled symbols as ground truth for the demo
+
+A config flag switches the pipeline from model detections to labeled ground truth
+
+P0
+
+4.3 Pixel-to-geo conversion (ML)
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-3.1
+
+Convert each detection's box center from pixel to latitude and longitude using the tile's georeferencing
+
+Function takes (tile ID, x, y) and returns (lat, lon) in WGS84
+
+P0
+
+FR-3.2
+
+Handle the map's coordinate reference system correctly (reproject to WGS84 if needed)
+
+Unit test with at least 3 known control points from the sheet passes
+
+P0
+
+FR-3.3
+
+Spot-check against documented wells
+
+At least 10 detections matched to known CalGEM wells; median offset reported (target under 50 m)
+
+P0
+
+FR-3.4
+
+Deduplicate detections that overlap across tile borders
+
+Detections within about 15 m of each other from adjacent tiles merge into one
+
+P1
+
+4.4 Records cross-check (Data/backend)
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-4.1
+
+Load California's CalGEM well database for the chosen region into a local geospatial table
+
+Row count and bounding box printed; coordinates validated and bad rows logged
+
+P0
+
+FR-4.2
+
+For each detected well, find the nearest documented well
+
+Distance in meters stored per detection
+
+P0
+
+FR-4.3
+
+Mark a detection as a candidate undocumented well when no documented well lies within about 100 m
+
+Threshold is a single config value; changing it changes the candidate count
+
+P0
+
+FR-4.4
+
+Show documented and undocumented wells as distinct layers
+
+Two visually distinct marker styles on the map
+
+P0
+
+FR-4.5
+
+Handle CalGEM wells with missing or low-precision coordinates
+
+Those wells flagged as "uncertain location" and excluded from the match, with a count shown
+
+P1
+
+4.5 Ranking (Data/backend)
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-5.1
+
+Compute proximity to homes and schools using OpenStreetMap buildings and school locations
+
+For each candidate: distance to nearest school and count of buildings within 250 m (radius is a config value)
+
+P0
+
+FR-5.2
+
+Score each candidate on three inputs: proximity risk, map confidence (detector score and map era agreement) and field confirmation
+
+Score is a transparent weighted sum with weights in config and visible in the UI
+
+P0
+
+FR-5.3
+
+A confirmed sensor reading raises the candidate's score above all unconfirmed candidates
+
+Demo candidate jumps to rank 1 within 5 s of a threshold-crossing reading
+
+P0
+
+FR-5.4
+
+Show a rank-ordered list with the score breakdown per candidate
+
+Clicking a row shows each component's contribution
+
+P1
+
+Suggested starting formula, to be tuned on Saturday:
+
+where P is proximity risk (0 to 1), C is map confidence (0 to 1) and F is field confirmation (0 or 1). Weights are placeholders, not validated values.
+
+4.6 Claude briefs (Data/backend)
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-6.1
+
+A Claude agent writes a plain-English brief per candidate for plugging program staff
+
+Brief is 80–120 words, names the nearest school or homes, the map year, detection confidence and field status
+
+P0
+
+FR-6.2
+
+The brief is generated only from structured fields passed in (no invented facts)
+
+Prompt receives a JSON of the candidate's fields; brief contains no numbers absent from that JSON
+
+P0
+
+FR-6.3
+
+Briefs are generated for the top N candidates (for example N = 20) and cached
+
+Briefs are stored in Convex; regenerated only when a candidate's fields change
+
+P1
+
+FR-6.4
+
+Brief states uncertainty plainly ("candidate, not confirmed") until a sensor reading confirms
+
+Unconfirmed candidates never use the word "confirmed"
+
+P0
+
+FR-6.5
+
+Claude vision second-pass check on uncertain detections (confidence in a middle band)
+
+Returns yes, no or unsure with a one-line reason; shown in the candidate panel
+
+P2
+
+4.7 Handheld verifier (Hardware/firmware)
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-7.1
+
+ESP32 reads an MQ-4 methane sensor on an analog pin and averages over a short window to reduce noise
+
+Stable baseline reading in clean air after warm-up; variation within an agreed band
+
+P0
+
+FR-7.2
+
+A small OLED shows the live reading, Wi-Fi status and a simple state (OK / ELEVATED)
+
+State flips to ELEVATED when reading exceeds a configurable threshold above baseline
+
+P0
+
+FR-7.3
+
+The device posts readings over Wi-Fi to Convex (HTTP action) with device ID, timestamp, raw value and baseline-corrected value
+
+Reading appears in the Convex table within 2 s on venue Wi-Fi
+
+P0
+
+FR-7.4
+
+Each reading is tagged to a location: the selected candidate well, or phone location via a small web page
+
+Reading record includes a well ID or lat/lon; location source stored
+
+P0
+
+FR-7.5
+
+Battery pack powers the unit for the full demo (at least 30 minutes)
+
+Run test with a charged pack
+
+P1
+
+FR-7.6
+
+Replay mode: a recorded sensor trace can be posted into the same pipeline
+
+Script replays a CSV at real time and produces the same map behavior
+
+P0
+
+FR-7.7
+
+Simulated leak setup is safe and cleared with organizers; presented honestly as simulated
+
+Written organizer approval noted; slide states "simulated leak"
+
+P0
+
+4.8 Real-time backend (Data/backend)
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-8.1
+
+Convex tables for tiles, detections, candidates, documented wells, readings and briefs
+
+Schema deployed; seed script runs from empty
+
+P0
+
+FR-8.2
+
+Live queries push new readings and status changes to every open map client
+
+Two browser windows update within 1 s of a new reading
+
+P0
+
+FR-8.3
+
+Server logic updates a candidate's status and score when a reading crosses the threshold
+
+Status changes from "candidate" to "field-confirmed leak" automatically
+
+P0
+
+FR-8.4
+
+Auto-confirm only if at least 3 readings above threshold within 30 s (avoids a single noisy spike)
+
+Single spike does not flip status; sustained reading does
+
+P1
+
+FR-8.5
+
+A Droid run is triggered when a tile loads and performs the spatial triage under restricted permissions (see 6.3)
+
+Tile upload triggers the workflow without manual commands
+
+P1
+
+4.9 Live map UI (Frontend and pitch)
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-9.1
+
+Next.js app with a MapLibre map centered on the region
+
+Loads in under 3 s on venue Wi-Fi
+
+P0
+
+FR-9.2
+
+Toggle between the georeferenced historical map overlay and today's satellite imagery
+
+Toggle switches in under 1 s; overlay opacity slider
+
+P0
+
+FR-9.3
+
+Documented wells and undocumented candidates shown as separate, color-coded layers
+
+Legend visible; candidates in a distinct color; confirmed leaks in red
+
+P0
+
+FR-9.4
+
+Clicking a candidate opens a panel: score breakdown, nearest school, Claude brief, readings chart
+
+Panel opens in under 500 ms
+
+P0
+
+FR-9.5
+
+A ranked plugging list sidebar updates live
+
+Rank changes animate when a leak is confirmed
+
+P0
+
+FR-9.6
+
+Upload-a-tile control triggers detection and shows detections appearing
+
+Detections appear on the map after upload without a page reload
+
+P0
+
+FR-9.7
+
+"Demo mode" button that selects the top candidate and starts the scripted flow
+
+One click sets up the demo state
+
+P1
+
+FR-9.8
+
+Display a visible banner that sensor data in the demo is simulated
+
+Banner present whenever demo mode is on
+
+P0
+
+5. System architecture and data
+Dowser is a one-way pipeline from old maps to a ranked list, with Convex as the single live store that the handheld writes into and the map reads from.
+
+The pipeline row runs when a tile loads; sensor readings and map updates both go through Convex, so the demo needs no manual refresh.
+
+5.1 Components
+Component
+
+Suggested tech
+
+Owner
+
+Notes
+
+Map source
+
+USGS TopoView historical maps
+
+Data/backend
+
+Download the georeferenced version of each sheet; check which format TopoView offers for your sheets
+
+Tiling and geo transform
+
+Python with rasterio and pyproj
+
+ML
+
+Store each tile's pixel-to-world transform
+
+Detector
+
+YOLO fine-tuned on Roboflow labels
+
+ML
+
+Fallback: hand-labeled ground truth
+
+Records
+
+CalGEM well database
+
+Data/backend
+
+Local geospatial table
+
+Proximity data
+
+OpenStreetMap buildings and schools
+
+Data/backend
+
+Query once for the region and cache
+
+Briefs
+
+Claude via the Anthropic API
+
+Data/backend
+
+Structured JSON in, short brief out
+
+Real-time store
+
+Convex
+
+Data/backend
+
+Live queries and HTTP actions
+
+Background workflow
+
+Factory Droid SDK
+
+Data/backend
+
+Triggered when a tile loads
+
+Data ingestion
+
+Apify
+
+Data/backend
+
+Custom Actor built at the event (see 6.4)
+
+Handheld
+
+ESP32 + MQ-4 + OLED
+
+Hardware/firmware
+
+Posts readings over Wi-Fi
+
+Frontend
+
+Next.js + MapLibre
+
+Frontend and pitch
+
+Historical overlay, satellite toggle, live layers
+
+5.2 Data model (Convex tables, proposed)
+Table
+
+Key fields
+
+Written by
+
+tiles
+
+tileId, sheetName, mapYear, transform, bounds
+
+Ingestion script
+
+detections
+
+detectionId, tileId, box, confidence, lat, lon, source (model or ground truth)
+
+Detector pipeline
+
+documentedWells
+
+apiNumber, lat, lon, status, locationQuality
+
+CalGEM loader
+
+candidates
+
+candidateId, detectionId, lat, lon, nearestDocumentedM, nearestSchoolM, buildingsNear, mapConfidence, fieldStatus, score, rank
+
+Cross-check and ranking
+
+readings
+
+readingId, deviceId, ts, raw, corrected, wellId or lat/lon, locationSource, isReplay
+
+Handheld or replay script
+
+briefs
+
+candidateId, text, generatedAt, inputHash
+
+Claude agent
+
+5.3 Interfaces (proposed)
+Reading ingest: a Convex HTTP action the ESP32 posts to (JSON: deviceId, ts, raw, corrected, wellId or lat/lon). Use an HTTPS client on the device; note any certificate shortcut you take for the demo.
+
+Tile upload: UI control or CLI that stores the tile and starts the detection workflow.
+
+Live queries: the map subscribes to candidates, documentedWells and readings; the ranked list is a query sorted by score.
+
+Brief generation: a server function that sends a candidate's JSON to Claude and stores the text.
+
+5.4 Geospatial rules
+Compute distances in a projected, meter-based coordinate system (for example California Albers, EPSG:3310), not in degrees; store WGS84 lat/lon for display.
+
+The pixel-to-geo step uses each tile's own transform; never reuse one sheet's transform for another sheet.
+
+Map-era differences matter: record each tile's year and report detector results per era.
+
+Cross-check radius (~100 m), proximity radius and score weights are config values, not constants buried in code.
+
+6. Sponsor tools and prize tracks
+Convex is the load-bearing sponsor tool; Factory Droid SDK and Apify only count if each does real work in the pipeline, so each has a minimum integration and a fallback. Factory and Apify criteria are captured in 6.3 and 6.4; confirm the Convex and Planet-First criteria on Devpost before Saturday afternoon.
+
+Track
+
+Role in Dowser
+
+Where in this PRD
+
+Minimum real integration
+
+Fallback if it fails
+
+Convex
+
+Real-time database and live sync between the ESP32 and the MapLibre frontend
+
+FR-7.3, FR-8.1 to FR-8.4, FR-9.5
+
+Handheld reading posted over an HTTP action; open map updates without refresh
+
+None needed; this is the core. Replay mode still uses Convex
+
+Factory Droid SDK
+
+Runs the background workflow when a map tile loads: pixel-to-geo conversion, spatial cross-check
+
+FR-8.5, section 5 pipeline zone
+
+Tile upload triggers a Droid run with restricted permissions; its plan, steps and result are stored and shown in the UI (6.3)
+
+A plain script does not meet the eligibility rule: time-box Droid to Saturday noon, then drop this track and say so
+
+Apify
+
+Ingestion layer: pulls state well records or historical geospatial boundaries automatically
+
+Section 5 components, FR-4.1
+
+A custom Actor built at the event that fetches and normalizes well records; the pipeline runs on its output (6.4)
+
+Load the CalGEM file manually and drop the Apify claim
+
+Planet-First
+
+Mission and impact framing: find methane leaks, protect public health
+
+Sections 1, 7.3 and the demo
+
+An impact line computed from our own region data (see below)
+
+Qualitative framing only, no numbers
+
+6.1 Impact metric for the Planet-First pitch
+Use a number the system produces, not a national estimate. Example: "In our test region, N candidate wells are not in state records, and M of them are within 250 m of homes or a school." N and M come from the live candidate table and must be labeled as candidates, not verified wells.
+
+6.2 Things to confirm with sponsors
+Factory Droid SDK: pick TypeScript or Python, confirm how to authenticate, and how to restrict what a Droid run can read and write (check the SDK docs or the Factory table).
+
+Apify: the Best Actor award is for an Actor built for this event; confirm how to publish it and what the submission needs.
+
+Convex: whether the event gives credits or a mentor; use the mentor for the HTTP action from the ESP32.
+
+Whether one project can enter several sponsor tracks plus the main Climate track (usually yes; check the Devpost rules).
+
+6.3 Factory Droid SDK: design to the prize criteria
+Prize rule (Best Use of the Factory Droid SDK): the project must use the Droid SDK (TypeScript or Python) meaningfully, Droid must do real work in the running product and not only help write code, and the README must explain where and how Droid is used. It scores well when Droid runs on a trigger you designed, you control what it can touch with safety built in, and its work is visible (plans, steps, diffs, results). It scores poorly as a chatbot wrapper, a slides-only demo, or when nobody can tell what the agent did.
+
+Design: Droid is the spatial triage agent. It is not a chat box and not the Claude brief writer; the Claude agent writes briefs, Droid decides which detections become candidates and what changed.
+
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-D1
+
+Trigger 1 (event): a new tile with detections starts a Droid run automatically
+
+Uploading a tile creates a run record and starts Droid with no manual command
+
+P0
+
+FR-D2
+
+Droid's task: cross-check the tile's detections against documented wells, decide candidate status, record the reasoning per detection and write candidates
+
+Run output lists each detection with a decision and a short reason; candidates table updated
+
+P0
+
+FR-D3
+
+Trigger 2 (another agent or sensor event): a field-confirmed leak starts a Droid run that re-evaluates the ranking and proposes the new order
+
+Run produces a before/after rank diff within 10 s of the confirming reading
+
+P1
+
+FR-D4
+
+Scoped permissions: Droid may read tiles, detections and documentedWells; write only to candidates and its own run log; no deleting, no network access beyond what the run needs, no access to secrets
+
+Permission list is in the repo; a test run that tries a disallowed write is blocked and logged
+
+P0
+
+FR-D5
+
+Safety limits: per-run time limit, maximum number of writes, and a dry-run mode that shows the diff without applying it
+
+Limits are config values; dry-run produces a diff and changes nothing
+
+P0
+
+FR-D6
+
+Visible work: an Agent Run panel in the map UI shows the plan, each step and tool call, the diff of candidates added or changed, and the final result
+
+Panel updates live during a run; a judge can see what Droid did without reading code
+
+P0
+
+FR-D7
+
+Run history is stored (runId, trigger, plan, steps, diff, status, duration) so runs can be inspected later
+
+agentRuns and agentSteps tables in Convex; last 10 runs viewable
+
+P1
+
+FR-D8
+
+README section "Where Droid is used" with trigger, task, permissions and an example run
+
+Section present and matches the code
+
+P0
+
+FR-D9
+
+Failure handling: if Droid errors or times out, the run is marked failed and the pipeline keeps previous results
+
+Forced failure leaves candidates unchanged and shows a failed run in the panel
+
+P1
+
+Build order: smallest end-to-end run first (tile event → Droid run → one candidate written → visible in the panel), then permissions and limits, then trigger 2. I have not verified the SDK's exact API: map each requirement to the SDK's actual features after reading its docs, and tell the team by Saturday noon if one cannot be met.
+
+6.4 Apify: design to the prize criteria
+Prize rule (Best Use of Apify): top 5 projects using Apify meaningfully are recognized, quality of the whole project is judged, and there is a separate Best Actor award for building an Actor for this event.
+
+Design: build a custom Actor, the Dowser Records Actor, and make the pipeline depend on it. Using Apify only to download one file by hand would not be meaningful use.
+
+ID
+
+Requirement
+
+Acceptance criteria
+
+Priority
+
+FR-A1
+
+Actor input: region bounding box (or county name) and source selection
+
+Input schema validates and shows example values
+
+P0
+
+FR-A2
+
+Actor fetches documented well records for the region from the state source and normalizes them (API number, lat, lon, status, location quality)
+
+Output dataset has the documentedWells fields; row count reported
+
+P0
+
+FR-A3
+
+Actor lists the historical map sheets covering the region with their download links and years
+
+Output dataset lists at least the sheets used in the MVP
+
+P1
+
+FR-A4
+
+The pipeline loads the Actor's dataset into Convex through the Apify API
+
+Running the Actor then the loader fills documentedWells with no manual file handling
+
+P0
+
+FR-A5
+
+The Actor can be run on demand from the UI or a script and on a schedule
+
+One on-demand run shown in the demo; schedule configured
+
+P1
+
+FR-A6
+
+Actor is published with a clear README, input schema and example output
+
+Actor page is complete and judges can run it
+
+P0
+
+FR-A7
+
+Use only sources whose terms allow automated retrieval; prefer official downloads or APIs
+
+Sources and their terms are listed in the README
+
+P0
+
+If an official bulk download exists for a source, the Actor can wrap it (fetch, validate, normalize) instead of scraping pages; the value is repeatable, region-parameterized ingestion. Time-box: Actor running by Saturday 2 PM so the cross-check at 2 PM can use its output; fallback is the manual CalGEM load and dropping the Apify claim.
+
+7. Quality, risks and honesty rules
+The demo must survive bad Wi-Fi, a dead sensor and a weak detector, so every critical path has a fallback and the pitch never claims more than we checked.
+
+7.1 Non-functional requirements
+ID
+
+Requirement
+
+Target
+
+NFR-1
+
+Reading-to-map latency
+
+Under 5 s end to end; under 2 s to reach Convex
+
+NFR-2
+
+Map first load
+
+Under 3 s on venue Wi-Fi
+
+NFR-3
+
+Demo works offline-ish
+
+Cached tiles, pre-generated briefs and replay data load without live API calls
+
+NFR-4
+
+Reproducibility
+
+Anyone on the team can run the pipeline from the README in under 15 minutes
+
+NFR-5
+
+Secrets
+
+API keys in env files, never committed; the ESP32 uses a scoped ingest endpoint
+
+NFR-6
+
+Repo hygiene
+
+Public GitHub repo with README, setup steps, data sources and license notes
+
+NFR-7
+
+Usability
+
+A judge understands the map screen in 10 seconds without a guide
+
+7.2 Risks and mitigations
+Risk
+
+Likelihood
+
+Impact
+
+Mitigation
+
+Fallback
+
+Labeling takes too long; symbols are tiny and vary by era
+
+High
+
+High
+
+Budget about 3 hours; keep the region small; split labeling across two people
+
+Use labeled symbols as ground truth (FR-2.7)
+
+Detector precision is low
+
+Medium
+
+High
+
+Start with one era; tune threshold on validation set
+
+Show detector results on the best tiles; report numbers honestly
+
+Wrong pixel-to-geo conversion
+
+Medium
+
+High
+
+Test with control points early (FR-3.2, FR-3.3)
+
+Demo on tiles already verified against CalGEM
+
+MQ-4 unstable or not warmed up
+
+High
+
+Medium
+
+Power it on as soon as it is wired and leave it running; average readings; baseline-correct
+
+Replay recorded trace (FR-7.6)
+
+ESP32 reads wrong voltage
+
+Medium
+
+Medium
+
+The ESP32 ADC takes at most 3.3 V and a 5 V sensor module can output more: use a voltage divider; read on an ADC1 pin because ADC2 conflicts with Wi-Fi
+
+Spare ESP32 and sensor
+
+Venue Wi-Fi blocks the ESP32 (captive portal, client isolation, congestion)
+
+High
+
+High
+
+Bring a phone hotspot or travel router and test the ESP32 on it early
+
+Replay mode; or serve readings from the laptop on a local network
+
+No GPS indoors
+
+Certain
+
+Low
+
+Phone location through a small web page, or pin readings to the selected well
+
+Pin to selected well
+
+Leak demo is unsafe or not approved
+
+Medium
+
+High
+
+Ask organizers before bringing any gas source; label it simulated
+
+Software "simulate leak" button plus replay
+
+Sponsor SDK or Apify integration slips
+
+Medium
+
+Medium
+
+Time-box to 90 minutes each; test the smallest possible call first
+
+Drop the sponsor claim, keep the feature as a script
+
+Live API or map-tile outage during judging
+
+Medium
+
+High
+
+Cache briefs and demo tiles; keep a backup video
+
+Play the video
+
+Scope creep into stretch goals
+
+High
+
+Medium
+
+Stretch gate at Sat ~6 PM; no new features after Sat 9 PM
+
+Feature freeze
+
+7.3 Honesty and accuracy rules
+Report precision and recall only on maps we actually checked, and say which maps and eras.
+
+Call detections "candidate undocumented wells", never "found wells", unless verified against records.
+
+Label the sensor demo as a simulated leak on screen (FR-9.8) and in the pitch.
+
+The MQ-4 is a demo-grade indicator, not a calibrated methane instrument.
+
+Do not quote a national count of orphaned wells without a cited source; verify funding program status before pitching.
+
+7.4 What you may be missing
+Time already used. It is Friday afternoon, so the pre-event checklist items (burn-in, ordering, pre-labeling) are mostly gone. Plan for a short sensor warm-up at the venue and treat the hardware as the riskiest path.
+
+Rules check. Ask at check-in what is allowed on pre-existing data, pretrained models, open-source code and pre-written code. The proposal's rule is that gathering data is fine and writing project code early is not.
+
+A second sensor or a software switch. A "simulate leak" control means a dead sensor does not kill the demo.
+
+Judge flow. Judges often visit tables for a few minutes and may come in waves. Prepare a 60-second version, the 3-minute version and a self-running loop.
+
+Why a plugging program would trust it. Be ready for "how accurate is it, and who verifies?" The answer is the field verification loop and honest precision numbers.
+
+Data licensing and credit. Note data sources and licenses in the README (USGS, CalGEM, OpenStreetMap attribution).
+
+Sleep and handoff. Assign a Saturday-night owner for the backup video so it is not left to the last hour.
+
+8. Team, timeline, demo and logistics
+Four people, four lanes, one stretch gate at Saturday ~6 PM and a feature freeze at Saturday 9 PM.
+
+8.1 Roles
+Role
+
+Owns
+
+Hands off to
+
+Hardware/firmware
+
+Sensor, OLED, enclosure, simulated leak setup, replay script
+
+Data/backend (reading format)
+
+ML
+
+Labeling, detector training, pixel-to-coordinate conversion
+
+Data/backend (detections JSON)
+
+Data/backend
+
+CalGEM data, cross-check, ranking, Convex, Claude agent, sponsor integrations
+
+Frontend (queries and schema)
+
+Frontend and pitch
+
+Map UI, video, Devpost, demo script
+
+Everyone (demo rehearsal)
+
+8.2 Timeline
+When
+
+Goal
+
+Exit criteria
+
+Fri 5–9 PM
+
+Check in, claim table, repo setup, parts tested, roles split
+
+Repo live; ESP32 reads sensor; Convex project created; region chosen
+
+Fri 9 PM–Sat 2 AM
+
+Map tiles downloaded and labeled; sensor reading; data flowing to Convex
+
+At least 150 labeled symbols; one reading visible in Convex
+
+Sat 8 AM–2 PM
+
+Detector trained; pixel-to-coordinate conversion working; map UI v1; Apify Actor running; first Droid run end to end (decision by noon)
+
+Detections on a map at correct locations (FR-3.3 check)
+
+Sat 2–9 PM
+
+Records cross-check, ranking, Claude briefs, handheld connected end to end
+
+Full loop works once; stretch gate at ~6 PM
+
+Sat 9 PM–Sun 1 AM
+
+Feature freeze, backup demo video, Devpost draft
+
+Video recorded; Devpost has all required fields
+
+Sun 6–9 AM
+
+Final video, GitHub link, table number, submit
+
+Submitted with margin before 9 AM
+
+8.3 Demo plan (3 minutes)
+0:00–0:30, problem. Orphaned wells leak methane and crews cannot plug wells nobody knows about. The evidence is on century-old maps.
+
+0:30–1:15, detection. Upload a historical tile; detections appear; undocumented candidates turn a distinct color on the map.
+
+1:15–1:45, ranking. Open the ranked list; click the top candidate; show the school-distance score and the Claude brief.
+
+1:45–2:30, field check. "Walk" to the candidate with the handheld near the simulated leak; the reading appears; the candidate turns red and jumps to rank 1.
+
+2:30–3:00, impact and ask. The region's N candidates and M near homes or schools (labeled as candidates); who it helps; what comes next.
+
+Rules for the demo: show the "simulated" banner, state the detector's measured precision and recall, and keep a backup video and replay mode ready before every judging round.
+
+8.4 Making the demo work at the venue
+Network first. Test the ESP32 on a phone hotspot or travel router as soon as it works on anything. Do not assume venue Wi-Fi will let a microcontroller join.
+
+Pre-seed the demo state. Load tiles, detections, candidates and briefs into Convex before judging, so the live part is only the upload and the sensor.
+
+Two ways to trigger the leak. The physical simulated leak (if approved) and a software button that posts the same reading.
+
+Run mode switch. One config flag for live detector vs. ground truth, and live sensor vs. replay.
+
+Self-running loop. A looping screen recording or auto-play demo mode for when nobody is free to present.
+
+Rehearse three times with someone who has not seen it, and time each run.
+
+8.5 What to bring
+Category
+
+Items
+
+Hardware
+
+2 or more ESP32 boards, 2 or more MQ-4 sensor modules, OLED display, jumper wires, breadboard, resistors for the voltage divider, USB cables, battery pack, spare of everything cheap
+
+Tools
+
+Small screwdrivers, wire strippers, multimeter if you have one, tape and zip ties; soldering gear only if the venue allows it (ask)
+
+Networking
+
+Phone hotspot (charged, with data), optional travel router, USB-C and Ethernet dongles
+
+Demo props
+
+A mock wellhead (pipe or fittings), a small enclosure or box, printed poster of one historical map tile next to today's satellite view
+
+Computing
+
+Laptops, chargers, power strip or extension cord, an external monitor or a tablet for the map if allowed, phone stands
+
+Accounts and keys
+
+Anthropic, Convex, Roboflow, Factory Droid SDK and Apify access, set up on at least two laptops; keys in env files and a shared secure note
+
+Data
+
+Region map sheets, CalGEM export, OpenStreetMap extract, labeled samples, all saved locally so an outage does not stop you
+
+Personal
+
+Water, snacks, headphones, a hoodie, a sleeping setup if the venue allows it
+
+8.6 Submission checklist
+
+GitHub repo public, README with setup, data sources and license notes
+
+
+Devpost: description, tech stack, sponsor tracks selected, video link, team members
+
+
+3-minute demo video recorded Saturday night and replaced if a better one exists Sunday
+
+
+Table number recorded
+
+
+Accuracy numbers match what the team actually measured
+
+
+Simulated-leak labeling visible in the video and the pitch
+
+
+Submitted with at least 30 minutes of margin before the Sunday 9 AM deadline
+
+8.7 Judging criteria fit
+Criterion
+
+How Dowser answers it
+
+Application
+
+Direct climate and public health benefit: methane leaks near homes and schools
+
+Intentionality
+
+Built for a real user: state orphan well plugging programs
+
+Functionality
+
+Live demo with hardware on the table
+
+Creativity
+
+Century-old maps combined with modern computer vision
+
+Technical Complexity
+
+Computer vision, geospatial matching, hardware, a Claude agent and real-time sync
+
+8.8 Open questions
+
+Which region: LA Basin or Kern County? (Decide at check-in based on map quality and CalGEM coverage.)
+
+
+Is any gas source allowed at the table, even an unlit lighter? (Ask organizers.)
+
+
+What are the exact prize criteria for Convex, Factory Droid and Apify?
+
+
+Is a shared external monitor or table power provided?
+
+
+Who owns the backup video on Saturday night?
+

@@ -1,0 +1,4 @@
+# Optional raster/source inspection environment; not detector training dependencies.
+rasterio==1.4.3
+Pillow==11.3.0
+pyproj==3.6.1

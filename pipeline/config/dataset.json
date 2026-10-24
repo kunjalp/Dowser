@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "tile_size_px": 1024,
+  "overlap_fraction": 0.2,
+  "minimum_valid_fraction": 0.15,
+  "test_fraction_target": 0.2,
+  "minimum_test_tiles": 30,
+  "validation_fraction_target": 0.1,
+  "minimum_validation_tiles": 10,
+  "split_projection": "EPSG:3310",
+  "class_names": ["well_symbol"],
+  "train_imgsz": 1024,
+  "annotation_policy": "All tiles start unlabeled; create negative labels only after full human review.",
+  "network_enabled": false,
+  "coordinate_grid": {
+    "url": "https://cdn.proj.org/us_noaa_conus.tif",
+    "local_path": "data/research/proj/us_noaa_conus.tif",
+    "sha256": "44611d823c48e5347500ee6afe40ff33d2b88cf817bf59f705ed4a4c3bd687d7"
+  }
+}

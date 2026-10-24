@@ -6,9 +6,58 @@ Finds candidate undocumented orphaned oil and gas wells on historical USGS maps,
 
 Layout: `/app` (Next.js) · `/convex` (backend) · `/pipeline` (Python) · `/firmware` (ESP32). Raw map sheets stay out of git.
 
-## Region
+## Team and ML documentation
+
+Start with the [documentation index](docs/README.md) and
+[ML status and next action](docs/ml/STATUS.md). The
+[contribution guide](CONTRIBUTING.md) describes task branches and PR review;
+[ML requirements](docs/ml/REQUIREMENTS.md) track Master Plan acceptance evidence.
+The [ML/backend contract](docs/ml/CONTRACT.md) distinguishes the existing schema
+from interface decisions that still need backend agreement. The full
+[Master Plan](docs/master-plan/source.txt) is the current source of truth;
+the [original PRD](docs/prd/source.txt) is retained as superseded history.
+
+## Region (FR-1.1)
+
+ML MVP selection: **Kern County, Oil Center + Oildale**, northeast Bakersfield.
+WGS84 study bbox, ordered west/south/east/north:
+`[-119.125, 35.375, -118.875, 35.500]` (about 314.82 km²).
+
+Start with **USGS Oil Center 293661**, 1:24,000 GeoTIFF: date-on-map 1954,
+photorevised 1968, printed 1970. Add **Oildale 293664 (1954)** and
+**Oil Center 102321 (1992)**. The 1978 Oil Center edition is an orthophotomap
+and is excluded from the initial symbol detector.
+
+See the [research and comparison](docs/research/REGION_SELECTION.md) and
+[exact files, URLs, bounds and SHA-256 hashes](pipeline/config/region.json).
+The `kern` and `la_basin` presets in `pipeline/load_calgem.py` remain broad
+approximate boxes; the config is not yet wired into that loader. Use the explicit
+buffered bbox below so reference wells outside the study edge remain matchable.
 
 Kern County, oil-producing quadrangles, 1947 to 1992 editions. Distances are computed in California Albers (EPSG:3310); lat/lon stored in WGS84.
+
+## Offline ML preparation (Emir)
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r pipeline/requirements.txt
+.venv/bin/python -m pipeline.download_sources
+.venv/bin/python -m pipeline.prepare_dataset
+.venv/bin/python -m unittest discover -s pipeline/tests -v
+```
+
+Original preparation output: `data/ml/kern_1024_v1/`. Native 1024 px tiles use 819 px stride
+(about 20% overlap), per-tile CRS/affine and masked collars. The fixed geographic
+split has 84 train / 13 val / 30 test images; 62 crossing windows are quarantined.
+Preparation creates **unlabeled** images, not negative examples. The active split
+is now `kern_1024_v2`, preserving human Train/Test while improving Val coverage;
+the current human Train import has 5 images/568 boxes. Use
+[ML status](docs/ml/STATUS.md) for active paths, trained baseline and prediction
+preview; the 15-image Validation export is now imported.
+See the
+[labeling handoff](docs/ml/ANNOTATION.md) before importing or training.
+No paid services or cloud training are invoked. Preparation refuses to overwrite
+an existing dataset; use `--output` with a new version for a deliberate rerun.
 
 ## Data contracts (Master Plan section 5)
 
@@ -71,8 +120,8 @@ npx convex import --table candidates --replace data/candidates.jsonl   # bulk lo
 
 ```bash
 pip install requests
-python pipeline/load_calgem.py --region kern --inspect              # check the real field names first
-python pipeline/load_calgem.py --region kern --api-pad 10           # query CalGEM's WellSTAR layer
+python3 pipeline/load_calgem.py --region kern --bbox -119.131 35.370 -118.869 35.505 --inspect
+python3 pipeline/load_calgem.py --region kern --bbox -119.131 35.370 -118.869 35.505 --api-pad 10
 npx convex import --table documentedWells --replace data/calgem/calgem_wells.jsonl
 ```
 

@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "purpose": "Propose a small Train-only review batch for model lookalike errors; no automatic negatives",
+  "dataset": "data/ml/kern_1024_v2",
+  "manifest": "data/ml/kern_1024_v2/manifest.jsonl",
+  "reviewed_train": "data/ml/reviewed_v2",
+  "weights": "data/ml/runs/kern_yolo11n_baseline_v1/training/weights/best.pt",
+  "weights_sha256": "c1a09e4b094408283f3f425c6e2e98504195995b3fa4649cabe7aa63898379bb",
+  "per_map": 2,
+  "output": "data/ml/hard_negative_review_v2"
+}
