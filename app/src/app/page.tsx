@@ -7,6 +7,7 @@ import MapView from "../components/MapView";
 import PrioritySliders, { DEFAULT_WEIGHTS } from "../components/PrioritySliders";
 import Sidebar from "../components/Sidebar";
 import { api } from "../lib/convexApi";
+import { isFake } from "../lib/types";
 import type { Candidate, ScoreParts, Status } from "../lib/types";
 
 export default function CommandMap() {
@@ -27,6 +28,8 @@ export default function CommandMap() {
     limit: 1000,
   }) as Candidate[] | undefined;
 
+  const anyFake = !!rows?.some(isFake);
+
   const selected = useMemo(() => rows?.find((r) => r.id === selectedId) ?? null, [rows, selectedId]);
 
   return (
@@ -41,6 +44,11 @@ export default function CommandMap() {
         reranked={customWeights}
       />
       <section className="map-wrap">
+        {anyFake && (
+          <div className="demo-banner" role="status">
+            <strong>Demo data</strong> · these candidates are simulated. Real detections replace them once loaded.
+          </div>
+        )}
         <MapView rows={rows ?? []} selectedId={selectedId} onSelect={setSelectedId} />
         <DetailPanel candidate={selected} onClose={() => setSelectedId(null)} />
       </section>

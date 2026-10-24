@@ -141,3 +141,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .sim { margin: 0 0 0 auto; }
 
 .sheet-select { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 4px 6px; font: inherit; }
+
+/* demo polish */
+.reason { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.demo-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 4; background: #0c1117e6; border: 1px solid var(--accent); color: var(--text); border-radius: 999px; padding: 6px 14px; font-size: 12px; backdrop-filter: blur(6px); max-width: calc(100% - 24px); text-align: center; pointer-events: none; }
+.demo-banner strong { color: var(--accent); }
+@media (max-width: 800px) { .demo-banner { top: auto; bottom: 12px; } }

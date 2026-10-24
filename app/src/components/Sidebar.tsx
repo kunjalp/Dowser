@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { STATUSES, STATUS_META, dotColor } from "../lib/types";
+import { STATUSES, STATUS_META, dotColor, reasonLine } from "../lib/types";
 import type { Candidate, Status } from "../lib/types";
 
 type Props = {
@@ -105,6 +105,7 @@ export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, 
                 <span className="bar">
                   <span style={{ width: `${Math.round(c.rankScore * 100)}%`, background: dotColor(c) }} />
                 </span>
+                {reasonLine(c) && <span className="reason">{reasonLine(c)}</span>}
               </span>
               <span className="score">{c.rankScore.toFixed(2)}</span>
               {c.status !== "candidate" && (

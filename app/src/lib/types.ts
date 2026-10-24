@@ -97,3 +97,28 @@ export const PART_LABELS: Record<keyof ScoreParts, string> = {
   water: "Near water",
   field: "Field confirmation",
 };
+
+const fmtDist = (m: number) => (m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`);
+
+/** True for the seeded placeholder candidates (ids "fake-001"...). Real ones never start with "fake-". */
+export const isFake = (c: Pick<Candidate, "id">) => c.id.startsWith("fake-");
+
+/**
+ * One plain-language line on why this candidate ranks where it does. Built only from fields
+ * the record actually has; anything missing is skipped, never guessed.
+ */
+export function reasonLine(c: Candidate): string {
+  const bits: string[] = [];
+  if (c.nearestDocumentedDistM !== undefined) {
+    bits.push(
+      c.nearestDocumentedDistM >= 100
+        ? `No CalGEM record within ${fmtDist(c.nearestDocumentedDistM)}`
+        : `CalGEM well ${fmtDist(c.nearestDocumentedDistM)} away`,
+    );
+  }
+  if (c.distToHomeM !== undefined && c.distToHomeM <= 500) bits.push(`${fmtDist(c.distToHomeM)} from a home`);
+  if (c.distToSchoolM !== undefined && c.distToSchoolM <= 1000) bits.push(`${fmtDist(c.distToSchoolM)} from a school`);
+  if (c.distToWaterM !== undefined && c.distToWaterM <= 500) bits.push(`${fmtDist(c.distToWaterM)} from water`);
+  if (c.editionsSeen.length > 1) bits.push(`on ${c.editionsSeen.length} map editions`);
+  return bits.slice(0, 3).join(" · ");
+}
