@@ -1,0 +1,14 @@
+{
+  "name": "Dowser",
+  "short_name": "Dowser",
+  "description": "Find undocumented oil and gas wells on historical maps and confirm leaks in the field.",
+  "start_url": "/field",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f1215",
+  "theme_color": "#0f1215",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

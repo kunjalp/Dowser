@@ -1,0 +1,49 @@
+# Codemagic: build the Dowser iOS app (a Capacitor wrapper around the live site) and send it to TestFlight.
+# Fill in the 3 values marked FILL, then in Codemagic: Add application -> this repo -> "codemagic.yaml" workflow.
+# Start builds by hand ("Start new build"); the wrapper only needs a rebuild for native changes,
+# because the app loads https://dowser-ten.vercel.app/field live (see app/capacitor.config.ts).
+workflows:
+  dowser-ios:
+    name: Dowser iOS (TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    integrations:
+      app_store_connect: FILL_name_of_your_App_Store_Connect_API_key_in_Codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.kunjalp.dowser            # FILL: must match capacitor.config.ts and App Store Connect
+      vars:
+        APP_STORE_APPLE_ID: "0000000000"                 # FILL: numeric Apple ID of the app in App Store Connect
+        XCODE_PROJECT: "app/ios/App/App.xcodeproj"
+        XCODE_SCHEME: "App"
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Install web dependencies
+        script: |
+          cd app
+          npm ci
+      - name: Sync Capacitor (iOS project uses Swift Package Manager, no CocoaPods)
+        script: |
+          cd app
+          npx cap sync ios
+      - name: Apply code signing profiles
+        script: xcode-project use-profiles --project "$XCODE_PROJECT"
+      - name: Set build number from TestFlight
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          cd app/ios/App
+          agvtool new-version -all $((LATEST + 1))
+      - name: Build signed .ipa
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
