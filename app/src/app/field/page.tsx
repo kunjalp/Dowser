@@ -391,6 +391,60 @@ export default function FieldView() {
   );
 }
 
+const OUTCOME_ARIA: Record<Outcome, string> = {
+  confirmed_leaking: "leaking",
+  confirmed_not_leaking: "not leaking",
+  no_well: "no well here",
+  mislocated: "wrong spot",
+};
+
+/** Inline outline icons for the decision buttons. */
+function DecideIcon({ outcome, size }: { outcome: Outcome; size: number }) {
+  const common = {
+    width: size,
+    height: size,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round" as const,
+    strokeLinejoin: "round" as const,
+    "aria-hidden": true,
+    className: "dc-icon",
+  };
+  switch (outcome) {
+    case "confirmed_leaking":
+      return (
+        <svg {...common}>
+          <path d="M10.3 3.9 1.8 18.2A2 2 0 0 0 3.5 21h17a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+          <path d="M12 9.5v4.2M12 17h.01" />
+        </svg>
+      );
+    case "confirmed_not_leaking":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9.5" />
+          <path d="m7.8 12.4 3 3 5.6-6.2" />
+        </svg>
+      );
+    case "no_well":
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="9.5" />
+          <path d="m9 9 6 6M15 9l-6 6" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...common}>
+          <path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11Z" />
+          <circle cx="12" cy="10" r="2.2" />
+          <path d="M3.5 3.5l17 17" />
+        </svg>
+      );
+  }
+}
+
 /** Slides in from the top edge, rests ~3.5 s, slides back out; removed only after the exit animation. */
 function FieldToast({ message, onGone }: { message: string; onGone: () => void }) {
   const [leaving, setLeaving] = useState(false);
@@ -693,15 +747,17 @@ function Paired({
   }, [pending, secs]);
 
   const decideDisabled = busy || photoState === "uploading";
-  const btn = (o: Outcome) => (
+  const decideBtn = (o: Outcome, kind: "primary" | "secondary") => (
     <button
       key={o}
-      className={`field-btn out-${o}`}
+      className={`dc-btn dc-${kind} out-${o}`}
       style={{ ["--c" as string]: STATUS_META[o].color }}
+      aria-label={`Mark as ${OUTCOME_ARIA[o]}`}
       disabled={decideDisabled}
       onClick={() => choose(o)}
     >
-      {OUTCOMES[o]}
+      <DecideIcon outcome={o} size={kind === "primary" ? 28 : 20} />
+      <span>{OUTCOMES[o]}</span>
     </button>
   );
 
@@ -847,29 +903,40 @@ function Paired({
 
       <div className="field-decide">
         {pending ? (
-          <div className="undo-bar">
+          <div className="dc-undo">
             <span className="pc-sr" role="status">
               Marking {pending.label}. Undo is available for {UNDO_SECS} seconds.
             </span>
-            <span aria-hidden="true">
-              Marking <strong>{pending.label}</strong> in {secs}s
+            <span className="dc-undo-text" aria-hidden="true">
+              <small>Marking</small>
+              <strong>{pending.label}</strong>
             </span>
             <button
+              className="dc-undo-btn"
               onClick={() => {
                 haptics.light();
                 setPending(null);
               }}
             >
-              Undo
+              <svg className="dc-ring" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true">
+                <circle className="dc-ring-track" cx="14" cy="14" r="11" />
+                <circle className="dc-ring-bar" cx="14" cy="14" r="11" style={{ animationDuration: `${UNDO_SECS}s` }} />
+              </svg>
+              <span>Undo</span>
+              <span className="dc-secs" aria-hidden="true">
+                {secs}s
+              </span>
             </button>
           </div>
         ) : (
           <>
-            {btn("confirmed_leaking")}
-            {btn("confirmed_not_leaking")}
-            <div className="field-decide-row">
-              {btn("no_well")}
-              {btn("mislocated")}
+            <div className="dc-primary-row">
+              {decideBtn("confirmed_leaking", "primary")}
+              {decideBtn("confirmed_not_leaking", "primary")}
+            </div>
+            <div className="dc-secondary-row">
+              {decideBtn("no_well", "secondary")}
+              {decideBtn("mislocated", "secondary")}
             </div>
           </>
         )}

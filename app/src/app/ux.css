@@ -646,3 +646,60 @@ main.field:has(.field-paired) > .field-toast { flex: none; }
 .pc-spark svg { border-radius: 14px; }
 .pc-spark-th { stroke: color-mix(in srgb, var(--text) 28%, transparent); stroke-dasharray: none; stroke-width: 1; }
 .pc-spark-dot { width: 11px; height: 11px; margin: -5.5px -5.5px 0 0; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 22%, transparent); }
+
+/* ===== Decision bar: two primary cards, two quiet secondary rows, ring Undo ===== */
+.field-paired .field-decide { display: grid; grid-template-columns: 1fr; gap: 6px; padding: 8px 16px max(8px, env(safe-area-inset-bottom)); }
+.field-paired { padding-bottom: calc(138px + max(8px, env(safe-area-inset-bottom))); }
+.field.outdoor .field-paired { padding-bottom: calc(146px + max(8px, env(safe-area-inset-bottom))); }
+
+.dc-primary-row, .dc-secondary-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.dc-btn { display: flex; align-items: center; justify-content: center; font-family: var(--sans); color: var(--text); cursor: pointer; transition: transform 180ms ease-out, background-color 120ms ease-out, color 120ms ease-out, border-color 120ms ease-out; }
+.dc-btn:disabled { opacity: 0.5; cursor: default; }
+.dc-btn span { font-weight: 600; letter-spacing: 0; text-transform: none; }
+
+.dc-primary { flex-direction: column; gap: 4px; min-height: 64px; padding: 6px 8px; border-radius: 14px; border: 1.5px solid color-mix(in srgb, var(--c) 45%, #fff); background: color-mix(in srgb, var(--c) 11%, #fff); }
+.dc-primary .dc-icon { color: var(--c); }
+.dc-primary span { font-size: var(--fs-base); line-height: 1.1; }
+
+.dc-secondary { flex-direction: row; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: var(--r-pill); border: 1px solid var(--line-strong); background: transparent; }
+.dc-secondary .dc-icon { color: var(--muted); flex: none; }
+.dc-secondary span { font-size: var(--fs-sm); color: var(--text); }
+
+/* pressed: fills with its full status colour */
+.dc-btn:active:not(:disabled) { transform: scale(0.97); transition-duration: 80ms; background: var(--c); border-color: var(--c); }
+.dc-btn:active:not(:disabled) span, .dc-btn:active:not(:disabled) .dc-icon { color: #fff; }
+.dc-btn:focus-visible, .dc-undo-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* undo state: same height as the two rows above (64 + 6 + 44) so nothing jumps */
+.dc-undo { display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 114px; padding: 0 12px 0 18px; border-radius: 14px; border: 1.5px solid var(--accent); background: color-mix(in srgb, var(--accent) 9%, #fff); }
+.dc-undo-text { display: grid; gap: 2px; min-width: 0; font-family: var(--sans); }
+.dc-undo-text small { color: var(--muted); font-size: var(--fs-sm); }
+.dc-undo-text strong { font-size: 22px; line-height: 1.1; letter-spacing: -0.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dc-undo-btn { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 56px; padding: 0 22px 0 14px; border: 0; border-radius: var(--r-pill); background: var(--accent); color: var(--on-accent); font: 600 var(--fs-md) var(--sans); cursor: pointer; transition: transform 180ms ease-out; }
+.dc-undo-btn:active { transform: scale(0.97); transition-duration: 80ms; background: var(--brand-deep); }
+.dc-ring { transform: rotate(-90deg); }
+.dc-ring circle { fill: none; stroke-width: 3; }
+.dc-ring-track { stroke: rgba(255, 255, 255, 0.3); }
+.dc-ring-bar { stroke: #fff; stroke-linecap: round; stroke-dasharray: 69.12; stroke-dashoffset: 0; animation: dc-deplete linear forwards; }
+@keyframes dc-deplete { to { stroke-dashoffset: 69.12; } }
+.dc-secs { display: none; font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-btn, .dc-undo-btn { transition: none; }
+  .dc-btn:active:not(:disabled), .dc-undo-btn:active { transform: none; }
+  .dc-ring-bar { animation: none; stroke-dashoffset: 0; }
+  .dc-secs { display: inline; }
+}
+
+/* outdoor: taller cards, opaque fills, strong borders */
+.field.outdoor .dc-primary { min-height: 72px; border: 2px solid #000; background: color-mix(in srgb, var(--c) 18%, #fff); }
+.field.outdoor .dc-primary span { font-size: calc(var(--fs-base) + 2px); }
+.field.outdoor .dc-secondary { min-height: 48px; border: 2px solid #000; background: #fff; }
+.field.outdoor .dc-secondary span { font-size: calc(var(--fs-sm) + 2px); }
+.field.outdoor .dc-secondary .dc-icon { color: #000; }
+.field.outdoor .dc-undo { border: 2px solid #000; background: #fff; }
+.field.outdoor .dc-undo-btn { background: var(--accent); border: 2px solid #000; }
+@media (prefers-contrast: more) {
+  .dc-primary, .dc-secondary, .dc-undo { border: 2px solid var(--text); }
+}
+.field.outdoor .dc-undo { height: 126px; } /* 72 + 6 + 48, same as the outdoor rows */
