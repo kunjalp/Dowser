@@ -18,6 +18,36 @@ def box_iou(a, b):
     return intersection/(a['w']*a['h']+b['w']*b['h']-intersection)
 
 
+def match_image(ground_truth, predictions, confidence, iou):
+    """One tile's one-to-one matching at a fixed cutoff.
+
+    Predictions at or above ``confidence`` are taken in descending score order;
+    each claims the highest-IoU still-unmatched GT box if that IoU >= ``iou``.
+    Returns (kept predictions, matched GT indices, matched prediction indices).
+    Shared by the Val diagnostics and the frozen final-Test evaluator.
+    """
+    predictions=sorted((b for b in predictions if b['confidence']>=confidence),
+                       key=lambda b:b['confidence'],reverse=True)
+    matched,matched_predictions=set(),set()
+    for position,prediction in enumerate(predictions):
+        candidates=[(box_iou(prediction,truth),index) for index,truth in enumerate(ground_truth)
+                    if index not in matched]
+        if candidates:
+            overlap,index=max(candidates)
+            if overlap>=iou:
+                matched.add(index)
+                matched_predictions.add(position)
+    return predictions,matched,matched_predictions
+
+
+def aggregate(rows):
+    """Sum per-tile counts; precision/recall are None when undefined, never 0/1."""
+    tp,fp,fn=(sum(r[key] for r in rows) for key in ['tp','fp','fn'])
+    return {'images':len(rows),'tp':tp,'fp':fp,'fn':fn,
+            'precision':tp/(tp+fp) if tp+fp else None,
+            'recall':tp/(tp+fn) if tp+fn else None}
+
+
 def evaluate(records, confidence=.4, iou=.5):
     """Return Val counts at one cutoff; empty-positive recall is None, not zero."""
     if not 0<confidence<=1 or not 0<iou<=1:
@@ -29,28 +59,13 @@ def evaluate(records, confidence=.4, iou=.5):
         if r['split']!='val':
             continue
         ground_truth=r['ground_truth']
-        predictions=sorted((b for b in r['predictions'] if b['confidence']>=confidence),
-                           key=lambda b:b['confidence'],reverse=True)
-        matched=set()
-        for prediction in predictions:
-            candidates=[(box_iou(prediction,truth),index) for index,truth in enumerate(ground_truth)
-                        if index not in matched]
-            if candidates:
-                overlap,index=max(candidates)
-                if overlap>=iou:
-                    matched.add(index)
+        predictions,matched,_=match_image(ground_truth,r['predictions'],confidence,iou)
         images.append({'tileId':r['tileId'],'mapYear':r['mapYear'],
                        'ground_truth_boxes':len(ground_truth),'predicted_boxes':len(predictions),
                        'tp':len(matched),'fp':len(predictions)-len(matched),
                        'fn':len(ground_truth)-len(matched)})
     if not images:
         raise ValueError('No Validation records')
-
-    def aggregate(rows):
-        tp,fp,fn=(sum(r[key] for r in rows) for key in ['tp','fp','fn'])
-        return {'images':len(rows),'tp':tp,'fp':fp,'fn':fn,
-                'precision':tp/(tp+fp) if tp+fp else None,
-                'recall':tp/(tp+fn) if tp+fn else None}
 
     return {'confidence':confidence,'iou':iou,'scope':'Validation, not final Test',
             'matching':'descending confidence; highest-IoU unmatched GT per prediction; per tile',
