@@ -61,16 +61,16 @@ export const STATUSES: Status[] = [
 
 /** Status colors (Master Plan: red for leaking, gray for no well, ...). */
 export const STATUS_META: Record<Status, { label: string; color: string }> = {
-  candidate: { label: "Candidate", color: "#f59e0b" },
-  queued: { label: "Queued", color: "#5aaee3" },
-  confirmed_leaking: { label: "Confirmed leaking", color: "#f0565b" },
-  confirmed_not_leaking: { label: "Not leaking", color: "#4cbc7a" },
-  no_well: { label: "No well", color: "#959ca4" },
-  mislocated: { label: "Mislocated", color: "#a893e0" },
+  candidate: { label: "Candidate", color: "#8a507e" },
+  queued: { label: "Queued", color: "#5933b2" },
+  confirmed_leaking: { label: "Confirmed leaking", color: "#d12d2d" },
+  confirmed_not_leaking: { label: "Not leaking", color: "#1a7f4b" },
+  no_well: { label: "No well", color: "#575757" },
+  mislocated: { label: "Mislocated", color: "#4a2a96" },
 };
 
 /** Candidate dots are colored by score along this single-hue ramp (low, mid, high). */
-export const SCORE_RAMP = ["#fde68a", "#f59e0b", "#b45309"] as const;
+export const SCORE_RAMP = ["#9068c2", "#5933b2", "#4a2a96"] as const;
 
 export function scoreColor(score: number): string {
   const t = Math.min(1, Math.max(0, score));
