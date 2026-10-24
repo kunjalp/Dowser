@@ -44,7 +44,7 @@ function ScoreBars({ parts, handLabeled }: { parts: ScoreParts; handLabeled?: bo
   );
 }
 
-export function Sparkline({ values }: { values: number[] }) {
+export function Sparkline({ values, sim }: { values: number[]; sim?: boolean }) {
   if (values.length < 2) return <div className="muted small">Waiting for readings…</div>;
   const w = 300;
   const h = 64;
@@ -54,7 +54,7 @@ export function Sparkline({ values }: { values: number[] }) {
     .map((v, i) => `${(i / (values.length - 1)) * w},${h - ((v - min) / (max - min || 1)) * (h - 6) - 3}`)
     .join(" ");
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} className="spark" role="img" aria-label="Recent sensor readings">
+    <svg viewBox={`0 0 ${w} ${h}`} className={`spark ${sim ? "sim-data" : ""}`} role="img" aria-label="Recent sensor readings">
       <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
     </svg>
   );
@@ -138,6 +138,7 @@ export default function DetailPanel({
             <div className="detail-top">
               <div className="badge big" style={{ ["--c" as string]: STATUS_META[c.status].color }}>
                 {STATUS_META[c.status].label}
+                {c.status === "candidate" ? ` · ${c.score.toFixed(2)}` : ""}
               </div>
               {c.status === "candidate" && (
                 <button
@@ -197,7 +198,7 @@ export default function DetailPanel({
                 </span>
               </summary>
               {anyReplay && <div className="sim">Simulated sensor data</div>}
-              <Sparkline values={chrono.map((r) => r.value)} />
+              <Sparkline values={chrono.map((r) => r.value)} sim={anyReplay} />
             </details>
 
             {events && events.length > 0 && (

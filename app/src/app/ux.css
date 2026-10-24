@@ -217,3 +217,42 @@ input[type="range"] { accent-color: var(--accent); }
 }
 
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ==== Pass 2: sim treatment, banner 32px (R1, R3-R6) ==== */
+.demo-banner { height: 32px; padding: 0 36px; background: var(--sim-stripe) left / 24px 100% no-repeat, var(--sim-stripe) right / 24px 100% no-repeat, var(--sim); border-left: 0; border-bottom: 2px solid var(--on-sim); justify-content: center; text-align: center; }
+.demo-banner ~ .map .map-control { top: 42px; }
+.demo-banner ~ .detail { top: 32px; }
+.tag.sim { background: var(--sim); color: var(--on-sim); border-color: var(--sim); font-weight: 700; }
+.reading-value .tag.sim { margin-left: 8px; font: 700 var(--fs-xs) var(--mono); line-height: 18px; padding: 0 6px; vertical-align: middle; }
+.field-row-main .tag.sim { margin-left: 8px; }
+.sim-data { outline: 2px dashed var(--sim); outline-offset: -2px; }
+.gauge.sim-data { outline-offset: 2px; }
+.live-toast { top: 44px; }
+
+/* narrow screens: nothing clipped, rows and banner stay legible at 390px */
+@media (max-width: 800px) {
+  .demo-banner { padding: 0 32px; letter-spacing: 0.02em; font-size: var(--fs-2xs); }
+  .demo-banner ~ .map .map-control { top: 42px; max-width: calc(100% - 20px); }
+  .row-quad { max-width: 55%; }
+  .mf-toggle { flex: 1 1 auto; text-align: center; }
+  .slider { grid-template-columns: minmax(80px, 112px) 1fr 32px; }
+  .reading-value { font-size: 48px; }
+  .field-tabs .tab.sort { flex-basis: 88px; }
+  .field-evidence-big { max-height: 60vh; }
+}
+@media (max-width: 400px) {
+  .field { padding-left: calc(12px + env(safe-area-inset-left)); padding-right: calc(12px + env(safe-area-inset-right)); }
+  .field-dist { font-size: var(--fs-md); }
+}
+
+/* 720p: header blocks must not starve the candidate list */
+.sidebar { overflow-y: auto; }
+.list { flex: 1 0 auto; overflow-y: visible; min-height: 240px; }
+.mf-range { grid-template-columns: 1fr 1fr; gap: 12px; }
+.mf-toggles { gap: 4px; }
+.mf-toggle { min-height: 32px; padding: 4px 8px; flex: 1 1 auto; text-align: center; }
+@media (max-width: 800px) { .mf-range { grid-template-columns: 1fr; } }
+
+/* keep the evidence block short so the decision buttons stay on screen */
+.field-evidence img { aspect-ratio: 3 / 2; max-height: 150px; }
+.field-evidence .ph { aspect-ratio: auto; min-height: 56px; max-height: 80px; }
