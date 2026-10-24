@@ -22,7 +22,18 @@ type Props = {
   rows: Candidate[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  /** Phone layout: no layer panel, legend or zoom slider; pinch to zoom. */
+  compact?: boolean;
+  /** The phone's own position, drawn as a blue dot when given. */
+  here?: { lat: number; lon: number };
 };
+
+const hereGeoJSON = (h?: { lat: number; lon: number }) => ({
+  type: "FeatureCollection" as const,
+  features: h
+    ? [{ type: "Feature" as const, geometry: { type: "Point" as const, coordinates: [h.lon, h.lat] }, properties: {} }]
+    : [],
+});
 
 function toGeoJSON(rows: Candidate[]) {
   return {
@@ -35,7 +46,10 @@ function toGeoJSON(rows: Candidate[]) {
   };
 }
 
-export default function MapView({ rows, selectedId, onSelect }: Props) {
+export default function MapView({ rows, selectedId, onSelect, compact, here }: Props) {
+  const hereRef = useRef(here);
+  const centeredRef = useRef(false);
+  hereRef.current = here;
   const el = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const readyRef = useRef(false);
@@ -145,6 +159,20 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
             "circle-stroke-color": "#ffffff",
             "circle-stroke-width": 2.5,
           },
+        });
+
+        map.addSource("here", { type: "geojson", data: hereGeoJSON(hereRef.current) });
+        map.addLayer({
+          id: "here-halo",
+          type: "circle",
+          source: "here",
+          paint: { "circle-radius": 16, "circle-color": "#3b82f6", "circle-opacity": 0.25 },
+        });
+        map.addLayer({
+          id: "here",
+          type: "circle",
+          source: "here",
+          paint: { "circle-radius": 6, "circle-color": "#3b82f6", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5 },
         });
 
         map.on("click", "candidates", (e) => {
@@ -288,6 +316,18 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
     (map.getSource("candidates") as GeoJSONSource | undefined)?.setData(toGeoJSON(rows));
   }, [rows]);
 
+  // Phone position: keep the blue dot current; on the first fix near the candidates, move there.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapReady) return;
+    (map.getSource("here") as GeoJSONSource | undefined)?.setData(hereGeoJSON(here));
+    if (!compact || !here || centeredRef.current || selectedId) return;
+    centeredRef.current = true;
+    const near = rowsRef.current.some((r) => Math.abs(r.lat - here.lat) < 1 && Math.abs(r.lon - here.lon) < 1.2);
+    if (near) map.jumpTo({ center: [here.lon, here.lat], zoom: 13 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [here, mapReady, compact]);
+
   // Highlight and fly to the selected candidate.
   useEffect(() => {
     const map = mapRef.current;
@@ -301,6 +341,17 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
     <div className={`map ${selectedId ? "panel-open" : ""}`}>
       <div ref={el} className="map-canvas" />
 
+      {compact && here && (
+        <button
+          className="map-me"
+          onClick={() => mapRef.current?.easeTo({ center: [here.lon, here.lat], zoom: 14, duration: 600 })}
+        >
+          Me
+        </button>
+      )}
+
+      {!compact && (
+        <>
       <div className="map-control" aria-label="Map layers">
         <label className={`toggle ${wellsAvail === "yes" ? "" : "disabled"}`} title="Wells already in the state's CalGEM records: a density glow zoomed out, individual rings zoomed in.">
           <input
@@ -393,6 +444,8 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
             </div>
           ))}
       </div>
+        </>
+      )}
     </div>
   );
 }

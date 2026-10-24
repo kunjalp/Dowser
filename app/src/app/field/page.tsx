@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkline } from "../../components/DetailPanel";
+import MapView from "../../components/MapView";
 import { api } from "../../lib/convexApi";
 import { STATUS_META, dotColor, isFake, reasonLine } from "../../lib/types";
 import type { Candidate, Reading, Status } from "../../lib/types";
@@ -94,6 +95,8 @@ export default function FieldView() {
   const [paired, setPaired] = useState<Candidate | null>(null);
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<Mode>("near");
+  const [view, setView] = useState<"list" | "map">("list");
+  const [mapSel, setMapSel] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
   const here = useHere();
   const inApp = useInApp();
@@ -102,6 +105,11 @@ export default function FieldView() {
     statuses: ["queued", "candidate"] as Status[],
     limit: 200,
   }) as Candidate[] | undefined;
+  // The map shows every status (confirmed ones included); only fetched while the map tab is open.
+  const allRows = useQuery(api.candidates.ranked, view === "map" ? { limit: 1000 } : "skip") as
+    | Candidate[]
+    | undefined;
+  const mapPick = allRows?.find((r) => r.id === mapSel) ?? null;
   const pairMut = useMutation(api.pairing.set);
   const clearMut = useMutation(api.pairing.clear);
 
@@ -157,6 +165,59 @@ export default function FieldView() {
         />
       ) : (
         <>
+          <div className="chips" role="group" aria-label="View">
+            {(["list", "map"] as const).map((v) => (
+              <button
+                key={v}
+                className={`chip ${view === v ? "on" : ""}`}
+                onClick={() => setView(v)}
+                aria-pressed={view === v}
+              >
+                {v === "list" ? "List" : "Map"}
+              </button>
+            ))}
+          </div>
+          {view === "map" ? (
+            <>
+              <div className="field-map">
+                <MapView rows={allRows ?? []} selectedId={mapSel} onSelect={setMapSel} compact here={here} />
+              </div>
+              {mapPick ? (
+                <div className="map-card">
+                  <div className="map-card-top">
+                    <strong>
+                      {mapPick.quadName} · {mapPick.id}
+                    </strong>
+                    <span className="badge" style={{ ["--c" as string]: STATUS_META[mapPick.status].color }}>
+                      {STATUS_META[mapPick.status].label}
+                    </span>
+                  </div>
+                  <p className="muted small">
+                    {here ? `${fmtM(distM(here, mapPick))} ${compass(here, mapPick)} · ` : ""}
+                    {reasonLine(mapPick)}
+                  </p>
+                  <div className="map-card-actions">
+                    {(mapPick.status === "candidate" || mapPick.status === "queued") && (
+                      <button className="field-btn" style={{ ["--c" as string]: "#f59e0b" }} onClick={() => pair(mapPick)}>
+                        Check this one
+                      </button>
+                    )}
+                    <a
+                      className="field-nav"
+                      href={`https://maps.apple.com/?daddr=${mapPick.lat},${mapPick.lon}&dirflg=d&q=${encodeURIComponent(mapPick.id)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <span>Navigate</span>
+                    </a>
+                  </div>
+                </div>
+              ) : (
+                <p className="muted small field-hint">Tap a dot to see it. The blue dot is you.</p>
+              )}
+            </>
+          ) : (
+            <>
           <div className="chips" role="group" aria-label="Sort and filter">
             {MODES.map((m) => (
               <button
@@ -208,6 +269,8 @@ export default function FieldView() {
               </li>
             ))}
           </ul>
+            </>
+          )}
         </>
       )}
     </main>

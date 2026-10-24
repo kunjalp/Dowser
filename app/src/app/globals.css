@@ -227,3 +227,13 @@ input[type="checkbox"]:focus-visible, button:focus-visible, select:focus-visible
 .gauge-legend { display: flex; justify-content: space-between; font: 10px var(--mono); color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
 .undo-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 10px 0; padding: 0 0 0 14px; min-height: 64px; border: 2px solid var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--panel)); font: 13px var(--mono); }
 .undo-bar button { align-self: stretch; min-width: 110px; border: 0; border-left: 2px solid var(--accent); border-radius: 0; background: var(--accent); color: var(--on-accent); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* field view: phone map tab */
+.field-map { position: relative; height: 56dvh; min-height: 280px; margin-top: 8px; border: 1px solid var(--line); background: var(--panel-2); }
+.map-me { position: absolute; top: 10px; right: 10px; z-index: 3; min-width: 56px; min-height: 44px; border: 2px solid #3b82f6; border-radius: 0; background: var(--panel); color: var(--text); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px; }
+.map-card { margin-top: 8px; padding: 10px 12px; border: 1px solid var(--line-strong); background: var(--panel); }
+.map-card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font: 13px var(--mono); }
+.map-card p { margin: 6px 0 8px; font-family: var(--mono); }
+.map-card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.map-card-actions .field-nav { margin: 0; justify-content: center; }
+.map-card-actions .field-btn { min-height: 56px; }
