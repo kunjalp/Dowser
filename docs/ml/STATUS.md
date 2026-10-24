@@ -1,7 +1,8 @@
 # ML status and handoff
 
 Last verified: 2026-10-24, America/Los_Angeles.
-Branch: `ml/tile-georeferencing`; incorporates main `558a00b` via `e1a4b4c`.
+Branch: `ml/tile-georeferencing`; incorporates main `b0bd0bc` via `e48f84c`
+(prior backend/UI main `558a00b` via `e1a4b4c`).
 [Draft PR #3](https://github.com/kunjalp/Dowser/pull/3) proposes integration into main.
 PRs #1/#2 are closed/superseded. No PR was merged by the ML agent.
 For another editor, start at [CONTINUE.md](../CONTINUE.md).
@@ -92,10 +93,12 @@ of the five overlapping Train images or use of protected Test for tuning.
   identities preserved. Five-image import and both source archive hashes pass.
 - Real `--check-only` exits 2, `Missing reviewed val import`, as expected.
   No training run is created. Raw probe/data identities: [EXPERIMENTS.md](EXPERIMENTS.md).
-- Main through `558a00b` is incorporated. Incoming brief/evidence-URL loading,
+- Main through `b0bd0bc` is incorporated. Incoming brief/evidence-URL loading,
   CalGEM layer, impact/replay and UI changes were source-inspected; see
   [main review](../MAIN_REVIEW.md). Team files are unchanged by ML. No deployment,
   external pulls, replay, Claude API generation or UI end-to-end validation.
+  Latest incoming iOS/Capacitor/Codemagic files were integrated unchanged after
+  targeted mobile/dependency diff inspection; no signing, build or publishing ran.
 - Kunjal works directly on main. Fetch/review incoming changes before the next
   code task or merge; PR #3 still needs team review. Preserve this checkout:
   ignored datasets, labels, weights and environments are not restored by Git.

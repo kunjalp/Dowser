@@ -171,4 +171,6 @@ installable web manifest/icons, safe-area styling and Codemagic signing/build
 configuration. Targeted diff inspection found no ML/Convex contract changes.
 The mobile configuration and dependency changes are integration context, not a
 full iOS/build/signing review. Do not execute signing, publishing or TestFlight
-commands as part of this ML setup. Incorporate after saving current ML work.
+commands as part of this ML setup. Incorporated in merge `e48f84c`, after saving
+the ML work in `1e4fbbc`. Verified app/Convex/backend/mobile team files have zero
+diff against `origin/main` at `b0bd0bc`. No mobile build or signing was run.
