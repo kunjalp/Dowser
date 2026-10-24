@@ -348,26 +348,61 @@ input[type="range"] { accent-color: var(--accent); }
 .field-decide .undo-bar { grid-column: 1 / -1; min-height: 48px; }
 .field-decide .field-btn, .field-decide .out-confirmed_leaking { min-height: 48px; padding: 6px 8px; font-size: 14px; letter-spacing: 0.04em; border-width: 1.5px; }
 
-/* ===== Theme: Scale-style palette and type (near-black neutrals, violet accent, Inter) =====
- * Inspired by the colours on scale.com, not a copy of their brand: no logo, name or
- * licensed typeface (Aeonik). Status colours and the score ramp stay semantic and unchanged.
- * Loaded after globals.css, so these :root values win. Violet #9068c2 is the accent because it
- * stays readable as text and borders on near-black (about 5:1). */
+/* ===== Theme: Scale-inspired light palette and type =====
+ * Colours taken from the published breakdown of scale.com: white/#f5f5f5 surfaces, black ink,
+ * brand purple #5933b2, success green #1a7f4b, error red #d12d2d, hairline #e2e2e2.
+ * Not a copy of their brand: no logo, name or licensed typeface (Aeonik); Inter is the
+ * fallback their own stack lists. Loaded after globals.css, so these :root values win.
+ * Status colours stay semantic and are mirrored in lib/types.ts (STATUS_META, SCORE_RAMP). */
 :root {
-  --bg: #070707;
-  --panel: #101012;
-  --panel-2: #17171a;
-  --line: #2a2a2a;
-  --line-strong: #5c5c63;
-  --line-subtle: #3a3a3f;
-  --text: #f5f5f5;
-  --muted: #a8a8a8;
-  --accent: #9068c2;
-  --on-accent: #070707;
-  --brand: #5933b2;
-  --sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --glass-fill: rgba(7, 7, 7, 0.86);
-  --glass-fill-sheet: rgba(16, 16, 18, 0.84);
+  color-scheme: light;
+  --bg: #fafafa;
+  --panel: #ffffff;
+  --panel-2: #f5f5f5;
+  --line: #e2e2e2;
+  --line-subtle: #eeeeee;
+  --line-strong: #cccccc;
+  --text: #000000;
+  --muted: #575757;
+  --accent: #5933b2;
+  --on-accent: #ffffff;
+  --brand-deep: #4a2a96;
+  --sans: var(--font-inter), Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --status-leaking: #d12d2d;
+  --status-clear: #1a7f4b;
+  --status-queued: #5933b2;
+  --status-candidate: #8a507e;
+  --status-nowell: #575757;
+  --status-mislocated: #4a2a96;
+  --score-lo: #9068c2;
+  --score-mid: #5933b2;
+  --score-hi: #4a2a96;
+  --ok: #1a7f4b;
+  --here: #7b8ce7;
+
+  /* simulated data: flipped for a light page, so the stripe still reads as a hazard mark */
+  --sim: #070707;
+  --on-sim: #ffffff;
+  --sim-stripe: repeating-linear-gradient(-45deg, var(--on-sim) 0 8px, var(--sim) 8px 16px);
+
+  /* glass surfaces (Ryann's rules) follow the light canvas */
+  --glass-fill: rgba(255, 255, 255, 0.86);
+  --glass-fill-sheet: rgba(255, 255, 255, 0.90);
+  --glass-border: rgba(0, 0, 0, 0.12);
+  --glass-border-dim: rgba(0, 0, 0, 0.06);
+  --glass-backdrop: rgba(0, 0, 0, 0.35);
 }
-html, body { background: var(--bg); }
-h1, h2, h3, h4 { letter-spacing: -0.01em; }
+html, body { background: var(--bg); color: var(--text); }
+h1, h2, h3, h4 { letter-spacing: -0.012em; }
+
+/* rules that assumed a dark page */
+.sidebar, .detail, .field-head { background: var(--panel); }
+.row:hover, .row.sel { background: var(--panel-2); }
+.dot, .live-dot { border-color: rgba(0, 0, 0, 0.35); }
+.field-error { color: var(--status-leaking); }
+.demo-banner strong { color: var(--on-sim); }
+.sheet { box-shadow: 0 -10px 40px -10px rgba(0, 0, 0, 0.25); }
+.live-toast, .field-toast, .map-control, .legend, .map-card { box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.35); }
+.spark { background: var(--panel-2); color: var(--accent); }
+.detail .evidence img, .field-evidence img { background: var(--panel-2); }

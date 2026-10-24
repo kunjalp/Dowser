@@ -225,13 +225,13 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
           id: "here-halo",
           type: "circle",
           source: "here",
-          paint: { "circle-radius": 16, "circle-color": "#3b82f6", "circle-opacity": 0.25 },
+          paint: { "circle-radius": 16, "circle-color": "#7b8ce7", "circle-opacity": 0.25 },
         });
         map.addLayer({
           id: "here",
           type: "circle",
           source: "here",
-          paint: { "circle-radius": 6, "circle-color": "#3b82f6", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5 },
+          paint: { "circle-radius": 6, "circle-color": "#7b8ce7", "circle-stroke-color": "#ffffff", "circle-stroke-width": 2.5 },
         });
 
         map.on("click", "candidates", (e) => {

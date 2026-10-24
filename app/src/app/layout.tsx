@@ -12,10 +12,10 @@ export const metadata: Metadata = {
   description: "Candidate undocumented orphaned wells, ranked for plugging crews.",
   manifest: "/manifest.webmanifest",
   icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
-  appleWebApp: { capable: true, title: "Dowser", statusBarStyle: "black-translucent" },
+  appleWebApp: { capable: true, title: "Dowser", statusBarStyle: "default" },
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#070707" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#ffffff" };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
