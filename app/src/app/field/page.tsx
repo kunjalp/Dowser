@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkline } from "../../components/DetailPanel";
 import MapView from "../../components/MapView";
 import { api } from "../../lib/convexApi";
+import { haptics } from "../../lib/haptics";
 import { STATUS_META, dotColor, isFake, reasonLine } from "../../lib/types";
 import type { Candidate, Reading, Status } from "../../lib/types";
 
@@ -115,9 +116,10 @@ export default function FieldView() {
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<Sort>("queue");
   const [sheet, setSheet] = useState(false);
+  const [sheetClosing, setSheetClosing] = useState(false);
   const [view, setView] = useState<"list" | "map">("list");
   const [mapSel, setMapSel] = useState<string | null>(null);
-  const [done, setDone] = useState<string | null>(null);
+  const [done, setDone] = useState<{ msg: string; id: number } | null>(null);
   const here = useHere();
   const inApp = useInApp();
 
@@ -130,6 +132,7 @@ export default function FieldView() {
     | Candidate[]
     | undefined;
   const mapPick = allRows?.find((r) => r.id === mapSel) ?? null;
+  const toastId = useRef(0);
   const pairMut = useMutation(api.pairing.set);
   const clearMut = useMutation(api.pairing.clear);
 
@@ -152,6 +155,31 @@ export default function FieldView() {
   );
   const farAway = nearest !== undefined && nearest > 100000;
   const queuedCount = list.filter((it) => it.c.status === "queued").length;
+
+  // iOS only fires :active (the shared press style) when some touch listener exists on the document.
+  useEffect(() => {
+    const noop = () => {};
+    document.addEventListener("touchstart", noop, { passive: true });
+    return () => document.removeEventListener("touchstart", noop);
+  }, []);
+
+  // Sort sheet: slides out before it unmounts, whatever closed it (Done, backdrop, Escape).
+  function closeSheet() {
+    if (sheetClosing) return;
+    setSheetClosing(true);
+    window.setTimeout(finishClose, 260); // fallback if animationend never fires
+  }
+  function finishClose() {
+    setSheet(false);
+    setSheetClosing(false);
+  }
+  useEffect(() => {
+    if (!sheet) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeSheet();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheet, sheetClosing]);
 
   async function pair(c: Candidate) {
     setDone(null);
@@ -177,14 +205,15 @@ export default function FieldView() {
           </Link>
         )}
       </header>
-      {done && <div className="field-toast">{done}</div>}
+      {done && <FieldToast key={done.id} message={done.msg} onGone={() => setDone((d) => (d && d.id === done.id ? null : d))} />}
       {paired ? (
         <Paired
           candidate={rows?.find((r) => r.id === paired.id) ?? paired}
+          gone={rows !== undefined && !rows.some((r) => r.id === paired.id)}
           here={here}
           onBack={unpair}
           onLogged={(msg) => {
-            setDone(msg);
+            setDone({ msg, id: ++toastId.current });
             void unpair();
           }}
         />
@@ -285,28 +314,58 @@ export default function FieldView() {
           )}
 
           <nav className="field-tabs" aria-label="Field View">
-            <button className={`tab ${view === "list" ? "on" : ""}`} onClick={() => setView("list")}>
+            <button
+              className={`tab ${view === "list" ? "on" : ""}`}
+              onClick={() => {
+                if (view !== "list") haptics.tick();
+                setView("list");
+              }}
+            >
               List
             </button>
-            <button className={`tab ${view === "map" ? "on" : ""}`} onClick={() => setView("map")}>
+            <button
+              className={`tab ${view === "map" ? "on" : ""}`}
+              onClick={() => {
+                if (view !== "map") haptics.tick();
+                setView("map");
+              }}
+            >
               Map
             </button>
             {view === "list" && (
-              <button className="tab sort" onClick={() => setSheet(true)}>
+              <button
+                className="tab sort"
+                onClick={() => {
+                  haptics.light();
+                  setSheet(true);
+                }}
+              >
                 Sort
               </button>
             )}
           </nav>
 
           {sheet && (
-            <div className="sheet-backdrop" onClick={() => setSheet(false)}>
-              <div className="sheet" role="dialog" aria-label="Sort and filter" onClick={(e) => e.stopPropagation()}>
+            <div className={`sheet-backdrop ${sheetClosing ? "closing" : ""}`} onClick={closeSheet}>
+              <div
+                className={`sheet ${sheetClosing ? "closing" : ""}`}
+                role="dialog"
+                aria-modal="true"
+                aria-label="Sort and filter"
+                onClick={(e) => e.stopPropagation()}
+                onAnimationEnd={(e) => {
+                  if (sheetClosing && e.target === e.currentTarget) finishClose();
+                }}
+              >
                 <h3>Sort</h3>
                 {SORTS.map((s) => (
                   <button
                     key={s.key}
                     className={`sheet-opt ${sort === s.key ? "on" : ""}`}
-                    onClick={() => setSort(s.key)}
+                    onClick={() => {
+                      if (sort !== s.key) haptics.tick();
+                      setSort(s.key);
+                    }}
                     aria-pressed={sort === s.key}
                   >
                     <strong>{s.label}</strong>
@@ -319,7 +378,7 @@ export default function FieldView() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
-                <button className="field-btn" onClick={() => setSheet(false)}>
+                <button className="field-btn" onClick={closeSheet}>
                   Done
                 </button>
               </div>
@@ -328,6 +387,27 @@ export default function FieldView() {
         </>
       )}
     </main>
+  );
+}
+
+/** Slides in from the top edge, rests ~3.5 s, slides back out; removed only after the exit animation. */
+function FieldToast({ message, onGone }: { message: string; onGone: () => void }) {
+  const [leaving, setLeaving] = useState(false);
+  const goneRef = useRef(onGone);
+  goneRef.current = onGone;
+  useEffect(() => {
+    const t = window.setTimeout(() => setLeaving(true), 3500);
+    return () => window.clearTimeout(t);
+  }, []);
+  useEffect(() => {
+    if (!leaving) return;
+    const t = window.setTimeout(() => goneRef.current(), 220); // fallback if animationend never fires
+    return () => window.clearTimeout(t);
+  }, [leaving]);
+  return (
+    <div className={`field-toast ${leaving ? "leaving" : ""}`} role="status" onAnimationEnd={() => leaving && goneRef.current()}>
+      {message}
+    </div>
   );
 }
 
@@ -368,11 +448,14 @@ function FieldEvidence({ images }: { images: Candidate["evidenceImages"] }) {
 
 function Paired({
   candidate: c,
+  gone,
   here,
   onBack,
   onLogged,
 }: {
   candidate: Candidate;
+  /** True once the candidate has left the queued/candidate list (the sensor auto-confirmed it, or someone changed it). */
+  gone: boolean;
   here: Pos | undefined;
   onBack: () => void;
   onLogged: (msg: string) => void;
@@ -408,7 +491,21 @@ function Paired({
       ? readings.filter((r) => r.value >= rule.threshold && now - r.receivedAt <= rule.windowMs).length
       : 0;
   const anyReplay = chrono.some((r) => r.isReplay);
-  const leaking = c.status === "confirmed_leaking";
+  // The list only returns queued/candidate, so an auto-confirmed well drops out of it. Treat "gone while the
+  // readings meet the auto-confirm rule" as confirmed leaking so the screen keeps the well and says so.
+  const hotAtLatest =
+    rule && readings && latest
+      ? readings.filter((r) => r.value >= rule.threshold && latest.receivedAt - r.receivedAt <= rule.windowMs).length
+      : 0;
+  const autoConfirmed = gone && !!rule && hotAtLatest >= rule.count;
+  const leaking = c.status === "confirmed_leaking" || autoConfirmed;
+  const warned = useRef(false);
+  useEffect(() => {
+    if (leaking && !warned.current) {
+      warned.current = true;
+      haptics.warning();
+    }
+  }, [leaking]);
 
   // Gauge geometry: the trigger line sits at 2/3 of the bar unless the reading goes past it.
   const val = latest?.value ?? 0;
@@ -418,7 +515,9 @@ function Paired({
   const markPct = Math.min(100, (th / top) * 100);
   const gaugeText = leaking
     ? "Confirmed leaking."
-    : !latest
+    : gone
+      ? "Status changed elsewhere."
+      : !latest
       ? "Waiting for the sensor…"
       : !rule
         ? ""
@@ -444,6 +543,7 @@ function Paired({
       setPhotoId(storageId);
       setPhotoState("ready");
     } catch {
+      haptics.error();
       setPhotoState("error");
     }
   }
@@ -461,8 +561,10 @@ function Paired({
         lat: pos?.lat,
         lon: pos?.lon,
       });
+      haptics.success();
       onLogged(`${c.id}: logged "${label}".`);
     } catch (e) {
+      haptics.error();
       setError(e instanceof Error ? e.message : "Could not save. Try again.");
       setBusy(false);
     }
@@ -470,6 +572,7 @@ function Paired({
 
   // A tapped decision counts down, then saves; Undo cancels it before anything is written.
   function choose(outcome: Outcome) {
+    haptics.light();
     setError(null);
     setPending({ outcome, label: OUTCOMES[outcome] });
     setSecs(UNDO_SECS);
@@ -552,7 +655,11 @@ function Paired({
           <span>trigger {th}</span>
         </div>
         <Sparkline values={chrono.map((r) => r.value)} sim={anyReplay} />
-        {gaugeText && latest && <p className="small muted">{gaugeText}</p>}
+        {gaugeText && latest && (
+          <p className={`small ${leaking ? "gauge-confirmed" : "muted"}`} role={leaking ? "alert" : undefined}>
+            {gaugeText}
+          </p>
+        )}
       </div>
 
       <FieldEvidence images={c.evidenceImages} />
@@ -589,7 +696,14 @@ function Paired({
             <span>
               Marking <strong>{pending.label}</strong> in {secs}s
             </span>
-            <button onClick={() => setPending(null)}>Undo</button>
+            <button
+              onClick={() => {
+                haptics.light();
+                setPending(null);
+              }}
+            >
+              Undo
+            </button>
           </div>
         ) : (
           <>

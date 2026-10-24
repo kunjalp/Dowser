@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.5.3",
+    "@capacitor/haptics": "^8.0.2",
     "@capacitor/ios": "^8.5.3",
     "convex": "^1.48.0",
     "maplibre-gl": "^6.15.0",
