@@ -1,5 +1,6 @@
 import { internalMutation, mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 import type { Infer } from "convex/values";
 import { candidateFields } from "./schema";
@@ -44,10 +45,17 @@ export async function applyStatus(
   return { changed: true as const };
 }
 
+const IDLE_SOURCE = "calgem_idle";
+
+/** Which list: "undocumented" = every source except calgem_idle (records without a source
+ * included); "idle" = CalGEM idle wells near people. */
+const laneValidator = v.union(v.literal("undocumented"), v.literal("idle"));
+
 /**
  * Ranked list for the sidebar and map. A confirmed leak always ranks above every
  * unconfirmed candidate. Pass `weights` (priority sliders) to re-rank live without
  * writing anything; omit it to use the stored default-weight score.
+ * Pass `lane` to rank one list on its own (ranks start at 1); omit it for both together.
  * Returns at most 2000 candidates.
  */
 export const ranked = query({
@@ -55,9 +63,36 @@ export const ranked = query({
     statuses: v.optional(v.array(statusValidator)),
     weights: v.optional(scorePartsValidator),
     limit: v.optional(v.number()),
+    lane: v.optional(laneValidator),
   },
-  handler: async (ctx, { statuses, weights, limit }) => {
-    let docs = await ctx.db.query("candidates").take(2000);
+  handler: async (ctx, { statuses, weights, limit, lane }) => {
+    let docs: Doc<"candidates">[];
+    if (lane === "idle") {
+      docs = await ctx.db
+        .query("candidates")
+        .withIndex("by_source", (q) => q.eq("source", IDLE_SOURCE))
+        .take(2000);
+    } else if (lane === "undocumented") {
+      // Both sides of "calgem_idle" in the index; missing source sorts first, so it is included.
+      const before = await ctx.db
+        .query("candidates")
+        .withIndex("by_source", (q) => q.lt("source", IDLE_SOURCE))
+        .take(2000);
+      const after = await ctx.db
+        .query("candidates")
+        .withIndex("by_source", (q) => q.gt("source", IDLE_SOURCE))
+        .take(2000 - before.length);
+      docs = [...before, ...after];
+    } else {
+      docs = await ctx.db.query("candidates").take(2000);
+      // Field View (no lane) must see every queued well, even past the 2000-row scan.
+      const seen = new Set(docs.map((d) => d._id));
+      const queued = await ctx.db
+        .query("candidates")
+        .withIndex("by_status", (q) => q.eq("status", "queued"))
+        .take(2000);
+      docs.push(...queued.filter((d) => !seen.has(d._id)));
+    }
     if (statuses) docs = docs.filter((d) => statuses.includes(d.status));
     const rows = docs.map((d) => ({
       ...d,
@@ -68,7 +103,14 @@ export const ranked = query({
         Number(b.status === "confirmed_leaking") - Number(a.status === "confirmed_leaking") ||
         b.rankScore - a.rankScore,
     );
-    return rows.slice(0, Math.min(limit ?? 500, 2000)).map((r, i) => ({ ...r, rank: i + 1 }));
+    const cap = Math.min(limit ?? 500, 2000);
+    const all = rows.map((r, i) => ({ ...r, rank: i + 1 }));
+    if (lane) return all.slice(0, cap);
+    // No lane (Field View): every queued row is kept, and the limit is filled with the best of
+    // the rest, so a queued well can never fall outside the top N. Ranks stay the true ranks.
+    const queued = all.filter((r) => r.status === "queued");
+    const rest = all.filter((r) => r.status !== "queued").slice(0, Math.max(0, cap - queued.length));
+    return [...queued, ...rest].sort((a, b) => a.rank - b.rank);
   },
 });
 

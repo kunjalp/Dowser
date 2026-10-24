@@ -3,7 +3,8 @@
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/convexApi";
-import { PART_LABELS, STATUSES, STATUS_META, dotColor } from "../lib/types";
+import { LaneBadge } from "./Sidebar";
+import { PART_LABELS, STATUSES, STATUS_META, dotColor, laneOf } from "../lib/types";
 import type { Candidate, Reading, ScoreParts, Status } from "../lib/types";
 
 type StatusEvent = { _id: string; from: Status; to: Status; source: string; note?: string; createdAt: number };
@@ -21,10 +22,10 @@ function ago(ts: number, now: number): string {
 const fmtM = (m?: number) =>
   m === undefined ? "n/a" : m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${Math.round(m)} m`;
 
-function ScoreBars({ parts, handLabeled }: { parts: ScoreParts; handLabeled?: boolean }) {
+function ScoreBars({ parts, handLabeled, hide = [] }: { parts: ScoreParts; handLabeled?: boolean; hide?: (keyof ScoreParts)[] }) {
   return (
     <div className="parts">
-      {(Object.keys(PART_LABELS) as (keyof ScoreParts)[]).map((k) => (
+      {(Object.keys(PART_LABELS) as (keyof ScoreParts)[]).filter((k) => !hide.includes(k)).map((k) => (
         <div key={k} className="part">
           <span className="part-label">
             {PART_LABELS[k]}
@@ -57,6 +58,22 @@ export function Sparkline({ values, sim }: { values: number[]; sim?: boolean }) 
     <svg viewBox={`0 0 ${w} ${h}`} className={`spark ${sim ? "sim-data" : ""}`} role="img" aria-label="Recent sensor readings">
       <polyline points={pts} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
     </svg>
+  );
+}
+
+function StateRecord({ c }: { c: Candidate }) {
+  return (
+    <>
+      <dl className="facts">
+        <dt>Status</dt>
+        <dd>{c.wellStatus ?? "n/a"}</dd>
+        <dt>Operator</dt>
+        <dd>{c.operator ?? "n/a"}</dd>
+        <dt>API number</dt>
+        <dd>{c.apiNumber ?? "n/a"}</dd>
+      </dl>
+      <p className="muted small">The state knows about this well. It is listed as idle (not producing, not plugged).</p>
+    </>
   );
 }
 
@@ -116,6 +133,7 @@ export default function DetailPanel({
   const anyReplay = chrono.some((r) => r.isReplay);
   // Open the sensor block by itself while readings are arriving (last 10 minutes).
   const recentReadings = chrono.length > 0 && now - chrono[chrono.length - 1].receivedAt < 10 * 60 * 1000;
+  const idle = c ? laneOf(c) === "idle" : false;
 
   return (
     <aside className={`detail ${candidate ? "open" : ""}`} aria-hidden={!candidate}>
@@ -126,6 +144,7 @@ export default function DetailPanel({
               <h2>
                 <span className="dot" style={{ background: dotColor(c) }} /> {c.id}
               </h2>
+              <LaneBadge lane={laneOf(c)} />
               <p className="muted">
                 {c.quadName} quad · rank {c.rank} · {c.lat.toFixed(4)}, {c.lon.toFixed(4)}
               </p>
@@ -142,19 +161,22 @@ export default function DetailPanel({
                   {STATUS_META[c.status].label}
                   {c.status === "candidate" ? ` · ${c.score.toFixed(2)}` : ""}
                 </div>
-                <span
-                  className={`conf-pill ${tipOff ? "tip-off" : ""}`}
-                  tabIndex={0}
-                  aria-describedby="conf-tip"
-                  onKeyDown={(e) => e.key === "Escape" && setTipOff(true)}
-                  onBlur={() => setTipOff(false)}
-                  onMouseLeave={() => setTipOff(false)}
-                >
-                  Map confidence {Math.round(c.scoreParts.confidence * 100)}%
-                  <span id="conf-tip" role="tooltip" className="conf-tip">
-                    Combines detector confidence with how many map editions show the symbol.
+                {/* idle wells are state records, not detected symbols: no map confidence */}
+                {!idle && (
+                  <span
+                    className={`conf-pill ${tipOff ? "tip-off" : ""}`}
+                    tabIndex={0}
+                    aria-describedby="conf-tip"
+                    onKeyDown={(e) => e.key === "Escape" && setTipOff(true)}
+                    onBlur={() => setTipOff(false)}
+                    onMouseLeave={() => setTipOff(false)}
+                  >
+                    Map confidence {Math.round(c.scoreParts.confidence * 100)}%
+                    <span id="conf-tip" role="tooltip" className="conf-tip">
+                      Combines detector confidence with how many map editions show the symbol.
+                    </span>
                   </span>
-                </span>
+                )}
               </div>
               {c.status === "candidate" && (
                 <button
@@ -172,25 +194,44 @@ export default function DetailPanel({
               <p className="brief">{c.brief ?? <span className="muted">No brief yet.</span>}</p>
             </section>
 
-            <section>
-              <h3>Evidence</h3>
-              <Evidence images={c.evidenceImages} />
-            </section>
+            {idle ? (
+              <section>
+                <h3>State record</h3>
+                <StateRecord c={c} />
+              </section>
+            ) : (
+              <section>
+                <h3>Evidence</h3>
+                <Evidence images={c.evidenceImages} />
+              </section>
+            )}
 
             <section>
               <h3>Score {c.score.toFixed(2)}</h3>
-              <ScoreBars parts={c.scoreParts} handLabeled={c.source === "ground_truth"} />
-              <p className="muted small">Candidate undocumented well, not a verified well.</p>
+              <ScoreBars
+                parts={c.scoreParts}
+                handLabeled={c.source === "ground_truth"}
+                hide={idle ? ["undocumented"] : []}
+              />
+              <p className="muted small">
+                {idle
+                  ? "Ranked by how close it is to people and water. No leak has been verified."
+                  : "Candidate undocumented well, not a verified well."}
+              </p>
             </section>
 
             <section>
               <h3>Nearby</h3>
               <dl className="facts">
-                <dt>Nearest documented well</dt>
-                <dd>
-                  {fmtM(c.nearestDocumentedDistM)}
-                  {c.nearestDocumentedId ? ` (${c.nearestDocumentedId})` : ""}
-                </dd>
+                {!idle && (
+                  <>
+                    <dt>Nearest documented well</dt>
+                    <dd>
+                      {fmtM(c.nearestDocumentedDistM)}
+                      {c.nearestDocumentedId ? ` (${c.nearestDocumentedId})` : ""}
+                    </dd>
+                  </>
+                )}
                 <dt>Nearest home</dt>
                 <dd>{fmtM(c.distToHomeM)}</dd>
                 <dt>Nearest school</dt>
@@ -199,8 +240,12 @@ export default function DetailPanel({
                 <dd>{fmtM(c.distToWaterM)}</dd>
                 <dt>Buildings within 250 m</dt>
                 <dd>{c.buildingsNear250m ?? "n/a"}</dd>
-                <dt>Map editions seen</dt>
-                <dd>{c.editionsSeen.length ? [...c.editionsSeen].sort().join(", ") : "n/a"}</dd>
+                {!idle && (
+                  <>
+                    <dt>Map editions seen</dt>
+                    <dd>{c.editionsSeen.length ? [...c.editionsSeen].sort().join(", ") : "n/a"}</dd>
+                  </>
+                )}
               </dl>
             </section>
 
