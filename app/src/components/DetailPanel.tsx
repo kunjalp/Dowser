@@ -107,6 +107,8 @@ export default function DetailPanel({
 
   const chrono = readings ? [...readings].reverse() : [];
   const anyReplay = chrono.some((r) => r.isReplay);
+  // Open the sensor block by itself while readings are arriving (last 10 minutes).
+  const recentReadings = chrono.length > 0 && now - chrono[chrono.length - 1].receivedAt < 10 * 60 * 1000;
 
   return (
     <aside className={`detail ${candidate ? "open" : ""}`} aria-hidden={!candidate}>
@@ -127,9 +129,30 @@ export default function DetailPanel({
           </header>
 
           <div className="detail-body">
-            <div className="badge big" style={{ ["--c" as string]: STATUS_META[c.status].color }}>
-              {STATUS_META[c.status].label}
+            <div className="detail-top">
+              <div className="badge big" style={{ ["--c" as string]: STATUS_META[c.status].color }}>
+                {STATUS_META[c.status].label}
+              </div>
+              {c.status === "candidate" && (
+                <button
+                  className="action queue-btn"
+                  style={{ ["--c" as string]: STATUS_META.queued.color }}
+                  onClick={() => setStatus({ id: c.id, status: "queued", source: "analyst" })}
+                >
+                  Queue for field check
+                </button>
+              )}
             </div>
+
+            <section>
+              <h3>Brief</h3>
+              <p className="brief">{c.brief ?? <span className="muted">No brief yet.</span>}</p>
+            </section>
+
+            <section>
+              <h3>Evidence</h3>
+              <Evidence images={c.evidenceImages} />
+            </section>
 
             <section>
               <h3>Score {c.score.toFixed(2)}</h3>
@@ -158,28 +181,24 @@ export default function DetailPanel({
               </dl>
             </section>
 
-            <section>
-              <h3>Evidence</h3>
-              <Evidence images={c.evidenceImages} />
-            </section>
-
-            <section>
-              <h3>Brief</h3>
-              <p className="brief">{c.brief ?? <span className="muted">No brief yet.</span>}</p>
-            </section>
-
-            <section>
-              <h3>Field readings</h3>
+            <details className="fold" open={recentReadings}>
+              <summary>
+                Live sensor
+                <span className="fold-meta">
+                  {chrono.length
+                    ? `${chrono.length} readings · latest ${chrono[chrono.length - 1].value.toFixed(0)}`
+                    : "no readings"}
+                </span>
+              </summary>
               {anyReplay && <div className="sim">Simulated sensor data</div>}
               <Sparkline values={chrono.map((r) => r.value)} />
-              <p className="muted small">
-                {chrono.length} readings{chrono.length ? ` · latest ${chrono[chrono.length - 1].value.toFixed(1)}` : ""}
-              </p>
-            </section>
+            </details>
 
             {events && events.length > 0 && (
-              <section>
-                <h3>Activity</h3>
+              <details className="fold">
+                <summary>
+                  Activity<span className="fold-meta">{events.length}</span>
+                </summary>
                 <ul className="timeline">
                   {events.map((e) => (
                     <li key={e._id}>
@@ -197,7 +216,7 @@ export default function DetailPanel({
                     </li>
                   ))}
                 </ul>
-              </section>
+              </details>
             )}
 
             <section>
