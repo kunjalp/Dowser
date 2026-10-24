@@ -6,3 +6,4 @@ convex/_generated/
 data/
 __pycache__/
 *.pyc
+.DS_Store
