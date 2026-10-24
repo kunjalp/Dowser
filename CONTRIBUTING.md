@@ -7,6 +7,14 @@ usable for integration and demos. Create a short-lived branch per task and merge
 small PRs frequently. Proposed names: `ml/<task>`, `backend/<task>`, `web/<task>`,
 `hardware/<task>`, `docs/<task>`. These prefixes describe work, not permanent silos.
 
+Current practice, reported by Emir: Kunjal works directly on `main`. The PR-only
+workflow below is a proposal for the team, not an enforced repository rule.
+ML continues in its own task branch and incorporates incoming main commits;
+do not rename main, move Kunjal's work, or change branch protection on this basis.
+Before merging ML, fetch again, incorporate incoming changes, check the final
+diff against main, and coordinate review with Kunjal and the backend consumer.
+Being conflict-free does not establish that the integrated app works.
+
 ML owns map preparation, labels/splits, detection, pixel-to-geo conversion, and
 evaluation. Backend owns record matching, proximity/ranking, and persistence.
 Frontend owns map presentation; hardware owns firmware and reading delivery.

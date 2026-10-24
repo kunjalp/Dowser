@@ -3,6 +3,18 @@
 Last verified: 2026-10-23, America/Los_Angeles.
 Task branch: `ml/tile-georeferencing`; includes reviewed main `f7e5eeb`.
 
+## Integration handoff
+
+Kunjal currently works directly on main, per Emir. ML work stays in the separate
+task branch. [Draft PR #3](https://github.com/kunjalp/Dowser/pull/3) is the current
+proposal into main and includes all work from earlier drafts #1 and #2. Those
+older drafts are superseded; retain their branches/history and do not merge them
+separately. No PR has been merged by the ML agent.
+
+Fetch and incorporate incoming main changes again immediately before any merge,
+review the actual diff with the relevant teammates, and recheck affected behavior.
+The suggested PR-only team workflow is not yet an enforced rule for Kunjal.
+
 ## Source of truth and scope
 
 [Master Plan](../master-plan/source.txt) supersedes the old PRD. Emir owns ML;
