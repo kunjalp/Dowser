@@ -1,20 +1,42 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import {
+  locationSourceValidator,
+  outcomeValidator,
+  scorePartsValidator,
+  statusSourceValidator,
+  statusValidator,
+} from "./constants";
 
 /**
- * Dowser data model (PRD 5.2).
+ * Dowser data model, conformed to Master Plan section 5 (the single source of truth).
  * Convex adds _id and _creationTime to every document automatically.
  */
 
-const bounds = v.object({
-  minLon: v.number(),
-  minLat: v.number(),
-  maxLon: v.number(),
-  maxLat: v.number(),
-});
+/** Candidate record (pipeline -> Convex -> app). Field names are the agreed contract. */
+export const candidateFields = {
+  id: v.string(), // stable string id, e.g. "kern-0042" (fake ones start with "fake-")
+  lat: v.number(),
+  lon: v.number(),
+  score: v.number(), // weighted score from scoreParts with the default weights
+  scoreParts: scorePartsValidator,
+  editionsSeen: v.array(v.number()), // map years the symbol appears on, e.g. [1947, 1962]
+  nearestDocumentedId: v.optional(v.string()), // documentedWells.apiNumber
+  nearestDocumentedDistM: v.optional(v.number()),
+  distToHomeM: v.optional(v.number()),
+  distToSchoolM: v.optional(v.number()),
+  distToWaterM: v.optional(v.number()),
+  buildingsNear250m: v.optional(v.number()),
+  status: statusValidator,
+  brief: v.optional(v.string()),
+  evidenceImages: v.array(v.object({ year: v.number(), url: v.string() })),
+  quadName: v.string(),
+  detectionId: v.optional(v.string()),
+  source: v.optional(v.union(v.literal("model"), v.literal("ground_truth"))),
+};
 
 export default defineSchema({
-  // Written by the ingestion script (FR-1.3). One row per map tile.
+  // Written by the ingestion script. One row per map tile.
   tiles: defineTable({
     tileId: v.string(),
     sheetName: v.string(),
@@ -25,33 +47,38 @@ export default defineSchema({
     crs: v.string(), // e.g. "EPSG:26911"
     widthPx: v.number(),
     heightPx: v.number(),
-    bounds,
+    bounds: v.object({
+      minLon: v.number(),
+      minLat: v.number(),
+      maxLon: v.number(),
+      maxLat: v.number(),
+    }),
   })
     .index("by_tileId", ["tileId"])
     .index("by_mapYear", ["mapYear"]),
 
-  // Written by the detector pipeline (FR-2.4, FR-3.1).
+  // Written by the detector pipeline.
   detections: defineTable({
     detectionId: v.string(),
     tileId: v.string(),
+    mapYear: v.number(),
     box: v.object({ x: v.number(), y: v.number(), w: v.number(), h: v.number() }),
     className: v.string(),
     confidence: v.number(),
     lat: v.number(),
     lon: v.number(),
-    // FR-2.7: lets the pipeline run from hand-labeled ground truth.
+    cropUrl: v.optional(v.string()), // small symbol crop
     source: v.union(v.literal("model"), v.literal("ground_truth")),
   })
     .index("by_detectionId", ["detectionId"])
     .index("by_tileId", ["tileId"]),
 
-  // Written by the CalGEM loader / Apify Actor (FR-4.1, FR-A4).
+  // Loaded from CalGEM (158k rows for Kern). Shape matches pipeline/load_calgem.py output.
   documentedWells: defineTable({
-    apiNumber: v.string(), // string: API numbers have leading zeros
+    apiNumber: v.string(), // 10-digit string; keep leading zeros
     lat: v.optional(v.number()), // absent when CalGEM has no usable coordinates
     lon: v.optional(v.number()),
-    status: v.string(),
-    // FR-4.5: "uncertain" wells are excluded from the match and counted.
+    status: v.string(), // CalGEM WellStatus: Active, Idle, Plugged, Canceled, ...
     locationQuality: v.union(v.literal("good"), v.literal("uncertain")),
     wellType: v.optional(v.string()),
     operator: v.optional(v.string()),
@@ -59,50 +86,66 @@ export default defineSchema({
     .index("by_apiNumber", ["apiNumber"])
     .index("by_locationQuality", ["locationQuality"]),
 
-  // Written by cross-check and ranking (FR-4.3, FR-5.x, FR-8.3).
-  candidates: defineTable({
-    candidateId: v.string(),
-    detectionId: v.string(),
-    lat: v.number(),
-    lon: v.number(),
-    nearestDocumentedM: v.number(),
-    nearestSchoolM: v.optional(v.number()),
-    buildingsNear: v.number(),
-    mapConfidence: v.number(), // C in the score formula, 0..1
-    mapYears: v.optional(v.array(v.number())),
-    fieldStatus: v.union(v.literal("candidate"), v.literal("field-confirmed leak")),
-    proximityRisk: v.optional(v.number()), // P, 0..1
-    score: v.number(),
-    rank: v.optional(v.number()),
-  })
-    .index("by_candidateId", ["candidateId"])
-    .index("by_detectionId", ["detectionId"])
+  candidates: defineTable(candidateFields)
+    .index("by_candidate_id", ["id"])
     .index("by_score", ["score"])
-    .index("by_fieldStatus", ["fieldStatus"]),
+    .index("by_status", ["status"]),
 
-  // Written by the ESP32 or the replay script via the HTTP ingest (FR-7.3).
+  // Sensor -> Convex. candidateId is attached by the phone pairing (see pairings).
   readings: defineTable({
-    readingId: v.string(),
     deviceId: v.string(),
-    ts: v.number(), // device-reported ms since epoch (or server time if the device had no clock)
-    receivedAt: v.number(), // server ms since epoch; used for the 5 s latency check
+    value: v.number(), // relative, baseline-corrected
     raw: v.number(),
-    corrected: v.number(), // baseline-corrected
-    wellId: v.optional(v.string()), // candidateId the reading is pinned to
+    timestamp: v.number(), // device ms since epoch, or server time if the device clock is bad
+    receivedAt: v.number(), // server ms; used for the sensor-to-map latency check
+    candidateId: v.optional(v.string()),
     lat: v.optional(v.number()),
     lon: v.optional(v.number()),
-    locationSource: v.string(), // "selected_well" | "phone" | "none"
+    locationSource: locationSourceValidator,
     isReplay: v.boolean(),
   })
-    .index("by_readingId", ["readingId"])
     .index("by_receivedAt", ["receivedAt"])
-    .index("by_well_receivedAt", ["wellId", "receivedAt"]),
+    .index("by_candidate_receivedAt", ["candidateId", "receivedAt"]),
 
-  // Written by the Claude brief generator (FR-6.1, FR-6.3).
+  // The verifier's logged finding from the Field View.
+  fieldChecks: defineTable({
+    candidateId: v.string(),
+    outcome: outcomeValidator,
+    note: v.optional(v.string()),
+    photoId: v.optional(v.id("_storage")),
+    deviceId: v.optional(v.string()),
+    lat: v.optional(v.number()),
+    lon: v.optional(v.number()),
+    createdAt: v.number(),
+  }).index("by_candidateId", ["candidateId"]),
+
+  // Every status change is logged here.
+  statusEvents: defineTable({
+    candidateId: v.string(),
+    from: statusValidator,
+    to: statusValidator,
+    source: statusSourceValidator,
+    note: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_candidateId", ["candidateId"])
+    .index("by_createdAt", ["createdAt"]),
+
+  // Which candidate a handheld is currently pointed at. Set by the phone.
+  // deviceId "any" pairs whatever device posts next.
+  pairings: defineTable({
+    deviceId: v.string(),
+    candidateId: v.string(),
+    lat: v.optional(v.number()), // phone location
+    lon: v.optional(v.number()),
+    updatedAt: v.number(),
+  }).index("by_deviceId", ["deviceId"]),
+
+  // Claude briefs: top ~50, 80-120 words, four parts. Regenerate only when inputHash changes.
   briefs: defineTable({
     candidateId: v.string(),
     text: v.string(),
     generatedAt: v.number(),
-    inputHash: v.string(), // regenerate only when candidate fields change
+    inputHash: v.string(),
   }).index("by_candidateId", ["candidateId"]),
 });

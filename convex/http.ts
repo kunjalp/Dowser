@@ -21,12 +21,17 @@ function safeEqual(a: string, b: string): boolean {
 const isNum = (x: unknown): x is number => typeof x === "number" && Number.isFinite(x);
 
 /**
- * POST /ingest/reading   (FR-7.3)
- * Header: X-Dowser-Token: <INGEST_TOKEN>   (NFR-5: scoped ingest credential)
- * Body:   { deviceId, raw, corrected, ts?, wellId?, lat?, lon?, locationSource?, isReplay? }
+ * POST /ingest/reading
+ * Header: X-Dowser-Token: <INGEST_TOKEN>
+ * Body (Master Plan section 5):
+ *   { deviceId, value, raw?, timestamp?, candidateId?, lat?, lon?, locationSource?, isReplay? }
  *
- * ts is optional because an ESP32 without NTP has no wall clock; the server
- * always records receivedAt, which is what the sensor-to-map latency check uses.
+ *  - value: relative reading above baseline (required)
+ *  - raw: raw ADC value; defaults to value if omitted
+ *  - timestamp: optional; an ESP32 without NTP has no wall clock. The server always
+ *    records receivedAt, which is what the latency check uses.
+ *  - candidateId/lat/lon: usually omitted by the device. The phone's pairing supplies them.
+ * Older field names are still accepted: corrected -> value, ts -> timestamp, wellId -> candidateId.
  */
 http.route({
   path: "/ingest/reading",
@@ -43,45 +48,49 @@ http.route({
     } catch {
       return json({ error: "invalid_json" }, 400);
     }
+    if (typeof body !== "object" || body === null) return json({ error: "invalid_json" }, 400);
 
-    const { deviceId, raw, corrected, ts, wellId, lat, lon, locationSource, isReplay } = body;
+    const deviceId = body.deviceId;
+    const value = body.value ?? body.corrected;
+    const raw = body.raw ?? value;
+    const timestamp = body.timestamp ?? body.ts;
+    const candidateId = body.candidateId ?? body.wellId;
+    const { lat, lon, locationSource, isReplay } = body;
 
     if (typeof deviceId !== "string" || deviceId.length === 0 || deviceId.length > 64)
       return json({ error: "invalid_deviceId" }, 400);
+    if (!isNum(value)) return json({ error: "invalid_value" }, 400);
     if (!isNum(raw)) return json({ error: "invalid_raw" }, 400);
-    if (!isNum(corrected)) return json({ error: "invalid_corrected" }, 400);
-    if (ts !== undefined && !isNum(ts)) return json({ error: "invalid_ts" }, 400);
-    if (wellId !== undefined && (typeof wellId !== "string" || wellId.length > 64))
-      return json({ error: "invalid_wellId" }, 400);
+    if (timestamp !== undefined && !isNum(timestamp)) return json({ error: "invalid_timestamp" }, 400);
+    if (candidateId !== undefined && (typeof candidateId !== "string" || candidateId.length > 64))
+      return json({ error: "invalid_candidateId" }, 400);
     if (lat !== undefined && (!isNum(lat) || lat < -90 || lat > 90))
       return json({ error: "invalid_lat" }, 400);
     if (lon !== undefined && (!isNum(lon) || lon < -180 || lon > 180))
       return json({ error: "invalid_lon" }, 400);
+    if (
+      locationSource !== undefined &&
+      locationSource !== "candidate" &&
+      locationSource !== "phone" &&
+      locationSource !== "none"
+    )
+      return json({ error: "invalid_locationSource" }, 400);
     if (isReplay !== undefined && typeof isReplay !== "boolean")
       return json({ error: "invalid_isReplay" }, 400);
 
     // Device clocks drift or start at 1970; fall back to server time if implausible.
     const now = Date.now();
-    const tsOk = isNum(ts) && Math.abs(ts - now) < 24 * 60 * 60 * 1000;
-
-    const source =
-      typeof locationSource === "string"
-        ? locationSource
-        : wellId !== undefined
-          ? "selected_well"
-          : lat !== undefined && lon !== undefined
-            ? "phone"
-            : "none";
+    const tsOk = isNum(timestamp) && Math.abs(timestamp - now) < 24 * 60 * 60 * 1000;
 
     const result = await ctx.runMutation(internal.readings.ingest, {
       deviceId,
-      ts: tsOk ? (ts as number) : now,
+      value,
       raw,
-      corrected,
-      wellId: wellId as string | undefined,
+      timestamp: tsOk ? timestamp : now,
+      candidateId: candidateId as string | undefined,
       lat: lat as number | undefined,
       lon: lon as number | undefined,
-      locationSource: source,
+      locationSource: locationSource as "candidate" | "phone" | "none" | undefined,
       isReplay: isReplay === true,
     });
 
@@ -89,7 +98,7 @@ http.route({
   }),
 });
 
-// Cheap reachability check the ESP32 / hotspot test can hit first (section 8.4).
+// Cheap reachability check the ESP32 / hotspot test can hit first (no token needed).
 http.route({
   path: "/health",
   method: "GET",
