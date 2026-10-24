@@ -7,6 +7,28 @@ This worktree branch: `ml/cursor-improvements`. Parent ML branch remains
 PRs #1/#2 superseded; ML agent has not merged a PR into main.
 Editor entry point: [CONTINUE.md](../CONTINUE.md).
 
+## Human-ground-truth delivery
+
+The requested human-only export is ready: 617 CSV rows / crops, zero skipped
+boxes, all `source=ground_truth`, `confidence=1.0`, `labelSource=human`. Source
+labels/images/manifest are unchanged by SHA-256 comparison. Four converter tests
+passed; three map-edition crops were visually checked. The ZIP/report are
+published as versioned artifacts rather than committing large ignored data.
+See [GROUNDTRUTH_EXPORT.md](GROUNDTRUTH_EXPORT.md) for the GitHub download,
+checksums, counts and teammate extraction instructions. No main merge,
+production reload or model promotion is implied by this handoff.
+
+## Reviewed reference preview (local only)
+
+At Emir's request, a separate `/reviewed` page in `dowser-preview` contains 62
+human-annotated historical ring examples and two explicitly rejected original
+model errors. Each has its own crop/context, actual per-tile coordinates,
+CalGEM distance/record and matching description. All selected rings match records
+within 100 m; they are references, not undocumented discoveries or improved
+detector measurements. Production candidates, statuses, ML pins and archives
+are unchanged. [REVIEWED_REFERENCE_PREVIEW.md](REVIEWED_REFERENCE_PREVIEW.md)
+records implementation, provenance, browser verification and remaining scope.
+
 ## Integration review and next product-quality plan
 
 Read [INTEGRATION_QUALITY_PLAN.md](../INTEGRATION_QUALITY_PLAN.md) before

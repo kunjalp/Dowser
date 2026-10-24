@@ -4,6 +4,19 @@ Use this entry point when moving from this chat to Cursor or another agent.
 The chat is not required project memory. Current outcomes and next actions live
 in [ML status](ml/STATUS.md); update that file after meaningful work.
 
+Human-only CSV/crop handoff and GitHub artifact links:
+[GROUNDTRUTH_EXPORT.md](ml/GROUNDTRUTH_EXPORT.md). It contains 617 manual box
+instances; source labels remain local/unchanged and are not model predictions.
+
+Running local app and existing ML report links: [LOCAL_PREVIEW.md](LOCAL_PREVIEW.md).
+The separate `dowser-preview` clone combines a main/ML snapshot and connects to
+the team's shared backend; source checkout edits are not automatically copied.
+
+Current cross-stack integration review and proposed 95%-quality acceptance:
+[INTEGRATION_QUALITY_PLAN.md](INTEGRATION_QUALITY_PLAN.md). It records the
+reviewed main/ML revisions, unresolved candidate-quality failures and owner
+handoffs. Source merge compatibility does not imply model/data promotion.
+
 Current training repair / incoming Test export instructions for the next agent:
 [NEXT_AGENT_TRAINING.md](ml/NEXT_AGENT_TRAINING.md). Test annotation is in progress;
 it remains separate from training. Read the rollout failure and rejected repair

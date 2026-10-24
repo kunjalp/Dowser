@@ -1,5 +1,13 @@
 # Next agent: repair training while Test labels arrive
 
+Historical handoff, superseded for current task state by
+[STATUS.md](STATUS.md) and the
+[integration quality plan](../INTEGRATION_QUALITY_PLAN.md). Claude has since
+reviewed the 20 Train frames, trained repair_v2/E4 candidates, imported 27/30
+human Test tiles and implemented `evaluate_final_test.py`. Do not redo those
+steps based on the older pending-work text below. No final Test inference or
+automatic 95%-quality promotion has been established.
+
 Handoff: 2026-10-24. Work in `/Users/emirtg/Desktop/dowser-cursor`, branch
 `ml/cursor-improvements`. User forbids modifying `/Users/emirtg/Desktop/dowser`.
 Preserve dirty changes, datasets, environments, archives and pins. Read root and
