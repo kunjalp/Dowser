@@ -78,7 +78,9 @@ preliminary; use the active path above.
 ## Next action
 
 Follow [ANNOTATION.md](ANNOTATION.md): label the packaged images, preserving
-their frozen split. Reach 300+ human-reviewed symbols with hard negatives;
+their frozen split. Its browser quickstart covers project settings and upload.
+Start by fully reviewing 3–5 train images and agreeing on symbols/box policy
+before splitting annotation work across helpers. Reach 300+ human-reviewed symbols with hard negatives;
 annotate reserved test images independently. Then implement YOLO training,
 evaluation, and reviewed inference export for Ryann.
 
