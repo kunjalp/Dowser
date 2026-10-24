@@ -114,19 +114,31 @@ export const upsertBatch = internalMutation({
   handler: async (ctx, { candidates }) => {
     let inserted = 0;
     let replaced = 0;
+    let keptDecisions = 0;
     for (const c of candidates) {
       const existing = await ctx.db
         .query("candidates")
         .withIndex("by_candidate_id", (q) => q.eq("id", c.id))
         .unique();
       if (existing) {
-        await ctx.db.replace(existing._id, c);
+        const next = { ...c };
+        // Re-running the loader must never undo a human or field decision. Keep the
+        // existing status and field-confirmation part, and recompute the score from them.
+        if (existing.status !== "candidate") {
+          next.status = existing.status;
+          next.scoreParts = { ...c.scoreParts, field: existing.scoreParts.field };
+          next.score = weightedScore(next.scoreParts);
+          keptDecisions++;
+        }
+        // Keep a generated brief unless the new load carries one.
+        if (next.brief === undefined && existing.brief !== undefined) next.brief = existing.brief;
+        await ctx.db.replace(existing._id, next);
         replaced++;
       } else {
         await ctx.db.insert("candidates", c);
         inserted++;
       }
     }
-    return { inserted, replaced };
+    return { inserted, replaced, keptDecisions };
   },
 });

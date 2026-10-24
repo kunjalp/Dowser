@@ -206,3 +206,27 @@ describe("auto-confirm", () => {
     expect((await t.query(api.candidates.get, { id: "fake-004" }))?.status).toBe("no_well");
   });
 });
+
+describe("upsertBatch (pipeline loader)", () => {
+  test("re-running the loader keeps status, field part and brief of decided candidates", async () => {
+    const t = setup();
+    await t.mutation(internal.seed.seedFakeCandidates, { count: 3 });
+    const fresh = async (id: string) => {
+      const c: any = await t.query(api.candidates.get, { id });
+      const { _id, _creationTime, rank, rankScore, ...rest } = c;
+      return { ...rest, scoreParts: { ...rest.scoreParts, field: 0 }, status: "candidate", brief: undefined };
+    };
+    // fake-001 gets a field confirmation and a brief; fake-002 stays an open candidate
+    await t.mutation(api.candidates.setStatus, { id: "fake-001", status: "confirmed_leaking", source: "field" });
+    const a: any = await fresh("fake-001");
+    const b: any = await fresh("fake-002");
+    const res = await t.mutation(internal.candidates.upsertBatch, { candidates: [a, b] });
+    expect(res).toEqual({ inserted: 0, replaced: 2, keptDecisions: 1 });
+    const kept: any = await t.query(api.candidates.get, { id: "fake-001" });
+    expect(kept.status).toBe("confirmed_leaking");
+    expect(kept.scoreParts.field).toBe(1);
+    const open: any = await t.query(api.candidates.get, { id: "fake-002" });
+    expect(open.status).toBe("candidate");
+    expect(open.brief).toBeTruthy(); // seeded placeholder brief is kept when the load has none
+  });
+});

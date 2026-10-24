@@ -17,7 +17,7 @@ function ScoreBars({ parts, handLabeled }: { parts: ScoreParts; handLabeled?: bo
           <span className="part-label">
             {PART_LABELS[k]}
             {k === "confidence" && handLabeled && (
-              <em className="tag" title="Confidence is fixed at 1.0 for hand-labeled symbols; it is not a model score.">
+              <em className="tag" title="Hand-labeled symbol. Its detection confidence is fixed at 1.0, so this bar is not a model score; it also reflects how many map editions show the symbol.">
                 hand-labeled
               </em>
             )}
