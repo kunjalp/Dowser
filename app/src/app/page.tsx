@@ -86,7 +86,7 @@ export default function CommandMap() {
       <section className="map-wrap">
         {anyFake && (
           <div className="demo-banner" role="status">
-            <strong>Simulated data</strong> / not field verified
+            <strong>Simulated sensor data</strong> / not field readings
           </div>
         )}
         {toast && (

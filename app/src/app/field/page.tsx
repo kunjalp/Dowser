@@ -203,6 +203,7 @@ export default function FieldView() {
                     </strong>
                     <span className="badge" style={{ ["--c" as string]: STATUS_META[mapPick.status].color }}>
                       {STATUS_META[mapPick.status].label}
+                      {mapPick.status === "candidate" ? ` · ${mapPick.score.toFixed(2)}` : ""}
                     </span>
                   </div>
                   <p className="muted small">
@@ -266,7 +267,7 @@ export default function FieldView() {
                           </strong>
                           <span className="muted small">
                             {c.quadName} · {c.id}
-                            {isFake(c) ? " · sim" : ""}
+                            {isFake(c) && <em className="tag sim">Sim</em>}
                           </span>
                           {urgentFact(c) && <span className="reason">{urgentFact(c)}</span>}
                         </span>
@@ -530,7 +531,7 @@ function Paired({
         </a>
       )}
 
-      <div className={`reading-card ${leaking ? "leak" : ""}`}>
+      <div className={`reading-card ${leaking ? "leak" : ""} ${anyReplay ? "sim-data" : ""}`}>
         <div className="reading-top">
           <span className={`live-dot ${live ? "on" : ""}`} />
           <span className="small">
@@ -538,8 +539,11 @@ function Paired({
           </span>
           {anyReplay && <span className="sim">Simulated</span>}
         </div>
-        <div className="reading-value">{latest ? latest.value.toFixed(0) : "–"}</div>
-        <div className="gauge" role="meter" aria-valuenow={val} aria-valuemin={0} aria-valuemax={Math.round(top)}>
+        <div className="reading-value">
+          {latest ? latest.value.toFixed(0) : "–"}
+          {anyReplay && <em className="tag sim">Sim</em>}
+        </div>
+        <div className={`gauge ${anyReplay ? "sim-data" : ""}`} role="meter" aria-valuenow={val} aria-valuemin={0} aria-valuemax={Math.round(top)}>
           <span className={`gauge-fill ${val >= th ? "hi" : ""}`} style={{ width: `${fillPct}%` }} />
           <span className="gauge-mark" style={{ left: `${markPct}%` }} />
         </div>
@@ -547,8 +551,8 @@ function Paired({
           <span>0</span>
           <span>trigger {th}</span>
         </div>
-        <Sparkline values={chrono.map((r) => r.value)} />
-        {gaugeText && <p className="small muted">{gaugeText}</p>}
+        <Sparkline values={chrono.map((r) => r.value)} sim={anyReplay} />
+        {gaugeText && latest && <p className="small muted">{gaugeText}</p>}
       </div>
 
       <FieldEvidence images={c.evidenceImages} />
