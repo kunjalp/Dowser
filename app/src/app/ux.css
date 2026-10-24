@@ -609,3 +609,26 @@ main.field:has(.field-paired) > .field-toast { flex: none; }
 .field-tabs .tab-icon { width: 20px; height: 20px; flex: none; }
 .field-tabs .tab-label { font-size: var(--fs-sm); }
 .field .field-tabs .tab.sort .tab-icon { width: 24px; height: 24px; }
+
+/* ===== HIG pass: hit areas, press feedback, empty state, placeholders, evidence buttons ===== */
+.pc-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* the visible pill stays 32px; an invisible 6px band above and below makes the tap target 44px */
+.pc-sim { position: relative; }
+.pc-sim::after { content: ""; position: absolute; inset: -6px 0; }
+
+/* the same touch-down feedback the rest of the screen has */
+.pc-nav, .pc-back, .pc-sun, .pc-sim, .pc-details-toggle, .pc-sim-done, .field-evidence-btn { transition: transform 180ms ease-out, opacity 180ms ease-out, background-color 150ms ease-out, color 150ms ease-out; }
+.pc-nav:active, .pc-back:active, .pc-sun:active, .pc-sim:active, .pc-details-toggle:active, .pc-sim-done:active, .field-evidence-btn:active { transform: scale(0.97); transition-duration: 80ms; }
+@media (prefers-reduced-motion: reduce) {
+  .pc-nav:active, .pc-back:active, .pc-sun:active, .pc-sim:active, .pc-details-toggle:active, .pc-sim-done:active, .field-evidence-btn:active { transform: none; opacity: 0.7; }
+}
+
+/* no readings yet: a quiet line instead of a giant dash */
+.pc-empty { margin: 8px 0 4px; color: var(--muted); font: 500 var(--fs-base) var(--sans); }
+
+.field-search::placeholder, .field-note::placeholder { color: var(--muted); opacity: 1; }
+
+/* evidence crops are real buttons; they pass the flex sizing through to the image */
+.field-evidence-btn { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; width: 100%; padding: 0; border: 0; border-radius: 10px; background: none; cursor: zoom-in; }
+.field-evidence-btn:focus-visible, .field-evidence-big:focus-visible, .pc-nav:focus-visible, .pc-back:focus-visible, .pc-sun:focus-visible, .pc-sim:focus-visible, .pc-details-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }

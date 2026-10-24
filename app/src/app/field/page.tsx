@@ -132,6 +132,7 @@ export default function FieldView() {
   }, []);
   function toggleOutdoor() {
     const next = !outdoor;
+    haptics.tick();
     setOutdoor(next);
     try {
       localStorage.setItem("dowser.outdoor", next ? "1" : "0");
@@ -426,13 +427,16 @@ function FieldEvidence({ images }: { images: Candidate["evidenceImages"] }) {
             {failed[im.url] ? (
               <div className="ph">no image yet</div>
             ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={im.url}
-                alt={`Symbol on the ${im.year} map`}
+              <button
+                type="button"
+                className="field-evidence-btn"
+                aria-label={`${big === im.url ? "Close" : "Enlarge"} the ${im.year} map crop`}
+                aria-expanded={big === im.url}
                 onClick={() => setBig(big === im.url ? null : im.url)}
-                onError={() => setFailed((f) => ({ ...f, [im.url]: true }))}
-              />
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={im.url} alt="" onError={() => setFailed((f) => ({ ...f, [im.url]: true }))} />
+              </button>
             )}
             <figcaption>{im.year} map</figcaption>
           </figure>
@@ -440,7 +444,16 @@ function FieldEvidence({ images }: { images: Candidate["evidenceImages"] }) {
       </div>
       {big && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img className="field-evidence-big" src={big} alt="Enlarged map crop" onClick={() => setBig(null)} />
+        <img
+          className="field-evidence-big"
+          src={big}
+          alt="Enlarged map crop"
+          role="button"
+          tabIndex={0}
+          aria-label="Close the enlarged map crop"
+          onClick={() => setBig(null)}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " " || e.key === "Escape") && setBig(null)}
+        />
       )}
     </div>
   );
@@ -469,9 +482,13 @@ function FieldSpark({ values, threshold }: { values: number[]; threshold: number
   const last = pts[pts.length - 1];
   const over = values[values.length - 1] >= threshold;
   const ty = y(threshold);
+  const lastV = values[values.length - 1];
+  const delta = lastV - values[Math.max(0, values.length - 6)];
+  const trend = Math.abs(delta) < threshold * 0.05 ? "steady" : delta > 0 ? "rising" : "falling";
+  const label = `Recent simulated readings: latest ${Math.round(lastV)}, ${trend}, ${over ? "above" : "below"} the trigger of ${Math.round(threshold)}`;
   return (
     <div className={`pc-spark ${over ? "over" : ""}`}>
-      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label="Recent sensor readings">
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label={label}>
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="currentColor" stopOpacity="0.28" />
@@ -609,6 +626,14 @@ function Paired({
   const arrived = dist !== undefined && dist < ARRIVED_M;
   const weakGps = here?.acc !== undefined && here.acc > 25;
 
+  // One buzz when you walk into the 50 m ring (outside to inside). Opening the screen already inside does not buzz.
+  const prevArrived = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (dist === undefined) return;
+    if (prevArrived.current === false && arrived) haptics.warning();
+    prevArrived.current = arrived;
+  }, [arrived, dist]);
+
   async function onPhoto(file: File | undefined) {
     if (!file) return;
     setPhotoState("uploading");
@@ -734,7 +759,9 @@ function Paired({
             {latest ? (live ? "Live" : `${age}s ago`) : ""}
           </span>
         </div>
-        <div className="pc-value">{latest ? latest.value.toFixed(0) : "–"}</div>
+        {latest ? (
+          <>
+        <div className="pc-value">{latest.value.toFixed(0)}</div>
         <div className="pc-gauge" role="meter" aria-label="Reading against trigger" aria-valuenow={val} aria-valuemin={0} aria-valuemax={Math.round(top)}>
           <span className={`pc-gauge-fill ${val >= th ? "hi" : ""}`} style={{ width: `${fillPct}%` }} />
           <span className="pc-gauge-mark" style={{ left: `${markPct}%` }} />
@@ -744,6 +771,10 @@ function Paired({
           <span>trigger {th}</span>
         </div>
         <FieldSpark values={chrono.map((r) => r.value)} threshold={th} />
+          </>
+        ) : (
+          <p className="pc-empty">No reading yet</p>
+        )}
         {rule && latest && !leaking && !gone && val >= th && (
           <p className="pc-hint">
             {hot >= rule.count ? "Confirming…" : `${rule.count - hot} more in ${rule.windowMs / 1000} s confirms it.`}
@@ -816,8 +847,11 @@ function Paired({
 
       <div className="field-decide">
         {pending ? (
-          <div className="undo-bar" role="status">
-            <span>
+          <div className="undo-bar">
+            <span className="pc-sr" role="status">
+              Marking {pending.label}. Undo is available for {UNDO_SECS} seconds.
+            </span>
+            <span aria-hidden="true">
               Marking <strong>{pending.label}</strong> in {secs}s
             </span>
             <button
