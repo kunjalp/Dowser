@@ -22,8 +22,9 @@ For a quick progress check, read [ML status](ml/STATUS.md).
 
 The user-supplied Master Plan is the current requirements baseline and explicitly
 replaces the earlier PRD/Build Plan. Preserve original sources verbatim. Explicit
-later user decisions override them; the current additional constraint is zero
-paid project resources. Record changes with their affected Master Plan sections.
+later user decisions override them. The user withdrew the earlier zero-cost
+constraint on 2026-10-23; use the current policy in root agent instructions.
+Record changes with their affected Master Plan sections.
 
 Documentation is stored with code and reviewed in the same PR. Prefer English for
 shared technical files and code identifiers; chat can remain in Russian. Do not

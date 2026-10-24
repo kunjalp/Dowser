@@ -9,7 +9,7 @@ It supersedes the original PRD. Legacy FR identifiers are cross-references only.
 | 1024 px tiles, about 20% overlap, own ID/year/transform | Emir: implemented | `pipeline.prepare_dataset`; 819 px stride, source hash, WKT, native offset |
 | Corner reconstruction <=1 source pixel | Emir: numerically verified | Tests/summary; not absolute map-accuracy evidence |
 | Test about 20%, >=30 tiles before training | Emir: partition implemented | Shared geography across years; crossing tiles quarantined; annotate protected tiles before evaluation |
-| >=300 human-labeled symbols, lookalike negatives, multiple eras | Emir + team: pending | Package is unlabeled; human counts remain zero |
+| >=300 human-labeled symbols, lookalike negatives, multiple eras | Emir + team: export verification pending | User reports about 600 symbols across 5 images added to Roboflow Dataset; local export/quality not yet checked |
 | Fine-tune pretrained YOLO, imgsz 1024 | Emir: pending | No training/weights; no replacement with published U-Net |
 | Box, confidence, class, tile ID, year, crop | Emir: pending inference | Current contract documented; no fabricated detections |
 | Pixel-to-WGS84 with native tile transform | Emir: unit checked | `pipeline.geo`, edge convention and rotated-affine checks |
@@ -21,7 +21,7 @@ It supersedes the original PRD. Legacy FR identifiers are cross-references only.
 | Match 100 m, OSM homes/schools/water, scoring, load | Ryann | Existing backend loading API is not ML's task |
 | Command Map and Field View | Kunjal | Ryann prepares overlay; ML supplies source/crops |
 | Live upload, Droid, Claude vision | Could-have | Only after the core loop works |
-| Zero paid project resources | User constraint: enforced | Local processing/public downloads; no paid training/API calls |
+| Resource costs | User constraint corrected | User withdrew the zero-cost ban on 2026-10-23; record actual usage/costs |
 
 ## Evaluation discipline
 

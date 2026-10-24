@@ -36,9 +36,10 @@ not an object or evidence of a negative sample.
 
 ## Import and split rules
 
-Master Plan specifies Roboflow. Use an existing no-cost workspace only; no paid
-training/credits/labeling service is authorized. Local annotation is possible if
-access is unavailable, but record that workflow deviation.
+Master Plan specifies Roboflow. The user withdrew the earlier zero-spend
+requirement on 2026-10-23, so paid options and credit usage are no longer banned.
+Record resource choices and material usage/costs. Local annotation is possible
+if access is unavailable, but record that workflow deviation.
 
 Import each partition with its assigned split and preserve tile IDs. Disable
 automatic random reassignment. If export changes filenames or partitions,
@@ -47,9 +48,9 @@ from another year must stay in the same partition.
 
 ## First session in the browser
 
-1. Sign in at <https://app.roboflow.com/>. Use a workspace with a $0 plan;
-   the current pricing page calls it Free Tier. Do not activate a paid plan,
-   link a payment card, buy credits, or start paid labeling/training jobs.
+1. Sign in at <https://app.roboflow.com/> and use the existing project/workspace
+   so the manual annotations are preserved. Select services for the task rather
+   than enforcing the superseded zero-spend restriction.
 2. Create a project named `dowser-kern-well-symbols` with type **Object Detection**
    (axis-aligned bounding boxes). A class field is not required at project
    creation: create our single class `well_symbol` when drawing the first box.
@@ -64,8 +65,9 @@ from another year must stay in the same partition.
    selector and create/save that class; select the same class for later boxes.
    The screenshot's **Classes & Tags** sidebar entry is for class management;
    **Tags** on the upload page describes images and is not the object class.
-   Use ordinary manual boxes;
-   do not invoke AI labeling, Smart Polygon, or cloud training.
+   Manual boxes or AI-assisted proposals are possible; all annotations need
+   whole-image human review before they count as reviewed training examples.
+   Starting cloud training is a separate step from annotation/export.
 5. Fully review 3–5 training images first and compare decisions with another
    annotator before dividing the larger batch. Save changes and confirm that
    reopening an image retains its boxes. Do not mark partial work complete.
@@ -181,7 +183,8 @@ then add only fully reviewed images to Dataset, keeping their original Train
 membership. Leave unfinished images out; do not mark them empty for export.
 Export reviewed work as a YOLO ZIP through Versions/Export, with original 1024 px
 geometry and no augmentations, resize, cropping, or split rebalancing. Export
-does not require starting cloud training. Do not activate any paid resource.
+does not require starting cloud training. Record version-generation credit usage;
+the user has withdrawn the earlier ban on resource costs.
 See [Roboflow's export procedure](https://docs.roboflow.com/datasets/exporting-data).
 
 Save the ZIP under ignored `data/ml/reviewed_exports/`; preserve the downloaded
@@ -206,4 +209,5 @@ training examples, negatives, validation and test labels are still required.
   arithmetic alone does not prove location accuracy.
 
 Only after labeling/review should the YAML template become an active training
-configuration. Use `imgsz=1024`; no paid GPU or cloud training is authorized.
+configuration. Use `imgsz=1024`; choose local or hosted compute for the task and
+record the training configuration and resource usage.

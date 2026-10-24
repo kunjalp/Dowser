@@ -18,12 +18,20 @@ Fetch and incorporate incoming main changes again immediately before any merge,
 review the actual diff with the relevant teammates, and recheck affected behavior.
 The suggested PR-only team workflow is not yet an enforced rule for Kunjal.
 
+During the cost-policy documentation update, fetch found incoming main `2a2947e`
+(matching/enrichment/scoring/loading and frontend changes). These commits are
+not yet incorporated or reviewed in this ML branch; inspect/integrate them before
+the next code/training task. The included/reviewed baseline remains `48cdd29`.
+
 ## Source of truth and scope
 
 [Master Plan](../master-plan/source.txt) supersedes the old PRD. Emir owns ML;
 Ryann owns matching/dedup/scoring and historical overlay conversion; Kunjal owns
 the UI map. Python code/config/research now live under `pipeline/`.
-The user's zero-cost constraint is recorded in root agent instructions.
+On 2026-10-23 the user explicitly withdrew the earlier zero-cost constraint,
+saying it was written by mistake. Current root instructions reflect this:
+paid resources/credits are no longer categorically banned. Record material costs.
+Earlier run records stating no paid services were used remain historical facts.
 
 ## Verified behavior
 
@@ -61,8 +69,11 @@ Geometry pass: **189 windows; 84 train / 13 validation / 30 test / 62 buffer**.
 Test is 23.6% of 127 retained images because at least 30 are required. Both
 1954 and 1992 appear in each retained partition.
 
-**Latest verified local human-label files: 0 tiles, 0 boxes.** Emir reports one
-completed manual image. His screenshot shows 271 `well_symbol` annotations on
+**Latest verified local human-label files: 0 tiles, 0 boxes.** Emir now reports
+about 600 manually labeled symbols across 5 completed images. Screenshots show
+5 images added to Dataset and 79 remaining unannotated; the exact total and
+quality still need export verification. An earlier screenshot shows 271
+`well_symbol` annotations on
 `usgs_102321_x01250_y03651.png`; the frozen manifest confirms Train / 1992.
 The screenshot verifies the displayed count/class, not full-image completeness,
 box accuracy, saved/exported contents, or independently reviewed quality.
@@ -96,11 +107,13 @@ preliminary; use the active path above.
 
 ## Next action
 
-First preserve/export Emir's manually annotated 1992 tile per
+Finish version `manual_5_images_v1` for the 5 manually annotated images (original
+1024 px geometry, no preprocessing/augmentation or split rebalancing), then
+export a YOLO ZIP per
 [ANNOTATION.md](ANNOTATION.md#preserve-and-export-reviewed-work). Save the ZIP in
 `data/ml/reviewed_exports/`. Then inspect class names, file IDs, normalized box
 geometry, sizes/completeness, and frozen Train membership before counting the
-annotations as ready for training. Do not include 83 unreviewed images as negatives.
+annotations as ready for training. Do not include 79 unreviewed images as negatives.
 
 The assisted pilot can replace drawing every box from scratch for 1954 examples.
 Preview its four train images, then review/correct them

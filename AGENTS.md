@@ -24,10 +24,10 @@ The documentation index is `docs/README.md`.
 For an editor/agent handoff, read `docs/CONTINUE.md`; keep current progress and
 the exact next action in `docs/ml/STATUS.md`, not only in chat history.
 
-The user requires zero paid project resources: no paid APIs, GPU rentals,
-paid labeling jobs, purchases, deployment provisioning, or plan upgrades.
-Use local/offline tools and public source downloads. Existing sponsor credits
-do not authorize spending; report limitations instead of activating a paid path.
+Cost policy, corrected by the user on 2026-10-23: the earlier zero-spend
+requirement was a mistake and has been withdrawn. There is no project-wide ban
+on paid resources. Choose resources for task fit and record material usage/costs;
+do not keep blocking ordinary progress based on the superseded zero-cost rule.
 
 Identify affected PRD requirement IDs before implementation. Verify changed
 behavior and update relevant docs in the same PR. Record actual checks and

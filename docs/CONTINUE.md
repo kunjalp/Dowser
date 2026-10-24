@@ -48,8 +48,9 @@ the recorded main revision is still the latest.
 
 Continue the exact next action in ML status. Distinguish implemented preparation
 from human annotation, model training, and measured evaluation. Do not invent
-labels or metrics, randomize frozen geographic splits, provision paid resources,
-or merge a draft without the agreed review.
+labels or metrics, randomize frozen geographic splits, or merge a draft without
+the agreed review. The user withdrew the earlier zero-spend ban on 2026-10-23;
+follow current root instructions and record material resource usage/costs.
 
 Before edits, identify the affected Master Plan acceptance and inspect the code.
 After edits, run relevant checks, update status and affected requirements or
