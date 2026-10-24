@@ -207,3 +207,7 @@ input[type="checkbox"]:focus-visible, button:focus-visible, select:focus-visible
 .map.panel-open .maplibregl-ctrl-bottom-right { right: 400px; }
 .map.panel-open .zoom-slider { right: 410px; }
 @media (max-width: 800px) { .map.panel-open .maplibregl-ctrl-bottom-right { right: 0; } .map.panel-open .zoom-slider { right: 10px; } }
+
+/* iPhone notch / home indicator (installed app and Add-to-Home-Screen) */
+.field { padding-top: calc(14px + env(safe-area-inset-top)); padding-bottom: calc(40px + env(safe-area-inset-bottom)); padding-left: calc(16px + env(safe-area-inset-left)); padding-right: calc(16px + env(safe-area-inset-right)); }
+@media (max-width: 800px) { .sidebar-head { padding-top: calc(16px + env(safe-area-inset-top)); } }
