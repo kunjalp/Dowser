@@ -590,6 +590,57 @@ function Paired({
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [simInfo, setSimInfo] = useState(false);
   const [briefOpen, setBriefOpen] = useState(false);
+  // Edge swipe (left edge, rightwards) goes back to the candidate list, like iOS. The back button still works.
+  const swipeRef = useRef<HTMLElement | null>(null);
+  const swipeSt = useRef<{ x: number; y: number; on: boolean; dx: number } | null>(null);
+  const swipe = {
+    start: (e: React.TouchEvent) => {
+      const t0 = e.touches[0];
+      const inSheet = (e.target as HTMLElement).closest(".sheet-backdrop");
+      swipeSt.current = t0.clientX <= 28 && !inSheet ? { x: t0.clientX, y: t0.clientY, on: false, dx: 0 } : null;
+    },
+    move: (e: React.TouchEvent) => {
+      const st = swipeSt.current;
+      if (!st) return;
+      const t0 = e.touches[0];
+      const dx = t0.clientX - st.x;
+      const dy = t0.clientY - st.y;
+      if (!st.on && Math.abs(dy) > 24 && Math.abs(dy) > Math.abs(dx)) {
+        swipeSt.current = null;
+        return;
+      }
+      if (dx > 8) st.on = true;
+      if (st.on && swipeRef.current) {
+        st.dx = Math.max(0, dx);
+        swipeRef.current.style.transition = "none";
+        swipeRef.current.style.transform = `translateX(${st.dx * 0.6}px)`;
+        swipeRef.current.style.opacity = String(Math.max(0.5, 1 - st.dx / 500));
+      }
+    },
+    end: () => {
+      const st = swipeSt.current;
+      swipeSt.current = null;
+      const el = swipeRef.current;
+      if (el) {
+        el.style.transition = "transform 180ms ease-out, opacity 180ms ease-out";
+        el.style.transform = "";
+        el.style.opacity = "";
+      }
+      if (st?.on && st.dx > 90) {
+        haptics.light();
+        onBack();
+      }
+    },
+    cancel: () => {
+      swipeSt.current = null;
+      const el = swipeRef.current;
+      if (el) {
+        el.style.transition = "transform 180ms ease-out, opacity 180ms ease-out";
+        el.style.transform = "";
+        el.style.opacity = "";
+      }
+    },
+  };
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -767,7 +818,14 @@ function Paired({
   const hasDetails = note.trim() !== "" || photoState !== "none";
 
   return (
-    <section className="field-paired">
+    <section
+      className="field-paired"
+      ref={swipeRef}
+      onTouchStart={swipe.start}
+      onTouchMove={swipe.move}
+      onTouchEnd={swipe.end}
+      onTouchCancel={swipe.cancel}
+    >
       <header className="pc-head">
         <button className="pc-back" onClick={onBack} aria-label="Back to candidates">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
