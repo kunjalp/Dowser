@@ -1,13 +1,14 @@
 # ML requirements and acceptance evidence
 
-Baseline: [full PRD](../prd/source.txt), 2026-10-23. All implementation statuses
-below are `not started`; this file describes acceptance, not delivered behavior.
-Replace status and add evidence paths/commands when work is verified.
+Baseline: [full PRD](../prd/source.txt), 2026-10-23. FR-1.1 is documented in the
+README/config; FR-1.2 source acquisition is verified locally by region research.
+All other implementation items below remain `not started`. Downloaded rasters
+are research inputs, not labeled examples or model-quality evidence.
 
 | PRD ID | Acceptance to preserve | Expected evidence |
 | --- | --- | --- |
-| FR-1.1 | One region and bounding box | Repository README/config |
-| FR-1.2 | At least 3 georeferenced sheets across at least 2 eras | Source manifest and local artifact references |
+| FR-1.1 | One region and bounding box | Complete for ML MVP: README and [region config](../../ml/config/region.json) |
+| FR-1.2 | At least 3 georeferenced sheets across at least 2 eras | Verified locally: three sheet editions, two quadrangles, 1954/1992 date-on-map eras; hashes/URLs in config and [research](../research/REGION_SELECTION.md) |
 | FR-1.3 | Fixed-size overlapping tiles; per-tile transform; corner reconstruction within 1 pixel | Manifest and transform checks |
 | FR-1.4 | Upload/CLI to stored detections under 30 s on demo hardware | Timed integration run with backend |
 | FR-1.5 | Raw sheets outside Git; repo under 100 MB | Ignore rules and repo size evidence |

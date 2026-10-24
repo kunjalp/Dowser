@@ -16,8 +16,20 @@ from interface decisions that still need backend agreement. The full
 
 ## Region (FR-1.1)
 
-TODO at check-in: pick `kern` or `la_basin` and record the final bounding box here.
-Starting boxes are in `scripts/load_calgem.py` (approximate, WGS84).
+ML MVP selection: **Kern County, Oil Center + Oildale**, northeast Bakersfield.
+WGS84 study bbox, ordered west/south/east/north:
+`[-119.125, 35.375, -118.875, 35.500]` (about 314.82 km²).
+
+Start with **USGS Oil Center 293661**, 1:24,000 GeoTIFF: date-on-map 1954,
+photorevised 1968, printed 1970. Add **Oildale 293664 (1954)** and
+**Oil Center 102321 (1992)**. The 1978 Oil Center edition is an orthophotomap
+and is excluded from the initial symbol detector.
+
+See the [research and comparison](docs/research/REGION_SELECTION.md) and
+[exact files, URLs, bounds and SHA-256 hashes](ml/config/region.json).
+The `kern` and `la_basin` presets in `scripts/load_calgem.py` remain broad
+approximate boxes; the config is not yet wired into that loader. Use the explicit
+buffered bbox below so reference wells outside the study edge remain matchable.
 
 ## Setup: backend (Convex)
 
@@ -51,8 +63,8 @@ Firmware note: use an HTTPS client on the ESP32 and write down any certificate s
 
 ```bash
 pip install requests
-python3 scripts/load_calgem.py --region kern --inspect     # check the real field names first
-python3 scripts/load_calgem.py --region kern               # query CalGEM's WellSTAR layer
+python3 scripts/load_calgem.py --region kern --bbox -119.131 35.370 -118.869 35.505 --inspect
+python3 scripts/load_calgem.py --region kern --bbox -119.131 35.370 -118.869 35.505
 npx convex import --table documentedWells --replace data/calgem/calgem_wells.jsonl
 ```
 

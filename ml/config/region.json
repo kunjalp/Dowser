@@ -1,0 +1,79 @@
+{
+  "region_id": "kern_oil_center_oildale",
+  "decision_date": "2026-10-23",
+  "decision_status": "selected_for_ml_mvp",
+  "description": "Oil Center and Oildale quadrangles, northeast Bakersfield, Kern County, California",
+  "crs": "EPSG:4326",
+  "bbox_order": ["west", "south", "east", "north"],
+  "study_bbox": [-119.125, 35.375, -118.875, 35.5],
+  "calgem_query_bbox": [-119.131, 35.37, -118.869, 35.505],
+  "calgem_margin_note": "Conservative rectangular margin exceeding 500 m at this latitude; use a metric buffer in production GIS.",
+  "map_scale_denominator": 24000,
+  "primary_map_id": "usgs_293661",
+  "maps": [
+    {
+      "map_id": "usgs_293661",
+      "quadrangle": "Oil Center",
+      "role": "primary_symbol_detection_and_attributed_published_baseline",
+      "sciencebase_id": "5a8a3276e4b00f54eb3d5471",
+      "date_on_map": 1954,
+      "photo_revision_year": 1968,
+      "imprint_year": 1970,
+      "map_type": "topographic",
+      "geotiff_url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/CA/CA_Oil%20Center_293661_1954_24000_geo.tif",
+      "metadata_url": "https://thor-f5.er.usgs.gov/ngtoc/metadata/waf/maps/historicaltopo/pdf/CA/24000/CA_Oil_Center_293661_1954_24000_geo.xml",
+      "sha256": "23120004b243dd4def565924678d75088b8df9f77d39e843c5029be747e57da1",
+      "size_bytes": 12034183,
+      "width_px": 6583,
+      "height_px": 8071,
+      "nominal_pixel_size_m": 2.032,
+      "native_projection": "NAD27 / custom Polyconic; preserve full GeoTIFF CRS WKT"
+    },
+    {
+      "map_id": "usgs_293664",
+      "quadrangle": "Oildale",
+      "role": "adjacent_geography_early_era_and_negative_examples",
+      "sciencebase_id": "5a8a3277e4b00f54eb3d5491",
+      "date_on_map": 1954,
+      "aerial_photo_year": 1952,
+      "imprint_year": 1956,
+      "map_type": "topographic",
+      "geotiff_url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/CA/CA_Oildale_293664_1954_24000_geo.tif",
+      "metadata_url": "https://thor-f5.er.usgs.gov/ngtoc/metadata/waf/maps/historicaltopo/pdf/CA/24000/CA_Oildale_293664_1954_24000_geo.xml",
+      "sha256": "8481eb8ed46b78539c8ed0633f385cecd3b545fc221c25afa4ce0939a125841e",
+      "size_bytes": 9997593,
+      "width_px": 6588,
+      "height_px": 8029,
+      "nominal_pixel_size_m": 2.032,
+      "native_projection": "NAD27 / custom Polyconic; its affine is distinct from Oil Center"
+    },
+    {
+      "map_id": "usgs_102321",
+      "quadrangle": "Oil Center",
+      "role": "second_map_era",
+      "sciencebase_id": "5a8a3276e4b00f54eb3d5456",
+      "date_on_map": 1992,
+      "aerial_photo_year": 1992,
+      "edit_year": 1995,
+      "imprint_year": 1995,
+      "map_type": "topographic",
+      "geotiff_url": "https://prd-tnm.s3.amazonaws.com/StagedProducts/Maps/HistoricalTopo/GeoTIFF/CA/CA_Oil%20Center_102321_1992_24000_geo.tif",
+      "metadata_url": "https://thor-f5.er.usgs.gov/ngtoc/metadata/waf/maps/historicaltopo/pdf/CA/24000/CA_Oil_Center_102321_1992_24000_geo.xml",
+      "sha256": "148c974a26a6c37e8d5b15d866a8604c03756d4560b6ea71c39b1c176f584480",
+      "size_bytes": 13667891,
+      "width_px": 6450,
+      "height_px": 8092,
+      "nominal_pixel_size_m": 2.032,
+      "native_projection": "Read full native CRS WKT and per-sheet affine from the file"
+    }
+  ],
+  "excluded_map_ids": [
+    {"map_id": "usgs_293663", "reason": "Oil Center 1978 is an orthophotomap; unsuitable for the initial cartographic-symbol detector"}
+  ],
+  "source_attribution": {
+    "maps": "U.S. Geological Survey, Historical Topographic Map Collection",
+    "published_baseline_doi": "10.18141/2452768",
+    "published_baseline_is_ground_truth": false,
+    "published_baseline_was_run_by_dowser": false
+  }
+}

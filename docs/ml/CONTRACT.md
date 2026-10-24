@@ -37,6 +37,11 @@ fields to the table without an agreed schema change. Agree pixel-center and
 edge conventions before implementation. Do not discard rotation/shear or infer
 georeferencing from a filename.
 
+Region research selected the maps in `ml/config/region.json`. Keep `mapYear`
+consistent with their date-on-map while preserving photo revision and imprint
+dates separately in the external manifest. Oil Center 293661 is labeled 1954 but
+photorevised 1968; treating it as an unchanged 1954 snapshot would be misleading.
+
 ## Detection record
 
 | Existing field | Stored form and intended interpretation |
