@@ -114,8 +114,8 @@ export default function MapView({ rows, selectedId, onSelect }: Props) {
           paint: {
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 8, 13, 17],
             "circle-color": "#0b0f14",
-            "circle-opacity": 0.6,
-            "circle-blur": 0.6,
+            "circle-opacity": 0.55,
+            "circle-blur": 0,
           },
         });
         map.addLayer({
