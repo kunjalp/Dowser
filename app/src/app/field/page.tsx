@@ -6,6 +6,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import MapView from "../../components/MapView";
 import { api } from "../../lib/convexApi";
 import { haptics, hapticsStatus } from "../../lib/haptics";
+import FieldTabs from "./FieldTabs";
 import { STATUS_META, dotColor, isFake, reasonLine } from "../../lib/types";
 import type { Candidate, Reading, Status } from "../../lib/types";
 
@@ -121,6 +122,24 @@ export default function FieldView() {
   const [done, setDone] = useState<{ msg: string; id: number } | null>(null);
   const here = useHere();
   const inApp = useInApp();
+  const [outdoor, setOutdoor] = useState(false);
+  useEffect(() => {
+    try {
+      setOutdoor(localStorage.getItem("dowser.outdoor") === "1");
+    } catch {
+      /* storage blocked: stay in the default look */
+    }
+  }, []);
+  function toggleOutdoor() {
+    const next = !outdoor;
+    haptics.tick();
+    setOutdoor(next);
+    try {
+      localStorage.setItem("dowser.outdoor", next ? "1" : "0");
+    } catch {
+      /* not persisted, still applies this session */
+    }
+  }
 
   const rows = useQuery(api.candidates.ranked, {
     statuses: ["queued", "candidate"] as Status[],
@@ -192,13 +211,25 @@ export default function FieldView() {
   }
 
   return (
-    <main className="field">
+    <main className={`field ${outdoor ? "outdoor" : ""}`}>
       <header className="field-head">
         <h1>Dowser · Field</h1>
         <span className="field-gps">
           {here ? `GPS ±${Math.round(here.acc ?? 0)} m` : "Locating…"}
         </span>
         {inApp && <span className="field-gps">{hapticsStatus()}</span>}
+        <button
+          className={`pc-sun ${outdoor ? "on" : ""}`}
+          onClick={toggleOutdoor}
+          aria-pressed={outdoor}
+          aria-label="Outdoor mode"
+          title="Outdoor mode: higher contrast for sunlight"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
+          </svg>
+        </button>
         {!inApp && (
           <Link href="/" className="link-btn">
             Command Map
@@ -313,44 +344,7 @@ export default function FieldView() {
             </>
           )}
 
-          <nav className="field-tabs" aria-label="Field View">
-            <div className="seg" role="tablist" data-view={view}>
-              <span className="seg-thumb" aria-hidden="true" />
-              <button
-                role="tab"
-                aria-selected={view === "list"}
-                className={`tab ${view === "list" ? "on" : ""}`}
-                onClick={() => {
-                  if (view !== "list") haptics.tick();
-                  setView("list");
-                }}
-              >
-                List
-              </button>
-              <button
-                role="tab"
-                aria-selected={view === "map"}
-                className={`tab ${view === "map" ? "on" : ""}`}
-                onClick={() => {
-                  if (view !== "map") haptics.tick();
-                  setView("map");
-                }}
-              >
-                Map
-              </button>
-            </div>
-            {view === "list" && (
-              <button
-                className="tab sort"
-                onClick={() => {
-                  haptics.light();
-                  setSheet(true);
-                }}
-              >
-                Sort
-              </button>
-            )}
-          </nav>
+          <FieldTabs view={view} onView={setView} onSort={() => setSheet(true)} />
 
           {sheet && (
             <div className={`sheet-backdrop ${sheetClosing ? "closing" : ""}`} onClick={closeSheet}>
@@ -433,13 +427,16 @@ function FieldEvidence({ images }: { images: Candidate["evidenceImages"] }) {
             {failed[im.url] ? (
               <div className="ph">no image yet</div>
             ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={im.url}
-                alt={`Symbol on the ${im.year} map`}
+              <button
+                type="button"
+                className="field-evidence-btn"
+                aria-label={`${big === im.url ? "Close" : "Enlarge"} the ${im.year} map crop`}
+                aria-expanded={big === im.url}
                 onClick={() => setBig(big === im.url ? null : im.url)}
-                onError={() => setFailed((f) => ({ ...f, [im.url]: true }))}
-              />
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={im.url} alt="" onError={() => setFailed((f) => ({ ...f, [im.url]: true }))} />
+              </button>
             )}
             <figcaption>{im.year} map</figcaption>
           </figure>
@@ -447,7 +444,16 @@ function FieldEvidence({ images }: { images: Candidate["evidenceImages"] }) {
       </div>
       {big && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img className="field-evidence-big" src={big} alt="Enlarged map crop" onClick={() => setBig(null)} />
+        <img
+          className="field-evidence-big"
+          src={big}
+          alt="Enlarged map crop"
+          role="button"
+          tabIndex={0}
+          aria-label="Close the enlarged map crop"
+          onClick={() => setBig(null)}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " " || e.key === "Escape") && setBig(null)}
+        />
       )}
     </div>
   );
@@ -476,9 +482,13 @@ function FieldSpark({ values, threshold }: { values: number[]; threshold: number
   const last = pts[pts.length - 1];
   const over = values[values.length - 1] >= threshold;
   const ty = y(threshold);
+  const lastV = values[values.length - 1];
+  const delta = lastV - values[Math.max(0, values.length - 6)];
+  const trend = Math.abs(delta) < threshold * 0.05 ? "steady" : delta > 0 ? "rising" : "falling";
+  const label = `Recent simulated readings: latest ${Math.round(lastV)}, ${trend}, ${over ? "above" : "below"} the trigger of ${Math.round(threshold)}`;
   return (
     <div className={`pc-spark ${over ? "over" : ""}`}>
-      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label="Recent sensor readings">
+      <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" role="img" aria-label={label}>
         <defs>
           <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor="currentColor" stopOpacity="0.28" />
@@ -524,6 +534,7 @@ function Paired({
   const [pending, setPending] = useState<{ outcome: Outcome; label: string } | null>(null);
   const [secs, setSecs] = useState(0);
   const [detailsOpen, setDetailsOpen] = useState(false);
+  const [simInfo, setSimInfo] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -556,6 +567,53 @@ function Paired({
     }
   }, [leaking]);
 
+  // One warning buzz when the latest reading first crosses the trigger (below to above). Shares the
+  // `warned` latch so the auto-confirm buzz above does not fire a second time.
+  const prevAbove = useRef<boolean | null>(null);
+  const latestVal = latest?.value;
+  useEffect(() => {
+    if (latestVal === undefined || !rule) return;
+    const above = latestVal >= rule.threshold;
+    if (prevAbove.current === false && above && !warned.current) {
+      warned.current = true;
+      haptics.warning();
+    }
+    prevAbove.current = above;
+  }, [latestVal, rule]);
+
+  // Keep the screen on while this screen is open; the lock drops when the tab hides, so re-request on return.
+  useEffect(() => {
+    let lock: WakeLockSentinel | null = null;
+    let dead = false;
+    const request = async () => {
+      try {
+        if (!("wakeLock" in navigator) || document.visibilityState !== "visible") return;
+        const l = await navigator.wakeLock.request("screen");
+        if (dead) void l.release().catch(() => {});
+        else lock = l;
+      } catch {
+        /* denied or unsupported: nothing to do */
+      }
+    };
+    void request();
+    const onVis = () => {
+      if (document.visibilityState === "visible") void request();
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      dead = true;
+      document.removeEventListener("visibilitychange", onVis);
+      void lock?.release().catch(() => {});
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!simInfo) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setSimInfo(false);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [simInfo]);
+
   // Gauge geometry: the trigger line sits at 2/3 of the bar unless the reading goes past it.
   const val = latest?.value ?? 0;
   const th = rule?.threshold ?? 1200;
@@ -567,6 +625,14 @@ function Paired({
   const dist = here ? distM(here, target) : undefined;
   const arrived = dist !== undefined && dist < ARRIVED_M;
   const weakGps = here?.acc !== undefined && here.acc > 25;
+
+  // One buzz when you walk into the 50 m ring (outside to inside). Opening the screen already inside does not buzz.
+  const prevArrived = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (dist === undefined) return;
+    if (prevArrived.current === false && arrived) haptics.warning();
+    prevArrived.current = arrived;
+  }, [arrived, dist]);
 
   async function onPhoto(file: File | undefined) {
     if (!file) return;
@@ -685,13 +751,17 @@ function Paired({
           <span className={`pc-state ${stateKind}`} role={leaking ? "alert" : undefined}>
             {latest ? stateWord : gone ? "Status changed" : "Waiting for sensor"}
           </span>
-          {anyReplay && <span className="sim">Simulated</span>}
+          <button className="pc-sim" onClick={() => setSimInfo(true)} aria-haspopup="dialog">
+            Simulated sensor input
+          </button>
           <span className="pc-live" title={latest ? (live ? "Sensor live" : `Last reading ${age}s ago`) : "No readings yet"}>
             <span className={`live-dot ${live ? "on" : ""}`} />
             {latest ? (live ? "Live" : `${age}s ago`) : ""}
           </span>
         </div>
-        <div className="pc-value">{latest ? latest.value.toFixed(0) : "–"}</div>
+        {latest ? (
+          <>
+        <div className="pc-value">{latest.value.toFixed(0)}</div>
         <div className="pc-gauge" role="meter" aria-label="Reading against trigger" aria-valuenow={val} aria-valuemin={0} aria-valuemax={Math.round(top)}>
           <span className={`pc-gauge-fill ${val >= th ? "hi" : ""}`} style={{ width: `${fillPct}%` }} />
           <span className="pc-gauge-mark" style={{ left: `${markPct}%` }} />
@@ -701,12 +771,31 @@ function Paired({
           <span>trigger {th}</span>
         </div>
         <FieldSpark values={chrono.map((r) => r.value)} threshold={th} />
+          </>
+        ) : (
+          <p className="pc-empty">No reading yet</p>
+        )}
         {rule && latest && !leaking && !gone && val >= th && (
           <p className="pc-hint">
             {hot >= rule.count ? "Confirming…" : `${rule.count - hot} more in ${rule.windowMs / 1000} s confirms it.`}
           </p>
         )}
       </div>
+
+      {simInfo && (
+        <div className="sheet-backdrop" onClick={() => setSimInfo(false)}>
+          <div className="sheet" role="dialog" aria-modal="true" aria-label="About the simulated sensor" onClick={(e) => e.stopPropagation()}>
+            <h3>Simulated sensor input</h3>
+            <p className="pc-sim-copy">
+              Flammable gas isn&apos;t allowed at this venue, so a knob stands in for the sensor reading. Everything after the
+              reading is the real system.
+            </p>
+            <button className="pc-sim-done" onClick={() => setSimInfo(false)}>
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
 
       <FieldEvidence images={c.evidenceImages} />
 
@@ -722,7 +811,9 @@ function Paired({
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-      <div id="pc-details" className="pc-details" hidden={!detailsOpen}>
+      <div id="pc-details" className="sheet-backdrop pc-details-backdrop" hidden={!detailsOpen} onClick={() => setDetailsOpen(false)}>
+      <div className="sheet pc-details-sheet" role="dialog" aria-label="Note and photo" onClick={(e) => e.stopPropagation()}>
+        <h3>Note and photo</h3>
         <textarea
           className="field-note"
           placeholder="Optional note (smell, staining, access…)"
@@ -739,6 +830,10 @@ function Paired({
                 ? "Photo failed, tap to retry"
                 : "Add photo"}
         </button>
+        <button className="pc-sim-done" onClick={() => setDetailsOpen(false)}>
+          Done
+        </button>
+      </div>
       </div>
       <input
         ref={fileRef}
@@ -752,8 +847,11 @@ function Paired({
 
       <div className="field-decide">
         {pending ? (
-          <div className="undo-bar" role="status">
-            <span>
+          <div className="undo-bar">
+            <span className="pc-sr" role="status">
+              Marking {pending.label}. Undo is available for {UNDO_SECS} seconds.
+            </span>
+            <span aria-hidden="true">
               Marking <strong>{pending.label}</strong> in {secs}s
             </span>
             <button
