@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Sparkline } from "../../components/DetailPanel";
 import { api } from "../../lib/convexApi";
-import { STATUS_META, dotColor } from "../../lib/types";
+import { STATUS_META, dotColor, isFake, reasonLine } from "../../lib/types";
 import type { Candidate, Reading, Status } from "../../lib/types";
 
 type Outcome = "confirmed_leaking" | "confirmed_not_leaking" | "no_well" | "mislocated";
@@ -100,7 +100,9 @@ export default function FieldView() {
                     <strong>{c.id}</strong>
                     <span className="muted small">
                       {c.quadName} · rank {c.rank}
+                      {isFake(c) ? " · simulated" : ""}
                     </span>
+                    {reasonLine(c) && <span className="reason">{reasonLine(c)}</span>}
                   </span>
                   {c.status === "queued" && (
                     <span className="badge" style={{ ["--c" as string]: STATUS_META.queued.color }}>
