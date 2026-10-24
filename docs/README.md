@@ -1,9 +1,11 @@
 # Dowser documentation
 
-Start with [ML status](ml/STATUS.md), then read the requirements and contract.
+For a new editor or AI session, start with [continuation instructions](CONTINUE.md).
+For a quick progress check, read [ML status](ml/STATUS.md).
 
 | Document | Purpose | Update trigger |
 | --- | --- | --- |
+| [Continue in another editor](CONTINUE.md) | Checkout, reading order, local artifacts, resumption protocol | Handoff/setup change |
 | [Master Plan](master-plan/source.txt) | Current authoritative scope, owners, and contracts | New team decision |
 | [Original PRD](prd/source.txt) | Superseded history, retained unmodified | Historical reference only |
 | [Reviewed main snapshot](MAIN_REVIEW.md) | Full-file coverage, actual backend flows, integration gaps | Review of changed upstream files |

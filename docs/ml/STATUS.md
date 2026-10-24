@@ -2,6 +2,7 @@
 
 Last verified: 2026-10-23, America/Los_Angeles.
 Task branch: `ml/tile-georeferencing`; includes reviewed main `f7e5eeb`.
+For a new editor/AI session, use [continuation instructions](../CONTINUE.md).
 
 ## Integration handoff
 
@@ -53,6 +54,8 @@ Test is 23.6% of 127 retained images because at least 30 are required. Both
 1954 and 1992 appear in each retained partition.
 
 **0 human-reviewed tiles, 0 human boxes.** No Dowser model trained or ran.
+No Roboflow project was configured and no images were uploaded for annotation
+by this agent. Local import archives are ready; human annotation remains next.
 No precision/recall or known-well accuracy is claimed. Published outputs remain
 attributed research, not labels. An earlier local `data/ml/labeling_v1/` run is
 preliminary; use the active path above.

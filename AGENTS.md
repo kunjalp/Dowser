@@ -21,6 +21,8 @@ For ML tasks read `docs/ml/STATUS.md`, `docs/ml/REQUIREMENTS.md`,
 `docs/ml/CONTRACT.md`, and `pipeline/AGENTS.md`. The current source of truth is
 `docs/master-plan/source.txt`, which supersedes `docs/prd/source.txt`.
 The documentation index is `docs/README.md`.
+For an editor/agent handoff, read `docs/CONTINUE.md`; keep current progress and
+the exact next action in `docs/ml/STATUS.md`, not only in chat history.
 
 The user requires zero paid project resources: no paid APIs, GPU rentals,
 paid labeling jobs, purchases, deployment provisioning, or plan upgrades.
