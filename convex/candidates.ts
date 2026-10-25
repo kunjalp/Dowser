@@ -1,4 +1,4 @@
-import { internalMutation, mutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, mutation, query } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
@@ -28,6 +28,9 @@ export async function applyStatus(
     .unique();
   if (!c) throw new Error(`Unknown candidate: ${args.id}`);
   if (c.status === args.status) return { changed: false as const };
+  if (args.status === "queued" && isRejected(c)) {
+    throw new Error(`${args.id} was rejected in review (not a well symbol) and cannot be queued for a field check`);
+  }
 
   const field =
     args.status === "confirmed_leaking" ? 1 : c.status === "confirmed_leaking" ? 0 : c.scoreParts.field;
@@ -46,6 +49,10 @@ export async function applyStatus(
 }
 
 const IDLE_SOURCE = "calgem_idle";
+/** Sources in the undocumented lane that --prune may delete. */
+const UNDOCUMENTED_SOURCES = ["model", "ground_truth"] as const;
+
+const isRejected = (c: Pick<Doc<"candidates">, "review">) => c.review?.verdict === "rejected";
 
 /** Which list: "undocumented" = every source except calgem_idle (records without a source
  * included); "idle" = CalGEM idle wells near people. */
@@ -56,6 +63,8 @@ const laneValidator = v.union(v.literal("undocumented"), v.literal("idle"));
  * unconfirmed candidate. Pass `weights` (priority sliders) to re-rank live without
  * writing anything; omit it to use the stored default-weight score.
  * Pass `lane` to rank one list on its own (ranks start at 1); omit it for both together.
+ * Undocumented lane: candidates rejected in review come last with rank 0 (not counted in the
+ * ranks). Without a lane (Field View) they are left out entirely.
  * Returns at most 2000 candidates.
  */
 export const ranked = query({
@@ -93,6 +102,7 @@ export const ranked = query({
         .take(2000);
       docs.push(...queued.filter((d) => !seen.has(d._id)));
     }
+    if (!lane) docs = docs.filter((d) => !isRejected(d));
     if (statuses) docs = docs.filter((d) => statuses.includes(d.status));
     const rows = docs.map((d) => ({
       ...d,
@@ -104,6 +114,11 @@ export const ranked = query({
         b.rankScore - a.rankScore,
     );
     const cap = Math.min(limit ?? 500, 2000);
+    if (lane === "undocumented") {
+      const kept = rows.filter((r) => !isRejected(r)).map((r, i) => ({ ...r, rank: i + 1 }));
+      const rejected = rows.filter(isRejected).map((r) => ({ ...r, rank: 0 }));
+      return [...kept, ...rejected].slice(0, cap);
+    }
     const all = rows.map((r, i) => ({ ...r, rank: i + 1 }));
     if (lane) return all.slice(0, cap);
     // No lane (Field View): every queued row is kept, and the limit is filled with the best of
@@ -150,13 +165,15 @@ export const eventsFor = query({
  * Pipeline loader: insert or replace candidates by `id`. Internal, so run it with
  *   npx convex run candidates:upsertBatch '{"candidates":[...]}'
  * For big loads prefer: npx convex import --table candidates --replace file.jsonl
+ * `resetStatus: true` lets the load's status win over a decided one; each reset is logged.
  */
 export const upsertBatch = internalMutation({
-  args: { candidates: v.array(v.object(candidateFields)) },
-  handler: async (ctx, { candidates }) => {
+  args: { candidates: v.array(v.object(candidateFields)), resetStatus: v.optional(v.boolean()) },
+  handler: async (ctx, { candidates, resetStatus }) => {
     let inserted = 0;
     let replaced = 0;
     let keptDecisions = 0;
+    let reset = 0;
     for (const c of candidates) {
       const existing = await ctx.db
         .query("candidates")
@@ -166,14 +183,25 @@ export const upsertBatch = internalMutation({
         const next = { ...c };
         // Re-running the loader must never undo a human or field decision. Keep the
         // existing status and field-confirmation part, and recompute the score from them.
-        if (existing.status !== "candidate") {
+        // With resetStatus the load's status and field part win instead, and the change is logged.
+        if (existing.status !== c.status && resetStatus) {
+          await ctx.db.insert("statusEvents", {
+            candidateId: c.id,
+            from: existing.status,
+            to: c.status,
+            source: "pipeline",
+            note: "Reset by pipeline load",
+            createdAt: Date.now(),
+          });
+          reset++;
+        } else if (existing.status !== "candidate") {
           next.status = existing.status;
           next.scoreParts = { ...c.scoreParts, field: existing.scoreParts.field };
           next.score = weightedScore(next.scoreParts);
           keptDecisions++;
         }
-        // Keep a generated brief unless the new load carries one.
-        if (next.brief === undefined && existing.brief !== undefined) next.brief = existing.brief;
+        // Keep a generated brief unless the new load carries one. Rejected candidates get none.
+        if (next.brief === undefined && existing.brief !== undefined && !isRejected(next)) next.brief = existing.brief;
         await ctx.db.replace(existing._id, next);
         replaced++;
       } else {
@@ -181,6 +209,45 @@ export const upsertBatch = internalMutation({
         inserted++;
       }
     }
-    return { inserted, replaced, keptDecisions };
+    return { inserted, replaced, keptDecisions, reset };
+  },
+});
+
+/** For load_candidates.py --prune: every undocumented-lane candidate from a detection source. */
+export const undocumentedIds = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const out: { id: string; source: string; status: Status }[] = [];
+    for (const source of UNDOCUMENTED_SOURCES) {
+      const docs = await ctx.db
+        .query("candidates")
+        .withIndex("by_source", (q) => q.eq("source", source))
+        .take(2000);
+      out.push(...docs.map((d) => ({ id: d.id, source, status: d.status })));
+    }
+    return out;
+  },
+});
+
+/** For load_candidates.py --prune. Deletes only model/ground_truth candidates; anything else is refused. */
+export const deleteUndocumented = internalMutation({
+  args: { ids: v.array(v.string()) },
+  handler: async (ctx, { ids }) => {
+    let deleted = 0;
+    const refused: string[] = [];
+    for (const id of ids) {
+      const c = await ctx.db
+        .query("candidates")
+        .withIndex("by_candidate_id", (q) => q.eq("id", id))
+        .unique();
+      if (!c) continue;
+      if (!(UNDOCUMENTED_SOURCES as readonly (string | undefined)[]).includes(c.source)) {
+        refused.push(id);
+        continue;
+      }
+      await ctx.db.delete(c._id);
+      deleted++;
+    }
+    return { deleted, refused };
   },
 });

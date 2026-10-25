@@ -3,8 +3,8 @@
 import { useMutation, useQuery } from "convex/react";
 import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/convexApi";
-import { LaneBadge } from "./Sidebar";
-import { PART_LABELS, STATUSES, STATUS_META, dotColor, laneOf } from "../lib/types";
+import { LaneBadge, ReviewBadges } from "./Sidebar";
+import { PART_LABELS, STATUSES, STATUS_META, dotColor, isRejected, laneOf } from "../lib/types";
 import type { Candidate, Reading, ScoreParts, Status } from "../lib/types";
 
 type StatusEvent = { _id: string; from: Status; to: Status; source: string; note?: string; createdAt: number };
@@ -92,7 +92,10 @@ function Evidence({ images }: { images: Candidate["evidenceImages"] }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={im.url} alt={`Symbol on the ${im.year} map`} onError={() => setFailed((f) => ({ ...f, [im.url]: true }))} />
             )}
-            <figcaption>{im.year}</figcaption>
+            <figcaption>
+              {im.year}
+              {/\/gt_[^/]*$/.test(im.url) ? " · hand label" : ""}
+            </figcaption>
           </figure>
         ))}
     </div>
@@ -134,6 +137,8 @@ export default function DetailPanel({
   // Open the sensor block by itself while readings are arriving (last 10 minutes).
   const recentReadings = chrono.length > 0 && now - chrono[chrono.length - 1].receivedAt < 10 * 60 * 1000;
   const idle = c ? laneOf(c) === "idle" : false;
+  // Rejected in review: evidence and facts stay for the record; no brief, rank, confidence or queueing.
+  const rejected = c ? isRejected(c) : false;
 
   return (
     <aside className={`detail ${candidate ? "open" : ""}`} aria-hidden={!candidate}>
@@ -144,9 +149,14 @@ export default function DetailPanel({
               <h2>
                 <span className="dot" style={{ background: dotColor(c) }} /> {c.id}
               </h2>
-              <LaneBadge lane={laneOf(c)} />
+              <div className="detail-badges">
+                <LaneBadge lane={laneOf(c)} />
+                <ReviewBadges c={c} />
+              </div>
+              {rejected && <p className="reject-note">Rejected in review: {c.review!.reason}</p>}
               <p className="muted">
-                {c.quadName} quad · rank {c.rank} · {c.lat.toFixed(4)}, {c.lon.toFixed(4)}
+                {c.quadName} quad · {rejected ? "not ranked" : `rank ${c.rank}`} · {c.lat.toFixed(4)},{" "}
+                {c.lon.toFixed(4)}
               </p>
             </div>
             <button className="icon-btn" onClick={onClose} aria-label="Close details">
@@ -162,7 +172,7 @@ export default function DetailPanel({
                   {c.status === "candidate" ? ` · ${c.score.toFixed(2)}` : ""}
                 </div>
                 {/* idle wells are state records, not detected symbols: no map confidence */}
-                {!idle && (
+                {!idle && !rejected && (
                   <span
                     className={`conf-pill ${tipOff ? "tip-off" : ""}`}
                     tabIndex={0}
@@ -178,7 +188,7 @@ export default function DetailPanel({
                   </span>
                 )}
               </div>
-              {c.status === "candidate" && (
+              {c.status === "candidate" && !rejected && (
                 <button
                   className="action queue-btn"
                   style={{ ["--c" as string]: STATUS_META.queued.color }}
@@ -189,10 +199,12 @@ export default function DetailPanel({
               )}
             </div>
 
-            <section>
-              <h3>Brief</h3>
-              <p className="brief">{c.brief ?? <span className="muted">No brief yet.</span>}</p>
-            </section>
+            {!rejected && (
+              <section>
+                <h3>Brief</h3>
+                <p className="brief">{c.brief ?? <span className="muted">No brief yet.</span>}</p>
+              </section>
+            )}
 
             {idle ? (
               <section>
@@ -290,7 +302,7 @@ export default function DetailPanel({
             <section>
               <h3>Set status</h3>
               <div className="actions">
-                {STATUSES.filter((s) => s !== c.status).map((s: Status) => (
+                {STATUSES.filter((s) => s !== c.status && !(rejected && s === "queued")).map((s: Status) => (
                   <button
                     key={s}
                     className="action"

@@ -269,13 +269,102 @@ describe("upsertBatch (pipeline loader)", () => {
     const a: any = await fresh("fake-001");
     const b: any = await fresh("fake-002");
     const res = await t.mutation(internal.candidates.upsertBatch, { candidates: [a, b] });
-    expect(res).toEqual({ inserted: 0, replaced: 2, keptDecisions: 1 });
+    expect(res).toEqual({ inserted: 0, replaced: 2, keptDecisions: 1, reset: 0 });
     const kept: any = await t.query(api.candidates.get, { id: "fake-001" });
     expect(kept.status).toBe("confirmed_leaking");
     expect(kept.scoreParts.field).toBe(1);
     const open: any = await t.query(api.candidates.get, { id: "fake-002" });
     expect(open.status).toBe("candidate");
     expect(open.brief).toBeTruthy(); // seeded placeholder brief is kept when the load has none
+  });
+});
+
+describe("human review (verified / rejected)", () => {
+  const base = {
+    lat: 35.4, lon: -119.05, editionsSeen: [1954], status: "candidate" as const, evidenceImages: [],
+    quadName: "Oildale", scoreParts: { confidence: 0.5, undocumented: 0.5, people: 0.5, water: 0.5, field: 0 },
+  };
+  const rejected = { verdict: "rejected" as const, reason: "Not an oil/gas well symbol", reviewedBy: "r" };
+  const verified = { verdict: "verified" as const, reason: "Well symbol", reviewedBy: "r", reviewedAt: "2026-10-24" };
+  const load = (t: ReturnType<typeof setup>) =>
+    t.mutation(internal.candidates.upsertBatch, {
+      candidates: [
+        { ...base, id: "cand-rej-high", score: 0.9, source: "model", review: rejected },
+        { ...base, id: "cand-ok", score: 0.3, source: "model", review: verified, handLabeled: true },
+        { ...base, id: "cand-gt", score: 0.2, source: "ground_truth", review: verified, handLabeled: true },
+        { ...base, id: "cand-rej-low", score: 0.1, source: "model", review: rejected },
+        { ...base, id: "idle-1", score: 0.95, source: "calgem_idle", review: rejected },
+      ],
+    });
+
+  test("undocumented lane: rejected last and unranked; no lane leaves them out; idle unchanged", async () => {
+    const t = setup();
+    await load(t);
+    const undoc = await t.query(api.candidates.ranked, { lane: "undocumented" });
+    expect(undoc.map((r: any) => [r.id, r.rank])).toEqual([
+      ["cand-ok", 1], ["cand-gt", 2], ["cand-rej-high", 0], ["cand-rej-low", 0],
+    ]);
+    const field = await t.query(api.candidates.ranked, {});
+    expect(field.map((r: any) => r.id)).toEqual(["cand-ok", "cand-gt"]);
+    expect(field.map((r: any) => r.rank)).toEqual([1, 2]);
+    const idle = await t.query(api.candidates.ranked, { lane: "idle" });
+    expect(idle.map((r: any) => [r.id, r.rank])).toEqual([["idle-1", 1]]); // the idle lane ignores review
+  });
+
+  test("a rejected candidate cannot be queued; other statuses still work", async () => {
+    const t = setup();
+    await load(t);
+    await expect(
+      t.mutation(api.candidates.setStatus, { id: "cand-rej-high", status: "queued" }),
+    ).rejects.toThrow(/rejected in review/);
+    expect((await t.query(api.candidates.get, { id: "cand-rej-high" }))!.status).toBe("candidate");
+    await t.mutation(api.candidates.setStatus, { id: "cand-rej-high", status: "no_well" });
+    expect((await t.query(api.candidates.get, { id: "cand-rej-high" }))!.status).toBe("no_well");
+    await t.mutation(api.candidates.setStatus, { id: "cand-ok", status: "queued" });
+    expect((await t.query(api.candidates.get, { id: "cand-ok" }))!.status).toBe("queued");
+  });
+
+  test("resetStatus puts decided candidates back to candidate and logs it; rejected loses its old brief", async () => {
+    const t = setup();
+    await t.mutation(internal.candidates.upsertBatch, {
+      candidates: [
+        { ...base, id: "cand-a", score: 0.5, source: "model", brief: "old brief" },
+        { ...base, id: "cand-b", score: 0.4, source: "model", brief: "kept brief" },
+      ],
+    });
+    await t.mutation(api.candidates.setStatus, { id: "cand-a", status: "confirmed_leaking", source: "field" });
+    await t.mutation(api.candidates.setStatus, { id: "cand-b", status: "queued" });
+    const res = await t.mutation(internal.candidates.upsertBatch, {
+      resetStatus: true,
+      candidates: [
+        { ...base, id: "cand-a", score: 0.5, source: "model", review: rejected },
+        { ...base, id: "cand-b", score: 0.4, source: "model", review: verified },
+      ],
+    });
+    expect(res).toEqual({ inserted: 0, replaced: 2, keptDecisions: 0, reset: 2 });
+    const a: any = await t.query(api.candidates.get, { id: "cand-a" });
+    expect(a.status).toBe("candidate");
+    expect(a.scoreParts.field).toBe(0);
+    expect(a.brief).toBeUndefined();
+    const b: any = await t.query(api.candidates.get, { id: "cand-b" });
+    expect(b.status).toBe("candidate");
+    expect(b.brief).toBe("kept brief");
+    const events: any[] = await t.query(api.candidates.eventsFor, { id: "cand-a" });
+    expect(events[0]).toMatchObject({ from: "confirmed_leaking", to: "candidate", source: "pipeline" });
+  });
+
+  test("prune helpers list and delete only model/ground_truth candidates", async () => {
+    const t = setup();
+    await load(t);
+    await t.mutation(internal.candidates.upsertBatch, { candidates: [{ ...base, id: "no-source", score: 0.1 }] });
+    const ids = await t.query(internal.candidates.undocumentedIds, {});
+    expect(ids.map((r) => r.id).sort()).toEqual(["cand-gt", "cand-ok", "cand-rej-high", "cand-rej-low"]);
+    const res = await t.mutation(internal.candidates.deleteUndocumented, {
+      ids: ["cand-rej-low", "cand-gt", "idle-1", "no-source", "missing"],
+    });
+    expect(res).toEqual({ deleted: 2, refused: ["idle-1", "no-source"] });
+    expect(await t.query(api.candidates.get, { id: "idle-1" })).not.toBeNull();
+    expect(await t.query(api.candidates.get, { id: "cand-gt" })).toBeNull();
   });
 });
 

@@ -61,3 +61,26 @@ def test_accepts_other_column_names_and_missing_confidence():
     r = dedup(df)
     assert r.loc[0, "confidence"] == 1.0
     assert json.loads(r.loc[0, "editionsSeen"]) == [1947]
+
+
+def test_model_row_keeps_its_id_when_merged_with_a_hand_label():
+    df = table([(0, 0, 1954, 0.6), (2, 0, 1954, 1.0), (1, 1, 1954, 0.4)])
+    df["source"] = ["model", "ground_truth", "model"]
+    df.loc[1, "detectionId"] = "gt_1"
+    r = dedup(df)
+    assert len(r) == 1
+    assert r.loc[0, "detectionId"] == "d0"         # best MODEL row, not the 1.0 hand label
+    assert r.loc[0, "source"] == "model"
+    assert bool(r.loc[0, "handLabeled"]) is True
+    assert r.loc[0, "confidence"] == 0.6           # model confidence, not the hand label's 1.0
+    assert r.loc[0, "detectionIds"].split(";")[0] == "d0"
+    urls = [e["url"] for e in json.loads(r.loc[0, "evidence"])]
+    assert sorted(urls) == ["/evidence/d0.png", "/evidence/d1.png", "/evidence/d2.png"]  # every crop, same year
+
+
+def test_hand_label_only_and_model_only_groups():
+    df = table([(0, 0, 1954, 1.0), (500, 0, 1954, 0.7)])
+    df["source"] = ["ground_truth", "model"]
+    r = dedup(df).set_index("detectionId")
+    assert r.loc["d0", "source"] == "ground_truth" and bool(r.loc["d0", "handLabeled"]) is True
+    assert r.loc["d1", "source"] == "model" and bool(r.loc["d1", "handLabeled"]) is False

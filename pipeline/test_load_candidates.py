@@ -75,3 +75,36 @@ def test_brief_is_sent_when_present():
     c = to_candidate(ROW.copy().set_axis(ROW.index).combine_first(pd.Series({"brief": "Summary: hi"})))
     assert c["brief"] == "Summary: hi"
     assert "brief" not in to_candidate(ROW)
+
+
+def test_review_and_hand_label_are_attached_and_rejected_rows_get_no_brief():
+    row = ROW.copy()
+    row["brief"], row["handLabeled"] = "Summary: hi", "True"
+    rejected = {"verdict": "rejected", "reason": "Not a well", "reviewedBy": "r"}
+    c = to_candidate(row, rejected)
+    assert c["review"] == rejected and c["handLabeled"] is True
+    assert "brief" not in c
+    c = to_candidate(row, {"verdict": "verified", "reason": "ok", "reviewedBy": "r"})
+    assert c["brief"] == "Summary: hi"
+    assert "review" not in to_candidate(ROW) and "handLabeled" not in to_candidate(ROW)
+
+
+def test_prune_lists_stale_undocumented_rows_and_deletes_only_after_yes(monkeypatch):
+    import load_candidates as lc
+    calls = []
+    in_db = [{"id": "cand-keep", "source": "model", "status": "candidate"},
+             {"id": "cand-old", "source": "model", "status": "queued"},
+             {"id": "cand-gt", "source": "ground_truth", "status": "candidate"},
+             {"id": "idle-1", "source": "calgem_idle", "status": "candidate"}]  # never listed by the backend
+
+    def fake_run(fn, args, prod):
+        calls.append((fn, args))
+        if fn == "candidates:undocumentedIds":
+            return json.dumps(in_db[:3])
+        return json.dumps({"deleted": len(args["ids"]), "refused": []})
+
+    monkeypatch.setattr(lc, "convex_run", fake_run)
+    assert lc.prune({"cand-keep"}, False, "dev", ask=lambda _: "no") == 0
+    assert [c[0] for c in calls] == ["candidates:undocumentedIds"]
+    assert lc.prune({"cand-keep"}, False, "dev", ask=lambda _: "yes") == 2
+    assert calls[-1] == ("candidates:deleteUndocumented", {"ids": ["cand-old", "cand-gt"]})
