@@ -384,7 +384,7 @@ python pipeline/idle_wells.py --prod     # shared deployment (team only)
 
 ## The handheld (firmware)
 
-An ESP32 reads a potentiometer and posts a reading every 250 ms (four per second) to Convex over a phone hotspot.
+An ESP32 reads a potentiometer and posts the reading to Convex over Wi-Fi: right away when the value changes, and at least once a second.
 
 **Behavior.** The OLED shows the reading, the state (**CLEAN** below 300, **ELEVATED** 300–999, **HIGH** 1000 and up), Wi-Fi status, and a visible error if posting fails, plus the label "SIMULATED SENSOR". The BOOT button toggles reading mode.
 
