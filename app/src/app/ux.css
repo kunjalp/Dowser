@@ -729,3 +729,15 @@ main.field:has(.field-paired) > .field-toast { flex: none; }
 .map-card-actions { gap: 8px; }
 .map-card-actions .field-btn, .map-card-actions .field-nav { min-height: 44px; height: 44px; padding: 0 16px; font-size: 15px; line-height: 1; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; }
 .field.outdoor .map-card-actions .field-btn, .field.outdoor .map-card-actions .field-nav { min-height: 52px; height: 52px; font-size: 17px; }
+
+/* Two lists on the phone, same as the Command Map: not in state records / known to state: idle */
+.field-lanes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0 0 10px; }
+.field-lane { --c: #5933b2; display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 6px 12px; border: 1.5px solid var(--line-strong); border-radius: 14px; background: var(--panel); color: var(--muted); font: 600 var(--fs-sm) / 1.2 var(--sans); text-align: left; cursor: pointer; }
+.field-lane.idle { --c: #0e7a72; }
+.field-lane.on { color: var(--text); border-color: var(--c); background: color-mix(in srgb, var(--c) 9%, var(--panel)); }
+.field-lane-dot { flex: none; width: 10px; height: 10px; border-radius: 50%; background: #5933b2; }
+.field-lane.idle .field-lane-dot { border-radius: 2px; background: transparent; border: 2px solid #2bb3a8; width: 10px; height: 10px; }
+.field-lane-text { flex: 1; min-width: 0; }
+.field-lane-n { flex: none; font-weight: 700; color: var(--c); }
+.field-lane:active { transform: scale(0.97); }
+.field.outdoor .field-lane { min-height: 56px; border-width: 2px; font-size: calc(var(--fs-sm) + 2px); }

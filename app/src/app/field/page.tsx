@@ -7,8 +7,8 @@ import MapView from "../../components/MapView";
 import { api } from "../../lib/convexApi";
 import { haptics, hapticsStatus } from "../../lib/haptics";
 import FieldTabs from "./FieldTabs";
-import { STATUS_META, dotColor, isFake, reasonLine } from "../../lib/types";
-import type { Candidate, Reading, Status } from "../../lib/types";
+import { LANES, LANE_META, STATUS_META, dotColor, isFake, isRejected, reasonLine } from "../../lib/types";
+import type { Candidate, Lane, Reading, Status } from "../../lib/types";
 
 type Outcome = "confirmed_leaking" | "confirmed_not_leaking" | "no_well" | "mislocated";
 const OUTCOMES: Record<Outcome, string> = {
@@ -141,10 +141,18 @@ export default function FieldView() {
     }
   }
 
-  const rows = useQuery(api.candidates.ranked, {
-    statuses: ["queued", "candidate"] as Status[],
-    limit: 200,
-  }) as Candidate[] | undefined;
+  // Same two lists as the Command Map: wells not in state records, and wells the state lists as idle.
+  const [lane, setLane] = useState<Lane>("undocumented");
+  const openArgs = { statuses: ["queued", "candidate"] as Status[], limit: 600 };
+  const undocOpen = useQuery(api.candidates.ranked, { ...openArgs, lane: "undocumented" }) as Candidate[] | undefined;
+  const idleOpen = useQuery(api.candidates.ranked, { ...openArgs, lane: "idle" }) as Candidate[] | undefined;
+  const rows = (lane === "idle" ? idleOpen : undocOpen)?.filter((c) => !isRejected(c));
+  const laneCount: Record<Lane, number | undefined> = {
+    undocumented: undocOpen?.filter((c) => !isRejected(c)).length,
+    idle: idleOpen?.filter((c) => !isRejected(c)).length,
+  };
+  // The paired well can be in either list, so look it up in both.
+  const openAll = useMemo(() => (undocOpen && idleOpen ? [...undocOpen, ...idleOpen] : undefined), [undocOpen, idleOpen]);
   // The map shows every status (confirmed ones included); only fetched while the map tab is open.
   const allRows = useQuery(api.candidates.ranked, view === "map" ? { limit: 1000 } : "skip") as
     | Candidate[]
@@ -239,8 +247,8 @@ export default function FieldView() {
       {done && <FieldToast key={done.id} message={done.msg} onGone={() => setDone((d) => (d && d.id === done.id ? null : d))} />}
       {paired ? (
         <Paired
-          candidate={rows?.find((r) => r.id === paired.id) ?? paired}
-          gone={rows !== undefined && !rows.some((r) => r.id === paired.id)}
+          candidate={openAll?.find((r) => r.id === paired.id) ?? paired}
+          gone={openAll !== undefined && !openAll.some((r) => r.id === paired.id)}
           here={here}
           onBack={unpair}
           onLogged={(msg) => {
@@ -250,10 +258,28 @@ export default function FieldView() {
         />
       ) : (
         <>
+          <div className="field-lanes" role="tablist" aria-label="Which wells">
+            {LANES.map((l) => (
+              <button
+                key={l}
+                role="tab"
+                aria-selected={lane === l}
+                className={`field-lane ${l} ${lane === l ? "on" : ""}`}
+                onClick={() => {
+                  if (lane !== l) haptics.tick();
+                  setLane(l);
+                }}
+              >
+                <span className="field-lane-dot" aria-hidden="true" />
+                <span className="field-lane-text">{LANE_META[l].tab}</span>
+                <span className="field-lane-n">{laneCount[l] ?? "…"}</span>
+              </button>
+            ))}
+          </div>
           {view === "map" ? (
             <>
               <div className="field-map">
-                <MapView rows={allRows ?? []} selectedId={mapSel} onSelect={setMapSel} compact here={here} />
+                <MapView rows={allRows ?? []} selectedId={mapSel} onSelect={setMapSel} compact here={here} activeLane={lane} />
               </div>
               {mapPick ? (
                 <div className="map-card">
