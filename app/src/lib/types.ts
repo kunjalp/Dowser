@@ -39,7 +39,11 @@ export type Candidate = {
   wellStatus?: string;
   operator?: string;
   apiNumber?: string;
-  /** added by candidates:ranked */
+  /** Human review of the evidence crop (pipeline/review.py) */
+  review?: { verdict: "verified" | "rejected"; reason: string; reviewedBy: string; reviewedAt?: string };
+  /** Merged with at least one hand-labeled detection */
+  handLabeled?: boolean;
+  /** added by candidates:ranked; 0 = not ranked (rejected in review) */
   rank: number;
   rankScore: number;
 };
@@ -105,8 +109,17 @@ export const LANE_META: Record<Lane, { tab: string; badge: string; color: string
 
 export const laneOf = (c: Pick<Candidate, "source">): Lane => (c.source === "calgem_idle" ? "idle" : "undocumented");
 
+/** Rejected in review: not a well symbol. Kept on record, listed last, never ranked or queued. */
+export const isRejected = (c: Pick<Candidate, "review">) => c.review?.verdict === "rejected";
+export const isVerified = (c: Pick<Candidate, "review">) => c.review?.verdict === "verified";
+export const isHandLabeled = (c: Pick<Candidate, "handLabeled" | "source">) =>
+  !!c.handLabeled || c.source === "ground_truth";
+
+export const REJECTED_COLOR = "#8a8f98";
+
 /** What color a candidate shows in the list: score ramp (teal for idle wells) while unresolved, status color after. */
-export function dotColor(c: Pick<Candidate, "status" | "score" | "source">): string {
+export function dotColor(c: Pick<Candidate, "status" | "score" | "source" | "review">): string {
+  if (isRejected(c)) return REJECTED_COLOR;
   if (c.status !== "candidate") return STATUS_META[c.status].color;
   return laneOf(c) === "idle" ? IDLE_COLOR : scoreColor(c.score);
 }
