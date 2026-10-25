@@ -759,3 +759,24 @@ main.field:has(.field-paired) > .field-toast { flex: none; }
 .legend .dot.ring, .legend-inline .dot.ring { border-color: var(--accent); }
 .legend-inline .dot { width: 10px; height: 10px; }
 .legend-inline .dot.rejected-dot { width: 8px; height: 8px; background: var(--review-reject); }
+
+
+/* Compact legend popover and map hint */
+.map-legend-pop { padding: 8px 12px 10px; max-height: 50dvh; font-size: 12px; }
+.map-legend-head { margin-bottom: 4px; padding-bottom: 4px; }
+.map-legend-head strong { font-size: 13px; }
+.map-legend-close { min-height: 28px; padding: 0 12px; font-size: 12px; }
+.map-control-inline { margin-bottom: 4px; padding-bottom: 4px; }
+.map-control-inline .toggle { min-height: 28px; gap: 6px; font-size: 12px; }
+.legend-inline .legend-head { margin-bottom: 2px; font-size: 10px; }
+.legend-inline .legend-title { margin-bottom: 2px; font-size: 12px; }
+.legend-inline .ramp { width: 120px; height: 8px; }
+.legend-inline .ramp-labels { width: 120px; margin-bottom: 2px; font-size: 10px; }
+.legend-inline .legend-row { margin-top: 2px; gap: 6px; font-size: 12px; line-height: 1.2; }
+.legend-inline .legend-section { margin-bottom: 4px; }
+.legend-inline .legend-section + .legend-section { margin-top: 4px; padding-top: 4px; }
+.field-map ~ .field-hint { padding: 5px 12px; font-size: 12px; line-height: 1.2; }
+
+
+/* The legend popover lives inside the map, which sits under the hint bar and tapped-dot card: hide those while it is open */
+.field-map:has(.map-legend-pop) ~ .field-hint, .field-map:has(.map-legend-pop) ~ .map-card { display: none; }
