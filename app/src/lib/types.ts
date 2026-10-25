@@ -34,7 +34,11 @@ export type Candidate = {
   evidenceImages: { year: number; url: string }[];
   quadName: string;
   detectionId?: string;
-  source?: "model" | "ground_truth";
+  source?: "model" | "ground_truth" | "calgem_idle";
+  /** CalGEM record fields, idle lane only */
+  wellStatus?: string;
+  operator?: string;
+  apiNumber?: string;
   /** added by candidates:ranked */
   rank: number;
   rankScore: number;
@@ -85,9 +89,26 @@ export function scoreColor(score: number): string {
   return t < 0.5 ? lerp(a, b, t / 0.5) : lerp(b, c, (t - 0.5) / 0.5);
 }
 
-/** What color a candidate shows in the list: score ramp while unresolved, status color after. */
-export function dotColor(c: Pick<Candidate, "status" | "score">): string {
-  return c.status === "candidate" ? scoreColor(c.score) : STATUS_META[c.status].color;
+/**
+ * Two separate lists. "undocumented" = map symbols with no state record (every source except
+ * calgem_idle); "idle" = wells the state lists as Idle, near homes or schools.
+ */
+export type Lane = "undocumented" | "idle";
+export const LANES: Lane[] = ["undocumented", "idle"];
+
+export const IDLE_COLOR = "#2bb3a8";
+
+export const LANE_META: Record<Lane, { tab: string; badge: string; color: string }> = {
+  undocumented: { tab: "Not in state records", badge: "Not in state records", color: SCORE_RAMP[1] },
+  idle: { tab: "Known to state: idle", badge: "In state records · Idle", color: IDLE_COLOR },
+};
+
+export const laneOf = (c: Pick<Candidate, "source">): Lane => (c.source === "calgem_idle" ? "idle" : "undocumented");
+
+/** What color a candidate shows in the list: score ramp (teal for idle wells) while unresolved, status color after. */
+export function dotColor(c: Pick<Candidate, "status" | "score" | "source">): string {
+  if (c.status !== "candidate") return STATUS_META[c.status].color;
+  return laneOf(c) === "idle" ? IDLE_COLOR : scoreColor(c.score);
 }
 
 export const PART_LABELS: Record<keyof ScoreParts, string> = {
@@ -109,7 +130,8 @@ export const isFake = (c: Pick<Candidate, "id">) => c.id.startsWith("fake-");
  */
 export function reasonLine(c: Candidate): string {
   const bits: string[] = [];
-  if (c.nearestDocumentedDistM !== undefined) {
+  // Idle wells ARE the state record, so the "no record nearby" fact never applies to them.
+  if (c.nearestDocumentedDistM !== undefined && laneOf(c) !== "idle") {
     bits.push(
       c.nearestDocumentedDistM >= 100
         ? `No CalGEM record within ${fmtDist(c.nearestDocumentedDistM)}`

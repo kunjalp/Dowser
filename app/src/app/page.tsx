@@ -9,12 +9,56 @@ import MapFilters, { DEFAULT_FILTERS, applyFilters } from "../components/MapFilt
 import type { MapFilterState } from "../components/MapFilters";
 import Sidebar from "../components/Sidebar";
 import { api } from "../lib/convexApi";
-import { STATUS_META, isFake } from "../lib/types";
-import type { Candidate, ScoreParts, Status } from "../lib/types";
+import { STATUS_META, isFake, laneOf } from "../lib/types";
+import type { Candidate, Lane, ScoreParts, Status } from "../lib/types";
+
+// Always-on disclosure: the demo's sensor reading comes from a knob, not real gas.
+function SimInputPill() {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      btnRef.current?.focus();
+    };
+    const onDown = (e: PointerEvent) => {
+      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onDown);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onDown);
+    };
+  }, [open]);
+
+  return (
+    <div className="sim-input" ref={wrapRef}>
+      <button
+        ref={btnRef}
+        type="button"
+        className="sim-input-btn"
+        aria-expanded={open}
+        aria-controls="sim-input-pop"
+        onClick={() => setOpen((o) => !o)}
+      >
+        Simulated sensor input
+      </button>
+      <div id="sim-input-pop" className="sim-input-pop" role="region" aria-label="About the simulated sensor" hidden={!open}>
+        Flammable gas isn&apos;t allowed at the venue, so a knob on the handheld simulates the sensor reading. The
+        firmware, data path and live map updates are the same as with a real methane sensor.
+      </div>
+    </div>
+  );
+}
 
 export default function CommandMap() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Status[]>([]); // empty = all statuses
+  const [lane, setLane] = useState<Lane>("undocumented");
 
   const [weights, setWeights] = useState<ScoreParts>(DEFAULT_WEIGHTS);
   const customWeights = (Object.keys(DEFAULT_WEIGHTS) as (keyof ScoreParts)[]).some(
@@ -24,14 +68,27 @@ export default function CommandMap() {
 
   // Live from Convex: re-renders on any status change or new candidate.
   // Custom weights re-rank on the server without writing anything.
-  const rows = useQuery(api.candidates.ranked, {
+  // One query per lane, so each list ranks from #1 and both map layers stay loaded.
+  const rankArgs = {
     statuses: filter.length ? filter : undefined,
     weights: customWeights && !allZero ? weights : undefined,
     limit: 1000,
-  }) as Candidate[] | undefined;
+  };
+  const undocRows = useQuery(api.candidates.ranked, { ...rankArgs, lane: "undocumented" }) as Candidate[] | undefined;
+  const idleRows = useQuery(api.candidates.ranked, { ...rankArgs, lane: "idle" }) as Candidate[] | undefined;
+  const rows = useMemo(
+    () => (undocRows && idleRows ? [...undocRows, ...idleRows] : undefined),
+    [undocRows, idleRows],
+  );
 
   const [mf, setMf] = useState<MapFilterState>(DEFAULT_FILTERS);
-  const shown = useMemo(() => (rows ? applyFilters(rows, mf) : undefined), [rows, mf]);
+  const shownUndoc = useMemo(() => (undocRows ? applyFilters(undocRows, mf) : undefined), [undocRows, mf]);
+  const shownIdle = useMemo(() => (idleRows ? applyFilters(idleRows, mf) : undefined), [idleRows, mf]);
+  const shownBoth = useMemo(
+    () => (shownUndoc && shownIdle ? [...shownUndoc, ...shownIdle] : undefined),
+    [shownUndoc, shownIdle],
+  );
+  const shown = lane === "idle" ? shownIdle : shownUndoc;
 
   const anyFake = !!rows?.some(isFake);
 
@@ -64,7 +121,14 @@ export default function CommandMap() {
     };
   }, [rows]);
 
-  const selected = useMemo(() => shown?.find((r) => r.id === selectedId) ?? null, [shown, selectedId]);
+  const selected = useMemo(() => shownBoth?.find((r) => r.id === selectedId) ?? null, [shownBoth, selectedId]);
+
+  // Picking a well from the map or a toast opens its own lane's tab, so the list shows it.
+  const select = (id: string) => {
+    setSelectedId(id);
+    const c = rows?.find((r) => r.id === id);
+    if (c) setLane(laneOf(c));
+  };
 
   return (
     <main className="shell">
@@ -82,6 +146,9 @@ export default function CommandMap() {
         }
         reranked={customWeights}
         changedIds={changed}
+        lane={lane}
+        onLane={setLane}
+        counts={{ undocumented: shownUndoc?.length, idle: shownIdle?.length }}
       />
       <section className="map-wrap">
         {anyFake && (
@@ -89,11 +156,12 @@ export default function CommandMap() {
             <strong>Simulated sensor data</strong> / not field readings
           </div>
         )}
+        <SimInputPill />
         {toast && (
           <button
             className={`live-toast ${toast.to === "confirmed_leaking" ? "leak" : ""}`}
             onClick={() => {
-              setSelectedId(toast.id);
+              select(toast.id);
               setToast(null);
             }}
           >
@@ -102,7 +170,7 @@ export default function CommandMap() {
             <span className="live-toast-go">Show</span>
           </button>
         )}
-        <MapView rows={shown ?? []} selectedId={selectedId} onSelect={setSelectedId} pulse={pulse} />
+        <MapView rows={shownBoth ?? []} selectedId={selectedId} onSelect={select} pulse={pulse} activeLane={lane} />
         <DetailPanel candidate={selected} onClose={() => setSelectedId(null)} />
       </section>
     </main>

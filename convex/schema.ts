@@ -32,7 +32,11 @@ export const candidateFields = {
   evidenceImages: v.array(v.object({ year: v.number(), url: v.string() })),
   quadName: v.string(),
   detectionId: v.optional(v.string()),
-  source: v.optional(v.union(v.literal("model"), v.literal("ground_truth"))),
+  // "calgem_idle" = a well the state already lists as Idle (pipeline/idle_wells.py), not a detection.
+  source: v.optional(v.union(v.literal("model"), v.literal("ground_truth"), v.literal("calgem_idle"))),
+  wellStatus: v.optional(v.string()), // CalGEM status, idle lane only
+  operator: v.optional(v.string()), // CalGEM operator, idle lane only
+  apiNumber: v.optional(v.string()), // CalGEM API number, idle lane only
 };
 
 export default defineSchema({
@@ -89,7 +93,8 @@ export default defineSchema({
   candidates: defineTable(candidateFields)
     .index("by_candidate_id", ["id"])
     .index("by_score", ["score"])
-    .index("by_status", ["status"]),
+    .index("by_status", ["status"])
+    .index("by_source", ["source"]),
 
   // Sensor -> Convex. candidateId is attached by the phone pairing (see pairings).
   readings: defineTable({

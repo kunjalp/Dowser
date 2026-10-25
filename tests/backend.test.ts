@@ -47,6 +47,54 @@ describe("seed + ranking", () => {
     const stored = await t.query(api.candidates.ranked, {});
     expect(stored.map((r: any) => r.score)).not.toEqual(byWater.map((r: any) => r.score)); // stored untouched
   });
+
+  test("lanes rank undocumented candidates and idle wells separately", async () => {
+    const t = setup();
+    await t.mutation(internal.seed.seedFakeCandidates, { count: 3 }); // source "model"
+    const base = {
+      lat: 35.4, lon: -119.05, editionsSeen: [], status: "candidate" as const, evidenceImages: [],
+      quadName: "Oildale", scoreParts: { confidence: 1, undocumented: 0, people: 1, water: 1, field: 0 },
+    };
+    await t.mutation(internal.candidates.upsertBatch, {
+      candidates: [
+        { ...base, id: "idle-0402900001", score: 0.99, source: "calgem_idle", wellStatus: "Idle", operator: "Op", apiNumber: "0402900001" },
+        { ...base, id: "idle-0402900002", score: 0.5, source: "calgem_idle", wellStatus: "Idle", apiNumber: "0402900002" },
+        { ...base, id: "old-no-source", score: 0.01 }, // records from before `source` existed
+      ],
+    });
+    const idle = await t.query(api.candidates.ranked, { lane: "idle" });
+    expect(idle.map((r: any) => [r.id, r.rank])).toEqual([["idle-0402900001", 1], ["idle-0402900002", 2]]);
+    const undoc = await t.query(api.candidates.ranked, { lane: "undocumented" });
+    expect(undoc).toHaveLength(4);
+    expect(undoc.some((r: any) => r.source === "calgem_idle")).toBe(false);
+    expect(undoc.map((r: any) => r.id)).toContain("old-no-source");
+    expect(undoc[0].rank).toBe(1);
+    expect(await t.query(api.candidates.ranked, {})).toHaveLength(6); // no lane = both (Field View)
+  });
+
+  test("without a lane, a queued well is never cut by the limit", async () => {
+    const t = setup();
+    await t.mutation(internal.seed.seedFakeCandidates, { count: 30 });
+    const statuses = ["queued", "candidate"] as const; // Field View's call shape, no lane
+    const full = await t.query(api.candidates.ranked, { statuses: [...statuses], limit: 2000 });
+    const last = full.filter((r: any) => r.status === "candidate").at(-1);
+    await t.mutation(api.candidates.setStatus, { id: last.id, status: "queued" });
+    const queuedIds = full.filter((r: any) => r.status === "queued").map((r: any) => r.id).concat(last.id);
+    expect(queuedIds.length).toBeLessThan(8); // the seed queues a few; the limit below still has room
+
+    const rows = await t.query(api.candidates.ranked, { statuses: [...statuses], limit: 8 });
+    expect(rows).toHaveLength(8);
+    for (const id of queuedIds) expect(rows.map((r: any) => r.id)).toContain(id);
+    expect(rows.at(-1)).toMatchObject({ id: last.id, rank: last.rank }); // keeps its true rank
+    const ranks = rows.map((r: any) => r.rank);
+    expect([...ranks].sort((a, b) => a - b)).toEqual(ranks);
+    // the rest of the limit is the best-ranked unqueued rows
+    const rest = rows.filter((r: any) => r.status !== "queued").map((r: any) => r.id);
+    expect(rest).toEqual(full.filter((r: any) => r.status !== "queued").slice(0, rest.length).map((r: any) => r.id));
+    // with a lane it is a plain top N
+    const laned = await t.query(api.candidates.ranked, { statuses: [...statuses], lane: "undocumented", limit: 8 });
+    expect(laned.map((r: any) => r.id)).not.toContain(last.id);
+  });
 });
 
 describe("status changes", () => {

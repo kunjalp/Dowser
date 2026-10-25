@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { STATUSES, STATUS_META, dotColor, reasonLine } from "../lib/types";
-import type { Candidate, Status } from "../lib/types";
+import { LANES, LANE_META, STATUSES, STATUS_META, dotColor, laneOf, reasonLine } from "../lib/types";
+import type { Candidate, Lane, Status } from "../lib/types";
 
 type Props = {
   rows: Candidate[] | undefined;
@@ -16,9 +16,30 @@ type Props = {
   reranked?: boolean;
   /** Candidates whose status just changed live; their rows flash briefly. */
   changedIds?: string[];
+  /** Which list is showing; `rows` holds only that lane. */
+  lane: Lane;
+  onLane: (l: Lane) => void;
+  /** Rows per lane after filters, for the tab labels (undefined while loading). */
+  counts: Record<Lane, number | undefined>;
 };
 
-export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, extra, reranked, changedIds }: Props) {
+export function LaneBadge({ lane }: { lane: Lane }) {
+  return <span className={`lane-badge ${lane}`}>{LANE_META[lane].badge}</span>;
+}
+
+export default function Sidebar({
+  rows,
+  selectedId,
+  onSelect,
+  filter,
+  onFilter,
+  extra,
+  reranked,
+  changedIds,
+  lane,
+  onLane,
+  counts,
+}: Props) {
   // Rank movement since the previous ordering, shown briefly after sliders move.
   const prevRanks = useRef<Map<string, number>>(new Map());
   const [moves, setMoves] = useState<Map<string, number>>(new Map());
@@ -70,8 +91,23 @@ export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, 
             Field View →
           </Link>
         </h1>
+        <div className="lane-tabs" role="tablist" aria-label="Which wells">
+          {LANES.map((l) => (
+            <button
+              key={l}
+              role="tab"
+              aria-selected={lane === l}
+              className={`lane-tab ${l} ${lane === l ? "on" : ""}`}
+              onClick={() => onLane(l)}
+            >
+              {LANE_META[l].tab} <span className="lane-n">({counts[l] ?? "…"})</span>
+            </button>
+          ))}
+        </div>
         <p className="muted">
-          Candidate undocumented wells, Kern County.{" "}
+          {lane === "idle"
+            ? "Idle wells in state records within 250 m of a home or school, Kern County."
+            : "Candidate undocumented wells, Kern County."}{" "}
           {rows ? `${rows.length} shown` : "Loading…"}
         </p>
         <div className="chips" role="group" aria-label="Filter by status">
@@ -94,11 +130,13 @@ export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, 
       <ol className="list">
         {rows?.length === 0 && (
           <li className="empty">
-            No candidates{filter.length ? " match this filter" : " yet"}.
+            {lane === "idle" ? "No idle wells" : "No candidates"}
+            {filter.length ? " match this filter" : " yet"}.
             {!filter.length && (
               <>
                 {" "}
-                Run <code>npx convex run seed:seedFakeCandidates</code>.
+                Run{" "}
+                <code>{lane === "idle" ? "python pipeline/idle_wells.py" : "npx convex run seed:seedFakeCandidates"}</code>.
               </>
             )}
           </li>
@@ -138,11 +176,14 @@ export default function Sidebar({ rows, selectedId, onSelect, filter, onFilter, 
                 {reasonLine(c) && <span className="reason">{reasonLine(c)}</span>}
               </span>
               <span className="score">{c.rankScore.toFixed(2)}</span>
-              {c.status !== "candidate" && (
-                <span className="badge" style={{ ["--c" as string]: STATUS_META[c.status].color }}>
-                  {STATUS_META[c.status].label}
-                </span>
-              )}
+              <span className="row-badges">
+                <LaneBadge lane={laneOf(c)} />
+                {c.status !== "candidate" && (
+                  <span className="badge" style={{ ["--c" as string]: STATUS_META[c.status].color }}>
+                    {STATUS_META[c.status].label}
+                  </span>
+                )}
+              </span>
             </button>
           </li>
         ))}
