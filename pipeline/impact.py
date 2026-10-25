@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import sys
 
 import pandas as pd
 
@@ -65,7 +66,14 @@ def main() -> None:
     args = ap.parse_args()
 
     df = pd.read_csv(args.input, dtype={"detectionId": str})
-    n = impact(df, args.radius)
+    # Candidates rejected in review are not candidates for the pitch numbers.
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from review import resolve
+    reviews, _ = resolve(df)
+    rejected = df["detectionId"].map(lambda d: reviews.get(str(d), {}).get("verdict") == "rejected")
+    if rejected.any():
+        print(f"Leaving out {int(rejected.sum())} candidates rejected in review")
+    n = impact(df[~rejected], args.radius)
     wells = os.path.join(DATA, "calgem", "calgem_wells.jsonl")
     if os.path.exists(wells):
         with open(wells) as fh:

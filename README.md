@@ -14,7 +14,7 @@ Kern County, oil-producing quadrangles, 1947 to 1992 editions. Distances are com
 
 **Status values** (exactly these): `candidate`, `queued`, `confirmed_leaking`, `confirmed_not_leaking`, `no_well`, `mislocated`.
 
-**Candidate record** (pipeline to Convex to app): `id`, `lat`, `lon`, `score`, `scoreParts {confidence, undocumented, people, water, field}` (each 0..1), `editionsSeen` (list of map years, e.g. `[1947, 1962]`), `nearestDocumentedId`, `nearestDocumentedDistM`, `distToHomeM`, `distToSchoolM`, `distToWaterM`, `buildingsNear250m`, `status`, `brief`, `evidenceImages [{year, url}]`, `quadName`, `detectionId`, `source` (`model` or `ground_truth`). Only `id`, `lat`, `lon`, `score`, `scoreParts`, `editionsSeen`, `status`, `evidenceImages` and `quadName` are required; the rest can arrive later from enrichment.
+**Candidate record** (pipeline to Convex to app): `id`, `lat`, `lon`, `score`, `scoreParts {confidence, undocumented, people, water, field}` (each 0..1), `editionsSeen` (list of map years, e.g. `[1947, 1962]`), `nearestDocumentedId`, `nearestDocumentedDistM`, `distToHomeM`, `distToSchoolM`, `distToWaterM`, `buildingsNear250m`, `status`, `brief`, `evidenceImages [{year, url}]`, `quadName`, `detectionId`, `source` (`model` or `ground_truth`), `handLabeled`, `review {verdict: verified|rejected, reason, reviewedBy, reviewedAt?}`. Only `id`, `lat`, `lon`, `score`, `scoreParts`, `editionsSeen`, `status`, `evidenceImages` and `quadName` are required; the rest can arrive later from enrichment.
 
 **Reading record** (sensor to Convex): `deviceId`, `value` (relative, baseline-corrected), `raw`, `timestamp`, `candidateId` (attached by the phone), `lat`, `lon`, `locationSource` (`candidate`, `phone` or `none`), `isReplay`.
 
@@ -48,9 +48,9 @@ Firmware note: the demo uses an insecure HTTPS client setting. Keep this note.
 
 | Function | What it does |
 | --- | --- |
-| `candidates:ranked {statuses?, weights?, limit?}` | Live ranked list. A confirmed leak always ranks first. Pass `weights` (the five scoreParts keys) for live slider re-ranking; nothing is written. Returns `rankScore` and `rank`. Caps at 2000 candidates. |
+| `candidates:ranked {statuses?, weights?, limit?}` | Live ranked list. A confirmed leak always ranks first. Pass `weights` (the five scoreParts keys) for live slider re-ranking; nothing is written. Returns `rankScore` and `rank`. Caps at 2000 candidates. Undocumented lane: rejected-in-review candidates come last with `rank` 0; without a lane they are left out. |
 | `candidates:get {id}` | One candidate. |
-| `candidates:setStatus {id, status, source?, note?}` | Changes status and logs a `statusEvent`. Entering `confirmed_leaking` sets `scoreParts.field` to 1. No-op if unchanged. |
+| `candidates:setStatus {id, status, source?, note?}` | Changes status and logs a `statusEvent`. Entering `confirmed_leaking` sets `scoreParts.field` to 1. No-op if unchanged. Refuses to queue a candidate rejected in review. |
 | `candidates:eventsFor {id}` | Status history, newest first. |
 | `fieldChecks:generateUploadUrl` | Upload URL for a finding photo. |
 | `fieldChecks:logFinding {candidateId, outcome, note?, photoId?, deviceId?, lat?, lon?}` | One tap from the Field View: stores the check and sets the status. |
@@ -66,6 +66,24 @@ npx convex run seed:clearFake                        # remove them when real can
 npx convex run candidates:upsertBatch '{"candidates":[...]}'
 npx convex import --table candidates --replace data/candidates.jsonl   # bulk load from the pipeline
 ```
+
+## Undocumented candidates: one command
+
+Model detections (`pipeline/data/detections.csv`) and Emir's hand labels (`pipeline/data/detections_groundtruth.csv`) run together through dedup, CalGEM match (100 m), enrich and score:
+
+```bash
+conda activate dowser
+python pipeline/run_undocumented.py                 # -> pipeline/data/scored.csv + review summary
+python pipeline/briefs.py                           # briefs for non-rejected candidates only
+python pipeline/load_candidates.py --reset-status --prune   # dev deployment; add --prod only on purpose
+python pipeline/impact.py                           # pitch numbers, rejected candidates left out
+```
+
+- **Dedup.** When a model detection and a hand label are the same symbol (within 20 m), the model row's `detectionId` is kept (so `cand-<id>` stays the same), `handLabeled` is set, and every crop from the group is kept as evidence. The hand label's fixed 1.0 confidence is not used as a model score.
+- **Review** (`pipeline/review/`). `verified.csv` = a person checked the crop and it is a well symbol. `false_detections.csv` = it is not (rejected; add rows with `python pipeline/review.py --false-ranks ...`). Hand labels with no model match count as verified. A rejected model row that merged with a hand label is printed as a CONFLICT and kept verified.
+- **Rejected candidates** stay in `scored.csv` and in Convex with `review.verdict = "rejected"`. They are listed last without a rank in the "Not in state records" tab (collapsed), never queued, have no brief, and are left out of the Field View.
+- `--reset-status` sets every loaded candidate back to `candidate` (each reset is logged as a `pipeline` status event). Without it, the loader keeps field and analyst decisions.
+- `--prune` lists undocumented-lane candidates (source `model` or `ground_truth`) that are not in this load, asks you to type `yes`, then deletes them. Idle wells (`calgem_idle`) are never touched.
 
 ## Records cross-check data
 

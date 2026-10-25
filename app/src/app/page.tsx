@@ -9,7 +9,7 @@ import MapFilters, { DEFAULT_FILTERS, applyFilters } from "../components/MapFilt
 import type { MapFilterState } from "../components/MapFilters";
 import Sidebar from "../components/Sidebar";
 import { api } from "../lib/convexApi";
-import { STATUS_META, isFake, laneOf } from "../lib/types";
+import { STATUS_META, isFake, isRejected, laneOf } from "../lib/types";
 import type { Candidate, Lane, ScoreParts, Status } from "../lib/types";
 
 // Always-on disclosure: the demo's sensor reading comes from a knob, not real gas.
@@ -89,6 +89,12 @@ export default function CommandMap() {
     [shownUndoc, shownIdle],
   );
   const shown = lane === "idle" ? shownIdle : shownUndoc;
+  // Rejected in review: gray dots on the map only while their sidebar section is open.
+  const [rejectedOpen, setRejectedOpen] = useState(false);
+  const mapRows = useMemo(
+    () => (shownBoth ?? []).filter((r) => !isRejected(r) || (rejectedOpen && lane === "undocumented")),
+    [shownBoth, rejectedOpen, lane],
+  );
 
   const anyFake = !!rows?.some(isFake);
 
@@ -148,7 +154,9 @@ export default function CommandMap() {
         changedIds={changed}
         lane={lane}
         onLane={setLane}
-        counts={{ undocumented: shownUndoc?.length, idle: shownIdle?.length }}
+        counts={{ undocumented: shownUndoc?.filter((r) => !isRejected(r)).length, idle: shownIdle?.length }}
+        rejectedOpen={rejectedOpen}
+        onRejectedOpen={setRejectedOpen}
       />
       <section className="map-wrap">
         {anyFake && (
@@ -170,7 +178,7 @@ export default function CommandMap() {
             <span className="live-toast-go">Show</span>
           </button>
         )}
-        <MapView rows={shownBoth ?? []} selectedId={selectedId} onSelect={select} pulse={pulse} activeLane={lane} />
+        <MapView rows={mapRows} selectedId={selectedId} onSelect={select} pulse={pulse} activeLane={lane} />
         <DetailPanel candidate={selected} onClose={() => setSelectedId(null)} />
       </section>
     </main>

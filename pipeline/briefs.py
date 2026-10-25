@@ -27,8 +27,12 @@ import hashlib
 import json
 import os
 import re
+import sys
 
 import pandas as pd
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from review import resolve as resolve_reviews  # noqa: E402
 
 MODEL = os.environ.get("DOWSER_BRIEF_MODEL", "claude-sonnet-5-5")
 DATA = os.path.join("pipeline", "data")
@@ -226,16 +230,21 @@ def main() -> None:
 
     df = pd.read_csv(args.input, dtype={"nearestDocumentedId": str, "detectionId": str})
     df = df.sort_values("score", ascending=False).reset_index(drop=True)
+    # Rejected in review: no brief, and not counted in the ranks the briefs mention. Listed last.
+    reviews, _ = resolve_reviews(df)
+    rejected = df["detectionId"].map(lambda d: reviews.get(str(d), {}).get("verdict") == "rejected")
+    df = pd.concat([df[~rejected], df[rejected]]).reset_index(drop=True)
+    n_ranked = int((~rejected).sum())
     cache = json.load(open(CACHE_PATH)) if os.path.exists(CACHE_PATH) else {}
     if "brief" not in df.columns:
         df["brief"] = None
     df["brief"] = df["brief"].astype(object)
 
     counts = {"cached": 0, "claude": 0, "claude-retry": 0, "template": 0}
-    n = min(args.top, len(df))
+    n = min(args.top, n_ranked)
     for i in range(n):
         row = df.iloc[i]
-        facts = facts_for(row, i + 1, len(df))
+        facts = facts_for(row, i + 1, n_ranked)
         key = f"{row['detectionId']}:{fingerprint(facts)}"
         if key in cache:
             df.at[i, "brief"] = cache[key]
@@ -249,8 +258,10 @@ def main() -> None:
             cache[key] = text
             json.dump(cache, open(CACHE_PATH, "w"), indent=1)
 
+    df.loc[n_ranked:, "brief"] = None  # rejected rows sit last: no stale brief on them
     df.to_csv(args.input, index=False)
-    print(f"Briefs for top {n}: {counts}. Saved into {args.input}")
+    print(f"Briefs for top {n}: {counts} ({int(rejected.sum())} rejected in review skipped). "
+          f"Saved into {args.input}")
     if n:
         print("\nExample (rank 1):\n" + str(df.at[0, "brief"]))
 

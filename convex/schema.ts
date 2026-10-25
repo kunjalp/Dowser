@@ -37,6 +37,17 @@ export const candidateFields = {
   wellStatus: v.optional(v.string()), // CalGEM status, idle lane only
   operator: v.optional(v.string()), // CalGEM operator, idle lane only
   apiNumber: v.optional(v.string()), // CalGEM API number, idle lane only
+  // A person looked at the evidence crop (pipeline/review.py). Rejected = not a well symbol:
+  // kept on record, listed last without a rank, never queued, hidden from the Field View.
+  review: v.optional(
+    v.object({
+      verdict: v.union(v.literal("verified"), v.literal("rejected")),
+      reason: v.string(),
+      reviewedBy: v.string(),
+      reviewedAt: v.optional(v.string()), // as written in the review CSV, e.g. "2026-10-24"
+    }),
+  ),
+  handLabeled: v.optional(v.boolean()), // merged with at least one hand-labeled (ground_truth) detection
 };
 
 export default defineSchema({

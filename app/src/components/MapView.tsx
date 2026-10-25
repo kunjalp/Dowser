@@ -3,7 +3,7 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import type { GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import { useEffect, useRef, useState } from "react";
-import { IDLE_COLOR, LANE_META, SCORE_RAMP, STATUS_META, laneOf } from "../lib/types";
+import { IDLE_COLOR, LANE_META, REJECTED_COLOR, SCORE_RAMP, STATUS_META, isRejected, laneOf } from "../lib/types";
 import type { Candidate, Lane } from "../lib/types";
 
 // Satellite basemap: Esri World Imagery (no key). Swap via NEXT_PUBLIC_BASEMAP_URL.
@@ -52,11 +52,16 @@ function toGeoJSON(rows: Candidate[], activeLane?: Lane) {
         score: c.rankScore,
         status: c.status,
         idle: laneOf(c) === "idle",
+        rejected: isRejected(c),
         dim: activeLane !== undefined && laneOf(c) !== activeLane,
       },
     })),
   };
 }
+
+/** Undocumented candidates still in play: not idle wells, not rejected in review. */
+const LIVE = ["all", ["!=", ["get", "idle"], true], ["!=", ["get", "rejected"], true]] as never;
+const notRejected = (f: unknown) => ["all", f, ["!=", ["get", "rejected"], true]] as never;
 
 /** Opacity `full`, or 35% of it for the lane that is not the active tab. */
 const dimmed = (full: unknown) => ["*", ["case", ["get", "dim"], DIM, 1], full] as never;
@@ -188,11 +193,27 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
           },
         });
 
+        // Rejected in review: small gray dots, only sent while the sidebar section is open.
+        map.addLayer({
+          id: "candidates-rejected",
+          type: "circle",
+          source: "candidates",
+          filter: ["==", ["get", "rejected"], true],
+          paint: {
+            "circle-color": REJECTED_COLOR,
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 2.5, 13, 5],
+            "circle-stroke-color": "#0b0f14",
+            "circle-stroke-width": 1,
+            "circle-opacity": dimmed(0.9),
+            "circle-stroke-opacity": dimmed(0.8),
+          },
+        });
+
         map.addLayer({
           id: "candidates-halo",
           type: "circle",
           source: "candidates",
-          filter: ["!=", ["get", "idle"], true],
+          filter: LIVE,
           paint: {
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 7, 8, 13, 17],
             "circle-color": "#0b0f14",
@@ -204,7 +225,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
           id: "candidates",
           type: "circle",
           source: "candidates",
-          filter: ["!=", ["get", "idle"], true],
+          filter: LIVE,
           paint: {
             "circle-color": statusMatch as never,
             "circle-radius": [
@@ -225,7 +246,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
           id: "candidates-queued",
           type: "circle",
           source: "candidates",
-          filter: ["==", ["get", "status"], "queued"],
+          filter: notRejected(["==", ["get", "status"], "queued"]),
           paint: {
             "circle-radius": radius(8, 14),
             "circle-color": "rgba(0,0,0,0)",
@@ -238,7 +259,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
           id: "candidates-leaking-ring",
           type: "circle",
           source: "candidates",
-          filter: ["==", ["get", "status"], "confirmed_leaking"],
+          filter: notRejected(["==", ["get", "status"], "confirmed_leaking"]),
           paint: {
             "circle-radius": radius(12, 24),
             "circle-color": "rgba(0,0,0,0)",
@@ -251,7 +272,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
           id: "candidates-notleaking-ring",
           type: "circle",
           source: "candidates",
-          filter: ["==", ["get", "status"], "confirmed_not_leaking"],
+          filter: notRejected(["==", ["get", "status"], "confirmed_not_leaking"]),
           paint: {
             "circle-radius": radius(4.5, 9.5),
             "circle-color": "rgba(0,0,0,0)",
@@ -302,7 +323,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
         });
 
         // One handler for both lanes; the topmost feature (a candidate circle) wins over a square under it.
-        const clickable = ["candidates", "idle-wells"];
+        const clickable = ["candidates", "candidates-rejected", "idle-wells"];
         map.on("click", (e) => {
           const id = map.queryRenderedFeatures(e.point, { layers: clickable })[0]?.properties?.id;
           if (typeof id === "string") selectRef.current(id);
@@ -606,6 +627,12 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
               {STATUS_META[s].label}
             </div>
           ))}
+        {rows.some(isRejected) && (
+          <div className="legend-row">
+            <span className="dot rejected-dot" />
+            Rejected in review
+          </div>
+        )}
         </div>
         <div className={`legend-section ${activeLane === "undocumented" ? "dim" : ""}`}>
           <div className="legend-head idle">{LANE_META.idle.tab}</div>

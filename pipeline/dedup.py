@@ -6,14 +6,19 @@ The same well shows up several times: on overlapping tiles of one sheet, and on 
 editions (years) of the same map. Detections within DEDUP_DISTANCE_M of each other
 (chained: A near B near C) become one well. For each merged well we keep:
   lat, lon         confidence-weighted average position
-  confidence       highest detection confidence
+  confidence       highest detection confidence (model rows only, when the group has any)
   editionsSeen     sorted list of distinct map years, e.g. [1947, 1962]
   detectionIds     every detection merged into it (the first one becomes detectionId)
-  evidence         best crop per year as JSON [{"year": 1947, "url": "..."}]
+  evidence         best crop per year as JSON [{"year": 1947, "url": "..."}];
+                   every crop in the group when it is hand-labeled
   quadName, source carried over (most common value)
+  handLabeled      True when any merged detection is a ground_truth (hand-labeled) row
 
-Run from the repo root, first step after Emir's detections:
-  python pipeline/dedup.py --detections path/to/detections.csv
+Model detections and hand labels can be deduped together. When a group has both, the best
+MODEL row gives the detectionId and source, so a candidate id already in Convex stays the same.
+
+Run from the repo root, first step after Emir's detections (one or more files):
+  python pipeline/dedup.py --detections path/to/detections.csv [more.csv ...]
 Writes pipeline/data/deduped.csv, which match_wells.py reads next.
 
 Expected detection columns (other names in brackets are accepted too):
@@ -100,25 +105,42 @@ def dedup(detections: pd.DataFrame, distance_m: float = DEDUP_DISTANCE_M) -> pd.
     rows = []
     for _, g in df.groupby("_cluster", sort=False):
         g = g.sort_values("confidence", ascending=False)
+        is_gt = g["source"] == "ground_truth"
+        hand = bool(is_gt.any())
+        model = g[~is_gt]
+        lead = model if len(model) else g
+        if hand and len(model):
+            g = pd.concat([model, g[is_gt]])  # best model row first: it keeps its detectionId
         w = g["confidence"].clip(lower=0.01)
         x, y = np.average(g["_x"], weights=w), np.average(g["_y"], weights=w)
         years = sorted({int(v) for v in g["year"].dropna()}) if "year" in g else []
         evidence = []
         if "crop" in g and "year" in g:
-            for yr in years:
-                best = g[(g["year"] == yr) & g["crop"].notna()]
-                if len(best):
-                    evidence.append({"year": yr, "url": str(best.iloc[0]["crop"])})
+            if hand:  # hand-labeled: keep every crop, so the reviewer sees all of them
+                seen = set()
+                for _, r in g[g["crop"].notna() & g["year"].notna()].iterrows():
+                    if str(r["crop"]) not in seen:
+                        seen.add(str(r["crop"]))
+                        evidence.append({"year": int(r["year"]), "url": str(r["crop"])})
+                evidence.sort(key=lambda e: e["year"])
+            else:
+                for yr in years:
+                    best = g[(g["year"] == yr) & g["crop"].notna()]
+                    if len(best):
+                        evidence.append({"year": yr, "url": str(best.iloc[0]["crop"])})
         rows.append({
             "_x": x, "_y": y,
             "detectionId": g.iloc[0]["detectionId"],
             "detectionIds": ";".join(g["detectionId"]),
-            "confidence": round(float(g["confidence"].max()), 4),
+            # A hand label's 1.0 is not a model score, so it only counts when there is no model row.
+            "confidence": round(float(lead["confidence"].max()), 4),
             "editionsSeen": json.dumps(years),
             "evidence": json.dumps(evidence),
             "quadName": most_common(g["quadName"]) if "quadName" in g else None,
-            "source": most_common(g["source"]),
+            "source": g.iloc[0]["source"] if hand else most_common(g["source"]),
+            "handLabeled": hand,
             "nDetections": len(g),
+            "nHandLabels": int(is_gt.sum()),
         })
 
     out = pd.DataFrame(rows)
@@ -128,25 +150,43 @@ def dedup(detections: pd.DataFrame, distance_m: float = DEDUP_DISTANCE_M) -> pd.
     return out.drop(columns=["_x", "_y"])
 
 
+def read_detections(path: str) -> pd.DataFrame:
+    if path.lower().endswith((".geojson", ".json", ".gpkg")):
+        g = gpd.read_file(path).to_crs(4326)
+        raw = pd.DataFrame(g.drop(columns="geometry"))
+        raw["lat"], raw["lon"] = g.geometry.y, g.geometry.x
+        return raw
+    return pd.read_csv(path, dtype={"detectionId": str, "id": str})
+
+
+def merge_counts(result: pd.DataFrame) -> dict:
+    """How many output wells came from model rows only, hand labels only, or both."""
+    hand = result["handLabeled"].astype(bool)
+    both = hand & (result["source"] != "ground_truth")
+    return {"model only": int((~hand).sum()), "hand-labeled only": int((hand & ~both).sum()),
+            "model + hand-labeled": int(both.sum()),
+            "hand labels merged into a model row": int(result.loc[both, "nHandLabels"].sum())}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--detections", required=True)
+    ap.add_argument("--detections", required=True, nargs="+", help="one or more detection files")
     ap.add_argument("--distance", type=float, default=DEDUP_DISTANCE_M)
     ap.add_argument("--out", default=os.path.join("pipeline", "data", "deduped.csv"))
     args = ap.parse_args()
 
-    if args.detections.lower().endswith((".geojson", ".json", ".gpkg")):
-        g = gpd.read_file(args.detections).to_crs(4326)
-        raw = pd.DataFrame(g.drop(columns="geometry"))
-        raw["lat"], raw["lon"] = g.geometry.y, g.geometry.x
-    else:
-        raw = pd.read_csv(args.detections, dtype={"detectionId": str, "id": str})
+    # Each file gets its own default ids/source before they are combined.
+    raw = pd.concat([normalize_columns(read_detections(p)) for p in args.detections], ignore_index=True)
+    if raw["detectionId"].duplicated().any():
+        raise SystemExit(f"Duplicate detectionIds across the input files: "
+                         f"{raw.loc[raw['detectionId'].duplicated(), 'detectionId'].head(3).tolist()}")
 
     result = dedup(raw, args.distance)
     result.to_csv(args.out, index=False)
     multi = int((result["editionsSeen"].map(lambda s: len(json.loads(s))) > 1).sum())
     print(f"Detections in: {len(raw)}   Unique wells out: {len(result)}   "
           f"Seen on 2+ editions: {multi}")
+    print("Merged groups: " + "   ".join(f"{k}: {v}" for k, v in merge_counts(result).items()))
     print(f"Wrote {args.out}")
 
 

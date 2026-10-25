@@ -19,6 +19,8 @@ it here too (tests check the formula, not the values).
 Run from the repo root, after enrich.py:
   python pipeline/score.py
 Reads pipeline/data/enriched.csv, writes pipeline/data/scored.csv (sorted, best first).
+Candidates rejected in review (pipeline/review.py) are scored and kept like any other row;
+load_candidates.py attaches the review, and the app lists them last without a rank.
 """
 from __future__ import annotations
 
