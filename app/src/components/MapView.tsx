@@ -105,6 +105,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
   const [wellsOn, setWellsOn] = useState(true);
   const [wellsAvail, setWellsAvail] = useState<"checking" | "yes" | "no">("checking");
   const wellsData = useRef<unknown>(null);
+  const [legendOpen, setLegendOpen] = useState(false);
   const laneRef = useRef(activeLane);
   rowsRef.current = rows;
   selectRef.current = onSelect;
@@ -516,6 +517,72 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
     if (c) map.easeTo({ center: [c.lon, c.lat], zoom: Math.max(map.getZoom(), 11), duration: 600 });
   }, [selectedId]);
 
+  const wellsToggle = (
+        <label className={`toggle ${wellsAvail === "yes" ? "" : "disabled"}`} title="Wells already in the state's CalGEM records: a density glow zoomed out, individual rings zoomed in.">
+          <input
+            type="checkbox"
+            checked={wellsAvail === "yes" && wellsOn}
+            disabled={wellsAvail !== "yes"}
+            onChange={(e) => setWellsOn(e.target.checked)}
+          />
+          <span>Documented wells (CalGEM)</span>
+          {wellsAvail === "no" && <em>not loaded</em>}
+        </label>
+  );
+
+  const legendSections = (
+    <>
+        <div className={`legend-section ${activeLane === "idle" ? "dim" : ""}`}>
+        <div className="legend-head undocumented">{LANE_META.undocumented.tab}</div>
+        <div className="legend-title">Candidate score</div>
+        <div
+          className="ramp"
+          style={{ background: `linear-gradient(90deg, ${SCORE_RAMP.join(",")})` }}
+        />
+        <div className="ramp-labels">
+          <span>low</span>
+          <span>high</span>
+        </div>
+        {(Object.keys(STATUS_META) as (keyof typeof STATUS_META)[])
+          .filter((s) => s !== "candidate")
+          .map((s) => (
+            <div key={s} className="legend-row">
+              {s === "queued" ? (
+                <span className="dot ring" />
+              ) : s === "confirmed_not_leaking" ? (
+                <span className="dot ring" style={{ borderColor: STATUS_META[s].color }} />
+              ) : (
+                <span
+                  className="dot"
+                  style={{ background: STATUS_META[s].color, opacity: s === "no_well" || s === "mislocated" ? 0.55 : 1 }}
+                />
+              )}
+              {STATUS_META[s].label}
+            </div>
+          ))}
+        {rows.some(isRejected) && (
+          <div className="legend-row">
+            <span className="dot rejected-dot" />
+            Rejected in review
+          </div>
+        )}
+        </div>
+        <div className={`legend-section ${activeLane === "undocumented" ? "dim" : ""}`}>
+          <div className="legend-head idle">{LANE_META.idle.tab}</div>
+          <div className="legend-row">
+            <span className="sq-idle" />
+            Idle well within 250 m of a home or school
+          </div>
+          {wellsAvail === "yes" && wellsOn && (
+            <div className="legend-row">
+              <span className="dot ring" />
+              All CalGEM wells
+            </div>
+          )}
+        </div>
+    </>
+  );
+
   return (
     <div className={`map ${selectedId ? "panel-open" : ""}`}>
       <div ref={el} className="map-canvas" />
@@ -529,19 +596,42 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
         </button>
       )}
 
+      {compact && (
+        <>
+          <button
+            className={`map-legend-btn ${legendOpen ? "on" : ""}`}
+            onClick={() => setLegendOpen((o) => !o)}
+            aria-expanded={legendOpen}
+            aria-label="Legend and layers"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+              <circle cx="5" cy="7" r="1.6" fill="currentColor" stroke="none" />
+              <circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none" />
+              <circle cx="5" cy="17" r="1.6" fill="currentColor" stroke="none" />
+              <path d="M10 7h10M10 12h10M10 17h10" />
+            </svg>
+          </button>
+          {legendOpen && (
+            <div className="map-legend-pop" role="dialog" aria-label="Legend and layers">
+              <div className="map-legend-head">
+                <strong>Legend</strong>
+                <button className="map-legend-close" onClick={() => setLegendOpen(false)} aria-label="Close legend">
+                  Done
+                </button>
+              </div>
+              <div className="map-control-inline">{wellsToggle}</div>
+              <div className="legend-inline" aria-label="Legend">
+                {legendSections}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       {!compact && (
         <>
       <div className="map-control" aria-label="Map layers">
-        <label className={`toggle ${wellsAvail === "yes" ? "" : "disabled"}`} title="Wells already in the state's CalGEM records: a density glow zoomed out, individual rings zoomed in.">
-          <input
-            type="checkbox"
-            checked={wellsAvail === "yes" && wellsOn}
-            disabled={wellsAvail !== "yes"}
-            onChange={(e) => setWellsOn(e.target.checked)}
-          />
-          <span>Documented wells (CalGEM)</span>
-          {wellsAvail === "no" && <em>not loaded</em>}
-        </label>
+        {wellsToggle}
         {sheets.length === 0 ? (
           <label className="toggle disabled" title="Add a converted sheet with pipeline/geotiff_to_overlay.py">
             <input type="checkbox" checked={false} disabled readOnly />
@@ -599,54 +689,7 @@ export default function MapView({ rows, selectedId, onSelect, compact, here, pul
       </div>
 
       <div className="legend" aria-label="Legend">
-        <div className={`legend-section ${activeLane === "idle" ? "dim" : ""}`}>
-        <div className="legend-head undocumented">{LANE_META.undocumented.tab}</div>
-        <div className="legend-title">Candidate score</div>
-        <div
-          className="ramp"
-          style={{ background: `linear-gradient(90deg, ${SCORE_RAMP.join(",")})` }}
-        />
-        <div className="ramp-labels">
-          <span>low</span>
-          <span>high</span>
-        </div>
-        {(Object.keys(STATUS_META) as (keyof typeof STATUS_META)[])
-          .filter((s) => s !== "candidate")
-          .map((s) => (
-            <div key={s} className="legend-row">
-              {s === "queued" ? (
-                <span className="dot ring" />
-              ) : s === "confirmed_not_leaking" ? (
-                <span className="dot ring" style={{ borderColor: STATUS_META[s].color }} />
-              ) : (
-                <span
-                  className="dot"
-                  style={{ background: STATUS_META[s].color, opacity: s === "no_well" || s === "mislocated" ? 0.55 : 1 }}
-                />
-              )}
-              {STATUS_META[s].label}
-            </div>
-          ))}
-        {rows.some(isRejected) && (
-          <div className="legend-row">
-            <span className="dot rejected-dot" />
-            Rejected in review
-          </div>
-        )}
-        </div>
-        <div className={`legend-section ${activeLane === "undocumented" ? "dim" : ""}`}>
-          <div className="legend-head idle">{LANE_META.idle.tab}</div>
-          <div className="legend-row">
-            <span className="sq-idle" />
-            Idle well within 250 m of a home or school
-          </div>
-          {wellsAvail === "yes" && wellsOn && (
-            <div className="legend-row">
-              <span className="dot ring" />
-              All CalGEM wells
-            </div>
-          )}
-        </div>
+        {legendSections}
       </div>
         </>
       )}
