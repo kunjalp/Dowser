@@ -13,6 +13,12 @@ Dowser reads historical USGS topographic maps for oil and gas well symbols, chec
 
 Built at Cal Hacks 13.0 (Oct 23–25, 2026) for Kern County, California.
 
+## How we use Convex
+Convex is the whole backend: schema, queries, mutations, an internal action for briefs, and file storage for field photos.
+The ESP32 handheld posts readings to a Convex HTTP action, and auto-confirm runs in the same mutation.
+The Command Map and Field View use live `useQuery`, so both update with no refresh when a reading or decision lands.
+Full evidence with file paths and a dated commit log: [hackathon.md](hackathon.md).
+
 **Live demo:** https://dowser-ten.vercel.app  (Command Map) · `/field` (Field View, also an iOS app, built with Codemagic for TestFlight)
 
 > [!IMPORTANT]
