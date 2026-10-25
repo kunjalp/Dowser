@@ -18,7 +18,17 @@ Built at Cal Hacks 13.0 (Oct 23–25, 2026) for Kern County, California.
 > [!IMPORTANT]
 > **About the demo sensor.** Flammable gas isn't allowed at the venue, so the handheld uses a **potentiometer (knob) to simulate a methane sensor reading**. Everything after the reading (live sync, pairing, auto-confirm, ranking, briefs) is the real system, and a gas sensor module can be wired to the same pin. The app shows a "Simulated sensor input" label whenever this is the case. The demo does not detect methane.
 
-<!-- TODO: screenshot of the Command Map with the hero candidate open, e.g. docs/command-map.png -->
+<p align="center">
+  <img src="docs/command-map.png" alt="Command Map with a candidate open: ranked list, satellite map, and the Brief with evidence crop" width="900">
+</p>
+<p align="center"><sub>Command Map: a candidate open with its Brief and the historical-map evidence crop. The "Simulated sensor input" pill is always visible.</sub></p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/command-map-overview.png" alt="Both lanes on the Kern County map"><br><sub>The 2 candidates not in state records, over Kern County.</sub></td>
+    <td width="50%"><img src="docs/command-map-idle.png" alt="Idle wells near homes and schools"><br><sub>The idle lane: 481 state-listed idle wells within 250 m of a home or school.</sub></td>
+  </tr>
+</table>
 <!-- TODO: screenshot of Field View on a phone, e.g. docs/field-view.png -->
 
 ---
