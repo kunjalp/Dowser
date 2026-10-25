@@ -780,3 +780,10 @@ main.field:has(.field-paired) > .field-toast { flex: none; }
 
 /* The legend popover lives inside the map, which sits under the hint bar and tapped-dot card: hide those while it is open */
 .field-map:has(.map-legend-pop) ~ .field-hint, .field-map:has(.map-legend-pop) ~ .map-card { display: none; }
+
+
+/* Field View map tab: Me and Legend stack at the top left; zoom (+ and -) and the info button at the top right */
+main.field:has(.field-map) .field-map .map-me { top: calc(76px + env(safe-area-inset-top)); right: auto; left: 10px; }
+.field-map .map-legend-btn { right: auto; left: 10px; top: calc(76px + 52px + env(safe-area-inset-top)); }
+.field-map .maplibregl-ctrl-bottom-right { top: calc(76px + env(safe-area-inset-top)); }
+.field.outdoor .field-map .map-legend-btn { top: calc(76px + 60px + env(safe-area-inset-top)); }
