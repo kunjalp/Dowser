@@ -2,6 +2,7 @@ import { convexTest } from "convex-test";
 import { describe, expect, test, beforeEach } from "vitest";
 import schema from "../convex/schema";
 import { internal, api } from "../convex/_generated/api";
+import { AUTO_CONFIRM } from "../convex/readings";
 
 const modules = import.meta.glob("../convex/**/*.ts");
 const TOKEN = "test-token";
@@ -219,14 +220,16 @@ describe("ingest endpoint", () => {
 describe("auto-confirm", () => {
   const hot = (id: string, value = 1500) => ({ deviceId: "esp32-1", value, candidateId: id });
 
-  test("three hot readings in the window confirm a leak and move it to #1", async () => {
+  test("sustained hot readings in the window confirm a leak and move it to #1", async () => {
     const t = setup();
     await t.mutation(internal.seed.seedFakeCandidates, { count: 5 });
+    const need = AUTO_CONFIRM.count; // 8 readings at or above the threshold within the window
     const r1 = await post(t, hot("fake-003"));
-    const r2 = await post(t, hot("fake-003"));
-    expect((await r2.json()).autoConfirmed).toBe(false);
-    const r3 = await post(t, hot("fake-003"));
-    expect((await r3.json()).autoConfirmed).toBe(true);
+    let beforeLast = r1;
+    for (let i = 1; i < need - 1; i++) beforeLast = await post(t, hot("fake-003"));
+    expect((await beforeLast.json()).autoConfirmed).toBe(false); // one short of the rule
+    const last = await post(t, hot("fake-003"));
+    expect((await last.json()).autoConfirmed).toBe(true);
     expect(r1.status).toBe(201);
     const rows = await t.query(api.candidates.ranked, {});
     expect(rows[0].id).toBe("fake-003");
@@ -250,7 +253,7 @@ describe("auto-confirm", () => {
     const t = setup();
     await t.mutation(internal.seed.seedFakeCandidates, { count: 5 });
     await t.mutation(api.candidates.setStatus, { id: "fake-004", status: "no_well", source: "analyst" });
-    for (let i = 0; i < 4; i++) await post(t, hot("fake-004"));
+    for (let i = 0; i < AUTO_CONFIRM.count + 2; i++) await post(t, hot("fake-004"));
     expect((await t.query(api.candidates.get, { id: "fake-004" }))?.status).toBe("no_well");
   });
 });

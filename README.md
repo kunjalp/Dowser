@@ -49,7 +49,7 @@ A separate tab lists **CalGEM wells marked Idle within 250 m of a home or school
 Claude writes a short brief per well: summary, why it ranks where it does, what's uncertain, and the next step. Rules are enforced in code (see [Anthropic](#anthropic-claude)).
 
 **6. Verify in the field, live.**
-In Field View a crew member picks a well and pairs the handheld. Readings stream to Convex and appear on both the phone and the Command Map within seconds. Sustained HIGH readings auto-confirm the well as leaking, which turns it red and moves it to #1.
+In Field View a crew member picks a well and pairs the handheld. Readings stream to Convex and appear on both the phone and the Command Map within seconds. Sustained HIGH readings auto-confirm the well as leaking, which turns it red and moves it to #1. Field View mirrors the Command Map on the phone: both lists (not in state records, known to state: idle), a map with a legend and layer toggle, evidence crops, and the Claude brief for each well. Swipe from the left edge to go back.
 
 ---
 
@@ -75,7 +75,7 @@ All numbers below come from our own runs on Kern County data. They are reported 
 What this means:
 - The map-to-coordinate conversion is accurate: almost every hand-labeled symbol lands on a known state well.
 - Truly undocumented wells are rare on these sheets. The 2 verified candidates sit about 116 m and 197 m from the nearest record, so they could still be mislocated records. A field visit decides.
-- Detector precision and recall on held-out tiles: 
+- Detector precision and recall on held-out tiles: **TODO: fill in from the ML report (Emir), and name the maps they cover. Measured on validation tiles only, not final test performance.**
 
 ---
 
@@ -257,7 +257,7 @@ python pipeline/idle_wells.py --prod     # shared deployment (team only)
 
 ## The handheld (firmware)
 
-An ESP32 reads a potentiometer and posts one reading per second to Convex over a phone hotspot.
+An ESP32 reads a potentiometer and posts a reading every 250 ms (four per second) to Convex over a phone hotspot.
 
 **Wiring**
 | Part | ESP32 pin |
@@ -267,7 +267,7 @@ An ESP32 reads a potentiometer and posts one reading per second to Convex over a
 | OLED SDA / SCL | GPIO 21 / GPIO 22 |
 | OLED VCC / GND | 3V3 / GND |
 
-**Behavior.** The OLED shows the reading, the state (**CLEAN** below 300, **ELEVATED** 300–1199, **HIGH** 1200 and up), Wi-Fi status, and a visible error if posting fails, plus the label "SIMULATED SENSOR". The BOOT button toggles reading mode.
+**Behavior.** The OLED shows the reading, the state (**CLEAN** below 300, **ELEVATED** 300–999, **HIGH** 1000 and up), Wi-Fi status, and a visible error if posting fails, plus the label "SIMULATED SENSOR". The BOOT button toggles reading mode.
 
 **Setup.** Open the sketch in `firmware/`, fill in the placeholders (Wi-Fi name and password, endpoint, token), select board "ESP32 Dev Module", and upload. Libraries: Adafruit SSD1306 and Adafruit GFX. **Never commit real Wi-Fi passwords or tokens.**
 
@@ -314,8 +314,8 @@ Kept as named constants, not buried in code:
 | Dedup distance across editions | 20 m | `pipeline/dedup.py` |
 | Proximity radius (idle lane, impact) | 250 m | `pipeline/idle_wells.py`, `impact.py` |
 | Score weights | confidence 0.2, undocumented 0.2, people 0.3, water 0.1, field 0.2 | `convex/scoring.ts` (mirrored in `pipeline/score.py`) |
-| HIGH threshold | 1200 | `convex/constants.ts`, firmware |
-| Auto-confirm rule | readings at or above HIGH within a short window | `convex/constants.ts` |
+| HIGH threshold | 1000 | `AUTO_CONFIRM.threshold` in `convex/readings.ts`, firmware `HIGH` |
+| Auto-confirm rule | 8 readings at or above HIGH within 10 s (about 2 s of holding the knob high) | `AUTO_CONFIRM` in `convex/readings.ts` |
 
 ---
 
@@ -327,7 +327,6 @@ python -m pytest pipeline -q --ignore=pipeline/test_annotations_to_detections.py
 npx vitest run                                                                       # Convex backend
 cd app && npx tsc --noEmit                                                           # app types
 ```
-Known issue: the backend test "three hot readings in the window confirm a leak" still expects the older auto-confirm rule and fails until it's updated.
 
 ---
 
