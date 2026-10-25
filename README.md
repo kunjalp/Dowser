@@ -13,7 +13,7 @@ Dowser reads historical USGS topographic maps for oil and gas well symbols, chec
 
 Built at Cal Hacks 13.0 (Oct 23–25, 2026) for Kern County, California.
 
-**Live demo:** https://dowser-ten.vercel.app  (Command Map) · `/field` (Field View, also an iOS app on TestFlight)
+**Live demo:** https://dowser-ten.vercel.app  (Command Map) · `/field` (Field View, also an iOS app, built with Codemagic for TestFlight)
 
 > [!IMPORTANT]
 > **About the demo sensor.** Flammable gas isn't allowed at the venue, so the handheld uses a **potentiometer (knob) to simulate a methane sensor reading**. Everything after the reading (live sync, pairing, auto-confirm, ranking, briefs) is the real system, and a gas sensor module can be wired to the same pin. The app shows a "Simulated sensor input" label whenever this is the case. The demo does not detect methane.
@@ -174,7 +174,7 @@ Every change writes a `statusEvents` row with its source (`field`, `analyst`, `a
 ```
 app/                Next.js app (Command Map at /, Field View at /field), Capacitor iOS wrapper
   src/app/          pages, globals.css, ux.css, cmdmap.css
-  src/components/   Sidebar, DetailPanel, MapView, MapFilters, Sparkline, ...
+  src/components/   Sidebar, DetailPanel, MapView, MapFilters, PrioritySliders, ...
   src/lib/types.ts  shared types, lanes, status colors
   public/evidence/  map crops shown as evidence (committed)
 convex/             schema, queries/mutations, HTTP ingest, scoring, brief prompt
@@ -478,6 +478,8 @@ State well records are pulled by our Apify Actor (`apify/calgem-wells/`), which 
 | OpenStreetMap contributors | Homes, schools, water | ODbL |
 | Overture Maps Foundation | Building footprints | See Overture's per-theme licenses |
 | Esri World Imagery | Satellite basemap | Esri terms of use (attribution shown on map) |
+
+Dowser's own code is released under the [MIT License](LICENSE). The data sources above keep their own terms.
 
 Research credit: this project builds on Berkeley Lab's work on finding undocumented orphan wells from historical maps.
 
