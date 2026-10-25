@@ -29,7 +29,30 @@ Built at Cal Hacks 13.0 (Oct 23–25, 2026) for Kern County, California.
     <td width="50%"><img src="docs/command-map-idle.png" alt="Idle wells near homes and schools"><br><sub>The idle lane: 481 state-listed idle wells within 250 m of a home or school.</sub></td>
   </tr>
 </table>
-<!-- TODO: screenshot of Field View on a phone, e.g. docs/field-view.png -->
+<table>
+  <tr>
+    <td width="25%"><img src="docs/field-list.png" alt="Field View candidate list"><br><sub>Candidate list, nearest first.</sub></td>
+    <td width="25%"><img src="docs/field-map.png" alt="Field View map with the selected candidate"><br><sub>Map with the selected candidate.</sub></td>
+    <td width="25%"><img src="docs/field-detail.png" alt="Field View detail with live simulated gauge and decision buttons"><br><sub>At the well: live gauge (simulated input) and one-tap decisions.</sub></td>
+    <td width="25%"><img src="docs/field-legend.png" alt="Field View legend"><br><sub>Legend, same as the Command Map.</sub></td>
+  </tr>
+</table>
+<p align="center"><sub>Field View on iPhone. The gauge is driven by the demo handheld's potentiometer and is labeled "Simulated sensor input".</sub></p>
+
+<details>
+<summary>More Field View screens</summary>
+
+<table>
+  <tr>
+    <td width="20%"><img src="docs/field-idle-list.png" alt="Idle lane list"><br><sub>Idle lane: wells the state lists, near homes.</sub></td>
+    <td width="20%"><img src="docs/field-evidence.png" alt="Zoomed historical map evidence"><br><sub>Tap the evidence crop to zoom the 1954 map symbol.</sub></td>
+    <td width="20%"><img src="docs/field-undo.png" alt="Decision with undo"><br><sub>A decision can be undone before it is saved.</sub></td>
+    <td width="20%"><img src="docs/field-note.png" alt="Note and photo sheet"><br><sub>Optional note and photo.</sub></td>
+    <td width="20%"><img src="docs/field-sort.png" alt="Sort sheet"><br><sub>Sort by queued, nearest or top ranked.</sub></td>
+  </tr>
+</table>
+
+</details>
 
 ---
 
