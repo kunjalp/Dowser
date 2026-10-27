@@ -531,4 +531,4 @@ Research credit: this project builds on Berkeley Lab's work on finding undocumen
 | Kunjal | Frontend (Command Map, Field View, iOS app), Convex backend, pitch |
 | Ryann | Data pipeline, Convex data, review, briefs, README |
 | Emir | Detector (YOLO), hand labels, accuracy |
-| Murad | Hardware and firmware |
+| Murad | Hardware and firmware (ESP32 handheld, live OLED, secure Convex link), tested end to end |
